@@ -48,12 +48,16 @@ import Control.Monad
 import Data.Aeson
 import Control.Concurrent
 import Nostr
+
 curve :: Curve 
 curve = getCurveByName SEC_p256k1
 -- m (PublicKey, PrivateKey)	
 
 keypair :: IO (PublicKey, PrivateKey) 
 keypair = generate curve >>= pure  
+
+
+
 
 -- import Nostr.Event
 defaultRelay :: [URI] 

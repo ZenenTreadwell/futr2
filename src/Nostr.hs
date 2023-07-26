@@ -8,6 +8,17 @@ import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson
 import qualified Crypto.Hash.SHA256 as SHA256
 import GHC.Generics
+import Data.Maybe 
+
+import Crypto.Schnorr(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
+
+isValid :: Event -> Bool 
+isValid (Event i s e) = 
+    let p = xOnlyPubKey . Hex.decodeLenient . pubkey $ e
+        s' = schnorrSig . Hex.decodeLenient $ s
+        m = msg . Hex.decodeLenient $ i
+    in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
+
 
 data Event = Event {
       eid :: ByteString 
@@ -99,30 +110,5 @@ data NostrServ
     | Notice Text
 
     
--- nostrClient uri = 
---     let
---     host :: String 
---     host = case uriAuthority uri of 
---       Right a -> unpack . unRText . authHost $ a 
---       _       -> "test"
---     path :: String
---     path = "/" -- renderStr uri --
---     port = 443
-      
---     in do 
---     putStrLn . show $ uri
---     putStrLn host
---     putStrLn path 
---     forkIO $ runSecureClient host port path runWS
-    
--- type WSreq = Either WS.ConnectionException LB.ByteString
--- runWS :: Connection -> IO () 
--- runWS conn = forever $ do 
---     m <- E.try . WS.receiveData $ conn
---     case m :: WSreq of 
---         Left e -> E.throw e
---         Right (decode -> Just d) -> case d :: Event of
---             _ -> undefined
-     
 encodeHex :: ByteString -> Text  
 encodeHex = decodeUtf8 . Hex.encode 
