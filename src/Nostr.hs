@@ -1,16 +1,21 @@
+
 module Nostr where 
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base16 as Hex
+import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
+import qualified "base16" Data.ByteString.Base16 as Hex2
 import Data.Text (append, Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import Data.Aeson
+import Data.Aeson as J
 import qualified Crypto.Hash.SHA256 as SHA256
 import GHC.Generics
 import Data.Maybe 
 
-import Crypto.Schnorr(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
+import Crypto.Schnorr(
+    signMsgSchnorr, verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig
+    , KeyPair , keypair, SchnorrSig,  getSchnorrSig, deriveXOnlyPubKey, 
+    getXOnlyPubKey)
 
 isValid :: Event -> Bool 
 isValid (Event i s e) = 
@@ -19,6 +24,12 @@ isValid (Event i s e) =
         m = msg . Hex.decodeLenient $ i
     in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
 
+signEv :: KeyPair -> Ev -> Maybe Event 
+signEv k e = Event <$> (Just i) <*> s' <*> (Just e)
+    where 
+    i = eventId e
+    s = signMsgSchnorr <$> (Just k) <*> (msg . Hex.decodeLenient $ i)
+    s' = Hex.encode . getSchnorrSig <$> s
 
 data Event = Event {
       eid :: ByteString 
@@ -43,7 +54,7 @@ instance FromJSON ByteString where
   parseJSON (String s) = pure . encodeUtf8 $ s  
 
 eventId :: Ev -> ByteString 
-eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . encode $ 
+eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
     [ Number 0
     , toJSON pubkey
     , Number $ fromIntegral created_at
@@ -52,15 +63,6 @@ eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . encode $
     , String content
     ]
 
-signEv :: Ev -> Event 
-signEv e = Event i s e
-    where 
-    i = eventId e
-    s = schnorr e
-
-schnorr = undefined 
-
-createEv = undefined
 
 -- wire 
 instance ToJSON Event where 

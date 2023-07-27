@@ -1,5 +1,4 @@
 
-
 import Test.Hspec 
 import Nostr
 import Data.Aeson
@@ -8,31 +7,45 @@ import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 
-import Crypto.Schnorr(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
+import Crypto.Schnorr --(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
 
 import Data.Text (append, Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import qualified Data.ByteString.Base16 as Hex
+import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
+import qualified "base16" Data.ByteString.Base16 as Hex2
 
 main :: IO ()
-main = hspec $ do 
-  it "creates id" $ shouldBe (eventId ev) evid
-  it "create id2" $ shouldBe (eid wev) (eventId . eve $ wev)
-  it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
-  it "loops2" $ shouldBe (decode . encode $ wev) (Just wev) 
-  it "verifies" $ shouldBe (isValid wev) (True)
-  -- it 
-  it "key1 " $ flip shouldBe Nothing (xOnlyPubKey . pubkey . eve $ wev)
-  it "length1" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . pubkey . eve $ wev)
-  it "key2 " $ flip shouldBe Nothing (schnorrSig . sig $ wev)
-  it "length2" $ flip shouldBe 64 (BS.length . Hex.decodeLenient . sig $ wev)
-  it "key3 " $ flip shouldBe Nothing (msg . eid $ wev)
-  it "length3" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . eid $ wev)
-
-  -- it "length4" $ flip shouldBe 32 (BS.length evid)
-  -- it "length5" $ flip shouldBe 64 (BS.length esig)
-
-
+main = do
+  kp <- generateKeyPair 
+  -- putStrLn . show $ kp
+  
+  let bkey :: ByteString
+      bkey = BS.take 64
+           . Hex.encode
+           . getXOnlyPubKey
+           . deriveXOnlyPubKey
+           $ kp 
+      msign :: Maybe Event    
+      msign = signEv kp ev{pubkey=bkey}
+      
+  hspec $ do 
+    it "gold id" $ shouldBe (eventId ev) evid
+    it "gold id 2" $ shouldBe (eid wev) (eventId . eve $ wev)
+    it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
+    it "loops 2" $ shouldBe (decode . encode $ wev) (Just wev) 
+    it "verifies" $ shouldBe (isValid wev) (True)
+        
+    it "bkey" $ shouldBe 32 (BS.length . Hex.decodeLenient $ bkey)
+    it "signs" $ flip shouldBe (Just True) (isValid <$> msign) 
+    it "sign3s" $ flip shouldBe (Just wev) (msign) 
+      
+    it "signs2" $ flip shouldBe (Just False) $ isValid <$> (signEv kp $ ev) 
+    it "key1 " $ flip shouldBe Nothing (xOnlyPubKey . pubkey . eve $ wev)
+    it "length1" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . pubkey . eve $ wev)
+    it "key2 " $ flip shouldBe Nothing (schnorrSig . sig $ wev)
+    it "length2" $ flip shouldBe 64 (BS.length . Hex.decodeLenient . sig $ wev)
+    it "key3 " $ flip shouldBe Nothing (msg . eid $ wev)
+    it "length3" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . eid $ wev)
 
 ev = Ev  
     "6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"

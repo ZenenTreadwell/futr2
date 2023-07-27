@@ -13,7 +13,6 @@ import Text.URI -- (URI, render)
 -- import qualified Data.Base16.Types as Hex
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base16 as Hex
 import Data.Text (append, Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 

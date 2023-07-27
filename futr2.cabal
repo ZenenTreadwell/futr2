@@ -35,11 +35,13 @@ library
       ViewPatterns
       BlockArguments
       OverloadedStrings
+      PackageImports
   ghc-options: -Wall
   build-depends:
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128
@@ -65,11 +67,13 @@ executable futr
       ViewPatterns
       BlockArguments
       OverloadedStrings
+      PackageImports
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128
@@ -97,11 +101,13 @@ test-suite futr2-test
       ViewPatterns
       BlockArguments
       OverloadedStrings
+      PackageImports
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128
