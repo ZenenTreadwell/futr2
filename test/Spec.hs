@@ -12,7 +12,7 @@ import Crypto.Schnorr --(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
 import Data.Text (append, Text, unpack, pack)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
-import qualified "base16" Data.ByteString.Base16 as Hex2
+-- import qualified "base16" Data.ByteString.Base16 as Hex2
 
 main :: IO ()
 main = do
@@ -20,8 +20,9 @@ main = do
   -- putStrLn . show $ kp
   
   let bkey :: ByteString
-      bkey = BS.take 64
-           . Hex.encode
+      bkey = 
+             Hex.encode
+           . BS.take 32 -- ?????? 
            . getXOnlyPubKey
            . deriveXOnlyPubKey
            $ kp 
@@ -34,18 +35,22 @@ main = do
     it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
     it "loops 2" $ shouldBe (decode . encode $ wev) (Just wev) 
     it "verifies" $ shouldBe (isValid wev) (True)
-        
-    it "bkey" $ shouldBe 32 (BS.length . Hex.decodeLenient $ bkey)
+    it "bkey" $ flip shouldBe 32 (BS.length . Hex.decodeLenient $ bkey)
+
     it "signs" $ flip shouldBe (Just True) (isValid <$> msign) 
-    it "sign3s" $ flip shouldBe (Just wev) (msign) 
+    it "signs (verbose)" $ flip shouldBe (Just wev) (msign) 
       
-    it "signs2" $ flip shouldBe (Just False) $ isValid <$> (signEv kp $ ev) 
+    it "signs, but wrong" $ flip shouldBe (Just False) $ isValid <$> (signEv kp ev) 
+
+    -- twice
+    it "length1" $ flip shouldBe 32 (BS.length . pubkey . eve $ wev)
+    it "length2" $ flip shouldBe 64 (BS.length . sig $ wev)
+    it "length3" $ flip shouldBe 32 (BS.length .eid $ wev)
+
+    -- 
     it "key1 " $ flip shouldBe Nothing (xOnlyPubKey . pubkey . eve $ wev)
-    it "length1" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . pubkey . eve $ wev)
     it "key2 " $ flip shouldBe Nothing (schnorrSig . sig $ wev)
-    it "length2" $ flip shouldBe 64 (BS.length . Hex.decodeLenient . sig $ wev)
     it "key3 " $ flip shouldBe Nothing (msg . eid $ wev)
-    it "length3" $ flip shouldBe 32 (BS.length . Hex.decodeLenient . eid $ wev)
 
 ev = Ev  
     "6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"
@@ -64,5 +69,3 @@ esig = "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a
 
 wev = Event evid esig ev 
   
-
-hexit b = Hex.decodeLenient b  

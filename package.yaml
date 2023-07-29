@@ -24,7 +24,7 @@ dependencies:
 - text
 - aeson
 - bytestring
-- base16
+# - base16
 - base16-bytestring
 
 - wuss

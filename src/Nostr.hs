@@ -3,15 +3,15 @@ module Nostr where
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
-import qualified "base16" Data.ByteString.Base16 as Hex2
-import Data.Text (append, Text, unpack, pack)
+import qualified Data.ByteString.Base16 as Hex
+import Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+-- c (append, Text, unpack, pack)
 import Data.Aeson as J
-import qualified Crypto.Hash.SHA256 as SHA256
 import GHC.Generics
-import Data.Maybe 
+import Data.Maybe
 
+import qualified Crypto.Hash.SHA256 as SHA256
 import Crypto.Schnorr(
     signMsgSchnorr, verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig
     , KeyPair , keypair, SchnorrSig,  getSchnorrSig, deriveXOnlyPubKey, 
@@ -47,12 +47,6 @@ data Ev = Ev {
 instance ToJSON Ev
 instance FromJSON Ev
 
-instance ToJSON ByteString where 
-  toJSON s = String . decodeUtf8 $ s
-
-instance FromJSON ByteString where 
-  parseJSON (String s) = pure . encodeUtf8 $ s  
-
 eventId :: Ev -> ByteString 
 eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
     [ Number 0
@@ -62,7 +56,6 @@ eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . J.encode $
     , toJSON tags
     , String content
     ]
-
 
 -- wire 
 instance ToJSON Event where 
@@ -94,6 +87,12 @@ instance FromJSON Event where
         in Event <$> i 
                  <*> s
                  <*> ev
+    
+instance ToJSON ByteString where 
+  toJSON s = String . decodeUtf8 $ s
+
+instance FromJSON ByteString where 
+  parseJSON (String s) = pure . encodeUtf8 $ s  
 
 type Kind = Int
 type Tag = Value
@@ -110,7 +109,3 @@ data NostrServ
     = NewEvent SubId Event
     | Eose SubId
     | Notice Text
-
-    
-encodeHex :: ByteString -> Text  
-encodeHex = decodeUtf8 . Hex.encode 
