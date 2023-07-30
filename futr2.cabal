@@ -41,6 +41,7 @@ library
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128
@@ -72,6 +73,7 @@ executable futr
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128
@@ -105,6 +107,7 @@ test-suite futr2-test
       DRBG
     , aeson
     , base >=4.7 && <5
+    , base16
     , base16-bytestring
     , bytestring
     , cipher-aes128

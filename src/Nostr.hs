@@ -3,33 +3,44 @@ module Nostr where
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base16 as Hex
 import Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 -- c (append, Text, unpack, pack)
 import Data.Aeson as J
 import GHC.Generics
 import Data.Maybe
-
+import Data.Either
+import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
+import qualified "base16" Data.ByteString.Base16 as B16
 import qualified Crypto.Hash.SHA256 as SHA256
 import Crypto.Schnorr(
     signMsgSchnorr, verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig
     , KeyPair , keypair, SchnorrSig,  getSchnorrSig, deriveXOnlyPubKey, 
     getXOnlyPubKey)
 
+eventId :: Ev -> ByteString 
+eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
+    [ Number 0
+    , toJSON pubkey
+    , Number $ fromIntegral created_at
+    , Number $ fromIntegral kind
+    , toJSON tags
+    , String content
+    ]
+
 isValid :: Event -> Bool 
 isValid (Event i s e) = 
-    let p = xOnlyPubKey . Hex.decodeLenient . pubkey $ e
-        s' = schnorrSig . Hex.decodeLenient $ s
-        m = msg . Hex.decodeLenient $ i
+    let p = xOnlyPubKey . pubkey $ e
+        s' = schnorrSig s
+        m = msg i
     in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
 
 signEv :: KeyPair -> Ev -> Maybe Event 
 signEv k e = Event <$> (Just i) <*> s' <*> (Just e)
     where 
     i = eventId e
-    s = signMsgSchnorr <$> (Just k) <*> (msg . Hex.decodeLenient $ i)
-    s' = Hex.encode . getSchnorrSig <$> s
+    s = signMsgSchnorr <$> (Just k) <*> (msg i)
+    s' = getSchnorrSig <$> s
 
 data Event = Event {
       eid :: ByteString 
@@ -46,16 +57,6 @@ data Ev = Ev {
     } deriving (Eq, Show, Generic)
 instance ToJSON Ev
 instance FromJSON Ev
-
-eventId :: Ev -> ByteString 
-eventId Ev{..} = Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
-    [ Number 0
-    , toJSON pubkey
-    , Number $ fromIntegral created_at
-    , Number $ fromIntegral kind
-    , toJSON tags
-    , String content
-    ]
 
 -- wire 
 instance ToJSON Event where 
@@ -87,12 +88,24 @@ instance FromJSON Event where
         in Event <$> i 
                  <*> s
                  <*> ev
-    
-instance ToJSON ByteString where 
-  toJSON s = String . decodeUtf8 $ s
 
-instance FromJSON ByteString where 
-  parseJSON (String s) = pure . encodeUtf8 $ s  
+
+instance ToJSON ByteString where
+  toJSON bs = toJSON $ decodeUtf8 $ Hex.encode bs
+
+instance FromJSON ByteString where
+  parseJSON = withText "HexByteString" $ \txt -> do
+    let hexStr = encodeUtf8 txt
+    case Hex.decode hexStr of
+      Left err -> fail err
+      Right bs -> return bs
+
+    
+-- instance ToJSON ByteString where 
+--   toJSON =  
+
+-- instance FromJSON ByteString where 
+--   parseJSON (String s) = 
 
 type Kind = Int
 type Tag = Value
