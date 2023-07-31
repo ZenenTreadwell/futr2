@@ -13,10 +13,7 @@ import Data.Either
 import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
 import qualified "base16" Data.ByteString.Base16 as B16
 import qualified Crypto.Hash.SHA256 as SHA256
-import Crypto.Schnorr(
-    signMsgSchnorr, verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig
-    , KeyPair , keypair, SchnorrSig,  getSchnorrSig, deriveXOnlyPubKey, 
-    getXOnlyPubKey)
+import Crypto.Schnorr
 
 eventId :: Ev -> ByteString 
 eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
@@ -71,7 +68,7 @@ instance ToJSON Event where
         ]  
 
 instance FromJSON Event where 
-    parseJSON (Object o) =  
+    parseJSON = withObject "event" \o ->  
         let 
         i = o .: "id"
         p = o .: "pubkey"
@@ -88,7 +85,6 @@ instance FromJSON Event where
         in Event <$> i 
                  <*> s
                  <*> ev
-
 
 instance ToJSON ByteString where
   toJSON bs = toJSON $ decodeUtf8 $ Hex.encode bs

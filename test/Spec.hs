@@ -6,10 +6,10 @@ import Data.Either
 import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-
+import Data.ByteString.Char8 as C8
 import Crypto.Schnorr --(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
 
-import Data.Text (append, Text, unpack, pack)
+import Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
 import qualified "base16" Data.ByteString.Base16 as Hex2
@@ -20,12 +20,11 @@ main = do
   -- putStrLn . show $ kp
   
   let bkey :: ByteString
-      bkey = 
-             getXOnlyPubKey
-           . deriveXOnlyPubKey
-           $ kp 
+      bkey = getXOnlyPubKey . deriveXOnlyPubKey $ kp 
       msign :: Maybe Event    
       msign = signEv kp ev{pubkey=bkey}
+
+      bkey2 = xOnlyPubKey bkey
       
   hspec $ do 
     it "evid length" $ flip shouldBe 32 (BS.length evid)
@@ -36,9 +35,11 @@ main = do
     it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
     it "loops 2" $ shouldBe (decode . encode $ wev) (Just wev) 
     
-    it "verifies" $ shouldBe (isValid wev) (Just True)
+    it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . pubkey . eve $ wev)
+    it "verifies!" $ shouldBe (isValid wev) (Just True)
 
     it "bkey length" $ flip shouldBe 32 (BS.length bkey)
+    it "bkey2 " $ flip shouldNotBe Nothing bkey2
     it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . sig <$> msign )
     it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . eid <$> msign )
     
@@ -76,4 +77,3 @@ esig :: ByteString
 esig = Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 
 wev = Event evid esig ev 
-  
