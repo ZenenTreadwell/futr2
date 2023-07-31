@@ -20,8 +20,8 @@ main = do
   -- putStrLn . show $ kp
   
   let bkey :: ByteString
-      bkey = BS.take 32
-           . getXOnlyPubKey
+      bkey = 
+             getXOnlyPubKey
            . deriveXOnlyPubKey
            $ kp 
       msign :: Maybe Event    
@@ -36,16 +36,18 @@ main = do
     it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
     it "loops 2" $ shouldBe (decode . encode $ wev) (Just wev) 
     
-    it "verifies" $ shouldBe (isValid wev) (True)
+    it "verifies" $ shouldBe (isValid wev) (Just True)
 
-    it "bkey" $ flip shouldBe 32 (BS.length bkey)
-    it "signs" $ flip shouldBe (Just True) (isValid <$> msign) 
+    it "bkey length" $ flip shouldBe 32 (BS.length bkey)
+    it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . sig <$> msign )
+    it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . eid <$> msign )
+    
+    it "signs valid" $ flip shouldBe (Just True) (isValid =<< msign) 
 
-    it "signs (verbose)" $ flip shouldBe (Nothing) (toJSON <$> msign) 
+    it "sign (verbose)" $ flip shouldBe (Nothing) (msign) 
       
-    it "signs, but wrong" $ flip shouldBe (Just False) $ isValid <$> (signEv kp ev) 
+    it "signs, but wrong" $ flip shouldBe (Just False) $ isValid =<< (signEv kp ev) 
 
-    -- twice
     it "length1" $ flip shouldBe 32 (BS.length . pubkey . eve $ wev)
     it "length2" $ flip shouldBe 64 (BS.length . sig $ wev)
     it "length3" $ flip shouldBe 32 (BS.length .eid $ wev)

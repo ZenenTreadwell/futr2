@@ -28,12 +28,12 @@ eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.
     , String content
     ]
 
-isValid :: Event -> Bool 
+isValid :: Event -> Maybe Bool 
 isValid (Event i s e) = 
     let p = xOnlyPubKey . pubkey $ e
         s' = schnorrSig s
         m = msg i
-    in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
+    in verifyMsgSchnorr <$> p  <*> s'  <*> m
 
 signEv :: KeyPair -> Ev -> Maybe Event 
 signEv k e = Event <$> (Just i) <*> s' <*> (Just e)
@@ -99,13 +99,6 @@ instance FromJSON ByteString where
     case Hex.decode hexStr of
       Left err -> fail err
       Right bs -> return bs
-
-    
--- instance ToJSON ByteString where 
---   toJSON =  
-
--- instance FromJSON ByteString where 
---   parseJSON (String s) = 
 
 type Kind = Int
 type Tag = Value
