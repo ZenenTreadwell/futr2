@@ -14,6 +14,7 @@ import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
 import qualified "base16" Data.ByteString.Base16 as B16
 import qualified Crypto.Hash.SHA256 as SHA256
 import Crypto.Schnorr
+import Data.Vector as V
 
 eventId :: Ev -> ByteString 
 eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
@@ -69,22 +70,13 @@ instance ToJSON Event where
 
 instance FromJSON Event where 
     parseJSON = withObject "event" \o ->  
-        let 
-        i = o .: "id"
-        p = o .: "pubkey"
-        c = o .: "created_at"
-        k = o .: "kind"
-        t = o .: "tags"
-        n = o .: "content"
-        s = o .: "sig"
-        ev = Ev <$> p 
-                <*> c 
-                <*> k
-                <*> t 
-                <*> n
-        in Event <$> i 
-                 <*> s
-                 <*> ev
+        Event <$> o .: "id" 
+              <*> o .: "sig"
+              <*> (Ev <$> o .: "pubkey" 
+                      <*> o .: "created_at" 
+                      <*> o .: "kind"
+                      <*> o .: "tags" 
+                      <*> o .: "content")
 
 instance ToJSON ByteString where
   toJSON bs = toJSON $ decodeUtf8 $ Hex.encode bs
@@ -99,15 +91,44 @@ instance FromJSON ByteString where
 type Kind = Int
 type Tag = Value
 data Relay
-data Filter
+-- data Filter
+type Filter = Value
 type SubId = Text
 data Sub 
-data NostrCli
-    = CreateEvent Event
+data Up
+    = Submit Event
     | Subscribe SubId [Filter]
     | Close SubId 
-    
-data NostrServ
-    = NewEvent SubId Event
-    | Eose SubId
+    deriving (Generic)
+data Down
+    = See SubId Event
+    | Last SubId
     | Notice Text
+
+instance FromJSON Up where 
+    parseJSON = withArray "up" \a -> 
+        case V.head a of 
+            "EVENT" -> Submit <$> parseJSON (V.last a)
+            -- "REQ" -> fail "unimpl req"
+            
+instance ToJSON Up where 
+    toJSON (Submit e) = toJSON [
+          String "EVENT"
+        , toJSON e
+        ]
+    toJSON (Subscribe s fx) = toJSON $ [
+          String "REQ"
+        , String s 
+        ] <> fx
+
+instance FromJSON Down where 
+    parseJSON = withArray "down" \a -> 
+        case (V.head a, V.head . V.tail $ a) of 
+            ("EVENT", s) -> See <$> (parseJSON s) <*> parseJSON (V.last a)        
+
+instance ToJSON Down where 
+    toJSON (See s e) = toJSON [
+          String "EVENT"
+        , String s
+        , toJSON e
+        ]

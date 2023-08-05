@@ -42,7 +42,9 @@ import Crypto.PubKey.ECC.ECDSA (PublicKey, PrivateKey, Signature, sign, verify)
 import Network.WebSockets as WS
 import qualified Network.WebSockets.Stream as Stream
 
+import Control.Monad.IO.Class
 import Data.Maybe
+import Data.Either
 import Control.Monad
 import Data.Aeson
 import Control.Concurrent
@@ -55,21 +57,52 @@ curve = getCurveByName SEC_p256k1
 keypair :: IO (PublicKey, PrivateKey) 
 keypair = generate curve >>= pure  
 
-
-
-
 -- import Nostr.Event
 defaultRelay :: [URI] 
 defaultRelay = 
     [ [QQ.uri|wss://nostr.wine|] 
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.bg|] 
-    , [QQ.uri|wss://nostr-relay.untethr.me|]
+    -- , [QQ.uri|wss://nostr-relay.untethr.me|]
     , [QQ.uri|wss://relay.kronkltd.net|]
     ]
+
+
+-- startCli :: MonadIO m => URI -> ClientApp a -> m a 
+startCli uri app = 
+    runSecureClient host (fromIntegral port) path app 
+    where 
+    Just (host, port, path) = extractURI uri
+
+-- extractURI :: URI -> Maybe (String, _ , String) 
+extractURI uri = do 
+    a <- case auth of 
+        Right a -> Just a 
+        _       -> Nothing 
+    let host = unpack . unRText $ authHost a
+    let port = maybe 443 id $ authPort a
+    let path = unpack $ maybe "/" joinpath $ uriPath uri
+    pure (host, port, path)
+    where 
+    auth = uriAuthority uri
+    joinpath (trailingSlash, rx) = if trailingSlash 
+        then joined `append` "/"
+        else joined 
+        where joined = foldl append "" $ fmap (flip append "/" . unRText) rx  
+
     
-
-
 main :: IO ()
-main = undefined  
+main = undefined -- runSecureClient "nostr.wine" 443 "/" ws
 
+ws :: ClientApp ()
+ws connection = do
+    putStrLn "Connected!"
+    -- putStrLn $ show connection 
+    void . forkIO . forever $ do
+        message <- E.try . receiveData $ connection :: IO (Either WS.ConnectionException LB.ByteString)
+        print (message)
+
+    WS.sendBinaryData connection $ encode $ Subscribe "a" [object ["kind" .= Number 1]]
+
+    threadDelay maxBound
+    -- sendClose connection (pack "Bye!")

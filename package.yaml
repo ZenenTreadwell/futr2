@@ -26,6 +26,7 @@ dependencies:
 - bytestring
 - base16
 - base16-bytestring
+- vector 
 
 - wuss
 - websockets
@@ -48,6 +49,7 @@ default-extensions:
 - BlockArguments
 - OverloadedStrings
 - PackageImports 
+- LambdaCase
 
 
 ghc-options:

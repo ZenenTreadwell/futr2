@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Base
       Nostr
   other-modules:
       Paths_futr2
@@ -36,6 +37,7 @@ library
       BlockArguments
       OverloadedStrings
       PackageImports
+      LambdaCase
   ghc-options: -Wall
   build-depends:
       DRBG
@@ -52,6 +54,7 @@ library
     , modern-uri
     , secp256k1-schnorr
     , text
+    , vector
     , websockets
     , wuss
   default-language: GHC2021
@@ -68,6 +71,7 @@ executable futr
       BlockArguments
       OverloadedStrings
       PackageImports
+      LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       DRBG
@@ -85,6 +89,7 @@ executable futr
     , modern-uri
     , secp256k1-schnorr
     , text
+    , vector
     , websockets
     , wuss
   default-language: GHC2021
@@ -102,6 +107,7 @@ test-suite futr2-test
       BlockArguments
       OverloadedStrings
       PackageImports
+      LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       DRBG
@@ -119,6 +125,7 @@ test-suite futr2-test
     , modern-uri
     , secp256k1-schnorr
     , text
+    , vector
     , websockets
     , wuss
   default-language: GHC2021

@@ -23,7 +23,6 @@ main = do
       bkey = getXOnlyPubKey . deriveXOnlyPubKey $ kp 
       msign :: Maybe Event    
       msign = signEv kp ev{pubkey=bkey}
-
       bkey2 = xOnlyPubKey bkey
       
   hspec $ do 
@@ -34,6 +33,17 @@ main = do
     it "gold id 2" $ shouldBe (eid wev) (eventId . eve $ wev)
     it "loops" $ shouldBe (decode . encode $ ev) (Just ev) 
     it "loops 2" $ shouldBe (decode . encode $ wev) (Just wev) 
+    
+    it "loops up" $ flip shouldBe wev $
+        case decode . encode $ Submit wev of 
+          Just (Submit e) -> e 
+          _ -> undefined
+
+    it "loops down" $ flip shouldBe wev $ 
+        case decode . encode $ See "1" wev of 
+          Just (See _ e) -> e
+          _ -> undefined 
+
     
     it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . pubkey . eve $ wev)
     it "verifies!" $ shouldBe (isValid wev) (Just True)
