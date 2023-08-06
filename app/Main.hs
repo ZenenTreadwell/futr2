@@ -49,6 +49,7 @@ import Control.Monad
 import Data.Aeson
 import Control.Concurrent
 import Nostr
+import Data.Time.Clock.POSIX
 
 curve :: Curve 
 curve = getCurveByName SEC_p256k1
@@ -76,7 +77,7 @@ startCli uri app =
 
 -- extractURI :: URI -> Maybe (String, _ , String) 
 extractURI uri = do 
-    a <- case auth of 
+    a <- case auth of
         Right a -> Just a 
         _       -> Nothing 
     let host = unpack . unRText $ authHost a
@@ -85,10 +86,11 @@ extractURI uri = do
     pure (host, port, path)
     where 
     auth = uriAuthority uri
-    joinpath (trailingSlash, rx) = if trailingSlash 
+    joinpath (trailingSlash, rx) = if not trailingSlash 
         then joined `append` "/"
         else joined 
-        where joined = foldl append "" $ fmap (flip append "/" . unRText) rx  
+        where joined = foldl append "" $ 
+                       fmap (flip append "/" . unRText) rx  
 
     
 main :: IO ()
@@ -99,10 +101,21 @@ ws connection = do
     putStrLn "Connected!"
     -- putStrLn $ show connection 
     void . forkIO . forever $ do
-        message <- E.try . receiveData $ connection :: IO (Either WS.ConnectionException LB.ByteString)
-        print (message)
+        eo <- E.try . receiveData $ connection 
+                    :: IO (Either WS.ConnectionException LB.ByteString)
+        case decode <$> eo of 
+            Right (Just d) -> case d of 
+                See subid e -> print . content . eve $ e
+                Live subid -> print "--------live"
+                Notice note -> print $ "note:" <> note 
+            Right Nothing -> print "--------down incomplete"
+            Left z -> print . show $ z
 
-    WS.sendBinaryData connection $ encode $ Subscribe "a" [object ["kind" .= Number 1]]
+    sec :: Integer <- round <$> getPOSIXTime
+    WS.sendBinaryData connection $ encode $ Subscribe "a" [object [
+          "kinds" .= [Number 1]
+        , "since" .= sec
+        ]]
 
     threadDelay maxBound
     -- sendClose connection (pack "Bye!")

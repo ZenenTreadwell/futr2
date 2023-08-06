@@ -1,23 +1,20 @@
 
 module Nostr where 
 
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import Data.ByteString as BS
 import Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
--- c (append, Text, unpack, pack)
 import Data.Aeson as J
 import GHC.Generics
 import Data.Maybe
 import Data.Either
-import qualified "base16-bytestring" Data.ByteString.Base16 as Hex
-import qualified "base16" Data.ByteString.Base16 as B16
+import Data.ByteString.Base16 as Hex
 import qualified Crypto.Hash.SHA256 as SHA256
 import Crypto.Schnorr
 import Data.Vector as V
 
-eventId :: Ev -> ByteString 
-eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
+eventId :: Ev -> Hex32
+eventId Ev{..} = Hex32 . Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
     [ Number 0
     , toJSON pubkey
     , Number $ fromIntegral created_at
@@ -28,26 +25,25 @@ eventId Ev{..} = Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.
 
 isValid :: Event -> Maybe Bool 
 isValid (Event i s e) = 
-    let p = xOnlyPubKey . pubkey $ e
-        s' = schnorrSig s
-        m = msg i
+    let p = xOnlyPubKey . un32 . pubkey $ e
+        s' = schnorrSig . un64 $ s
+        m = msg . un32 $ i
     in verifyMsgSchnorr <$> p  <*> s'  <*> m
 
 signEv :: KeyPair -> Ev -> Maybe Event 
-signEv k e = Event <$> (Just i) <*> s' <*> (Just e)
-    where 
-    i = eventId e
-    s = signMsgSchnorr <$> (Just k) <*> (msg i)
-    s' = getSchnorrSig <$> s
+signEv k e = do 
+    i <- pure $ eventId e
+    s <- getSchnorrSig . (signMsgSchnorr k) <$> (msg . un32 $ i)
+    pure $ Event i (Hex64 s) e
 
 data Event = Event {
-      eid :: ByteString 
-    , sig :: ByteString
+      eid :: Hex32
+    , sig :: Hex64
     , eve :: Ev
     } deriving (Eq, Show)
 
 data Ev = Ev {
-      pubkey     :: ByteString
+      pubkey     :: Hex32
     , created_at :: Integer -- seconds
     , kind       :: Kind
     , tags       :: Value -- [Tag]
@@ -78,22 +74,44 @@ instance FromJSON Event where
                       <*> o .: "tags" 
                       <*> o .: "content")
 
-instance ToJSON ByteString where
-  toJSON bs = toJSON $ decodeUtf8 $ Hex.encode bs
+newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
+newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
 
-instance FromJSON ByteString where
-  parseJSON = withText "HexByteString" $ \txt -> do
+instance ToJSON Hex64 where
+  toJSON (Hex64 bs) = toHex bs
+      -- \| BS.length bs == 64 = toHex bs
+      -- | otherwise = fail "incorrect length"
+
+instance ToJSON Hex32 where
+  toJSON (Hex32 bs) = toHex bs 
+
+instance FromJSON Hex64 where
+  parseJSON v = parseHex v >>= hex64 
+    where 
+    hex64 bs | BS.length bs == 64 = pure $ Hex64 bs
+             | otherwise          = fail "length"
+
+instance FromJSON Hex32 where
+  parseJSON v = (parseHex v) >>= hex32 
+    where 
+    hex32 bs | BS.length bs == 32 = pure $ Hex32 bs
+             | otherwise          = fail "length"
+
+toHex = toJSON . decodeUtf8 . Hex.encode 
+
+parseHex = withText "HexByteString" $ \txt -> do
     let hexStr = encodeUtf8 txt
     case Hex.decode hexStr of
       Left err -> fail err
       Right bs -> return bs
 
+    
+type SubId = Text
 type Kind = Int
 type Tag = Value
 data Relay
 -- data Filter
 type Filter = Value
-type SubId = Text
 data Sub 
 data Up
     = Submit Event
@@ -102,7 +120,7 @@ data Up
     deriving (Generic)
 data Down
     = See SubId Event
-    | Last SubId
+    | Live SubId
     | Notice Text
 
 instance FromJSON Up where 
@@ -120,11 +138,16 @@ instance ToJSON Up where
           String "REQ"
         , String s 
         ] <> fx
+    toJSON (Close s) = toJSON [String "CLOSE", String s]
 
 instance FromJSON Down where 
     parseJSON = withArray "down" \a -> 
         case (V.head a, V.head . V.tail $ a) of 
-            ("EVENT", s) -> See <$> (parseJSON s) <*> parseJSON (V.last a)        
+            ("EVENT", String s) -> See s <$> parseJSON (V.last a)        
+            ("EOSE", String s) -> pure $ Live s
+            ("NOTICE", String n) -> pure $ Notice n
+            _ -> fail . show $ a
+            
 
 instance ToJSON Down where 
     toJSON (See s e) = toJSON [
@@ -132,3 +155,4 @@ instance ToJSON Down where
         , String s
         , toJSON e
         ]
+    
