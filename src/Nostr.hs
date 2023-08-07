@@ -46,7 +46,7 @@ data Ev = Ev {
       pubkey     :: Hex32
     , created_at :: Integer -- seconds
     , kind       :: Kind
-    , tags       :: Value -- [Tag]
+    , tags       :: [Tag]
     , content    :: Text
     } deriving (Eq, Show, Generic)
 instance ToJSON Ev
@@ -74,45 +74,57 @@ instance FromJSON Event where
                       <*> o .: "tags" 
                       <*> o .: "content")
 
-newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
-newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
-
-instance ToJSON Hex64 where
-  toJSON (Hex64 bs) = toHex bs
-      -- \| BS.length bs == 64 = toHex bs
-      -- | otherwise = fail "incorrect length"
-
-instance ToJSON Hex32 where
-  toJSON (Hex32 bs) = toHex bs 
-
-instance FromJSON Hex64 where
-  parseJSON v = parseHex v >>= hex64 
-    where 
-    hex64 bs | BS.length bs == 64 = pure $ Hex64 bs
-             | otherwise          = fail "length"
-
-instance FromJSON Hex32 where
-  parseJSON v = (parseHex v) >>= hex32 
-    where 
-    hex32 bs | BS.length bs == 32 = pure $ Hex32 bs
-             | otherwise          = fail "length"
-
-toHex = toJSON . decodeUtf8 . Hex.encode 
-
-parseHex = withText "HexByteString" $ \txt -> do
-    let hexStr = encodeUtf8 txt
-    case Hex.decode hexStr of
-      Left err -> fail err
-      Right bs -> return bs
-
-    
 type SubId = Text
+type Relay = Text
 type Kind = Int
-type Tag = Value
-data Relay
--- data Filter
+-- type Tag = Value
+data Tag = 
+      ETag Hex32 (Maybe Relay) (Maybe Marker)
+    | PTag Hex32 (Maybe Relay)
+    | Tag  Array
+    deriving (Eq, Show, Generic)
+    
+
+instance FromJSON Tag where 
+    parseJSON = withArray "tag" \a -> do 
+        let tag = (a V.! 0)
+            evId = parseJSON (a V.! 1)
+            rel = traverse id $ parseJSON <$> (a V.!? 2)
+            mar = traverse id $ parseJSON <$> a V.!? 3
+        case tag of 
+            String "e" -> ETag <$> evId <*> rel <*> mar 
+            String "p" -> PTag <$> evId <*> rel
+            _ -> pure $ Tag a
+
+instance ToJSON Tag where 
+    toJSON (ETag i mr mm) = case (mr, mm) of 
+        (Just r, Just m) -> toJSON $ [String "e", toJSON i, toJSON r, toJSON m]
+        (Nothing, Just m) -> toJSON $ [String "e", toJSON i, String "", toJSON m]
+        (Just r, Nothing) -> toJSON $ [String "e", toJSON i, toJSON r]
+        (Nothing, Nothing) -> toJSON [String "e", toJSON i]
+    toJSON (PTag i mr) = case mr of 
+        Just r -> toJSON [String "p", toJSON i, toJSON r]
+        Nothing -> toJSON [String "p", toJSON i]
+    toJSON (Tag a) = toJSON a                       
+  
+data Marker = Reply | Root | Mention
+              deriving (Eq, Show, Generic)
+
+instance FromJSON Marker where 
+    parseJSON = withText "marker" \case 
+        "reply" -> pure Reply
+        "root"  -> pure Root
+        "mention" -> pure Mention 
+        _ -> fail "invalid marker"
+
+instance ToJSON Marker where 
+    toJSON Reply = String "reply"
+    toJSON Root = String "root"
+    toJSON Mention = String "mention"
+    
+
 type Filter = Value
-data Sub 
+
 data Up
     = Submit Event
     | Subscribe SubId [Filter]
@@ -127,7 +139,10 @@ instance FromJSON Up where
     parseJSON = withArray "up" \a -> 
         case V.head a of 
             "EVENT" -> Submit <$> parseJSON (V.last a)
-            -- "REQ" -> fail "unimpl req"
+            "REQ" -> Subscribe <$> parseJSON (a V.! 1) 
+                               <*> pure (V.foldr (:) [] (V.drop 2 a)) 
+            "CLOSE" -> Close <$> parseJSON (V.last a)
+            _ -> fail "unimpl parseJSON"
             
 instance ToJSON Up where 
     toJSON (Submit e) = toJSON [
@@ -155,4 +170,38 @@ instance ToJSON Down where
         , String s
         , toJSON e
         ]
+    toJSON (Live s) = toJSON [String "EOSE", String s]
+    toJSON (Notice n) = toJSON [String "NOTICE", String n]
     
+    
+
+newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
+newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
+
+instance ToJSON Hex64 where
+  toJSON (Hex64 bs) = toHex bs
+      -- \| BS.length bs == 64 = toHex bs
+      -- | otherwise = fail "incorrect length"
+
+instance ToJSON Hex32 where
+  toJSON (Hex32 bs) = toHex bs 
+
+instance FromJSON Hex64 where
+  parseJSON v = parseHex v >>= hex64 
+    where 
+    hex64 bs | BS.length bs == 64 = pure $ Hex64 bs
+             | otherwise          = fail "length not 64"
+
+instance FromJSON Hex32 where
+  parseJSON v = (parseHex v) >>= hex32 
+    where 
+    hex32 bs | BS.length bs == 32 = pure $ Hex32 bs
+             | otherwise          = fail "length not 32"
+
+toHex = toJSON . decodeUtf8 . Hex.encode 
+
+parseHex = withText "HexByteString" $ \txt -> do
+    let hexStr = encodeUtf8 txt
+    case Hex.decode hexStr of
+      Left err -> fail err
+      Right bs -> return bs
