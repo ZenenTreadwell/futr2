@@ -1,17 +1,19 @@
 
 module Nostr where 
 
-import Data.ByteString as BS
-import Data.Text as T
+import qualified Data.ByteString as BS
+import Data.ByteString (ByteString)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson as J
-import GHC.Generics
-import Data.Maybe
 import Data.Either
 import Data.ByteString.Base16 as Hex
 import qualified Crypto.Hash.SHA256 as SHA256
 import Crypto.Schnorr
-import Data.Vector as V
+import qualified Data.Vector as V
+import Data.Aeson.Types
+import Data.Text as T hiding (map)
+import Data.Maybe
+import GHC.Generics 
 
 eventId :: Ev -> Hex32
 eventId Ev{..} = Hex32 . Hex.decodeLenient . Hex.encode . SHA256.hash . BS.toStrict . J.encode $ 
@@ -123,8 +125,52 @@ instance ToJSON Marker where
     toJSON Mention = String "mention"
     
 
-type Filter = Value
+type Limit = Int 
+data Filter = Filter [Match] (Maybe Limit) deriving (Eq, Show)
+data Match = 
+      Ids [Text]
+    | Authors [Text]
+    | Kinds [Int]
+    | ETagM [Hex32]
+    | PTagM [Hex32]
+    | Since Int
+    | Until Int
+    deriving (Eq, Show, Generic)
 
+instance ToJSON Filter where 
+    toJSON (Filter mx (Just l)) = object $ map mootch mx <> [("limit" .= l)] -- kvx
+    toJSON (Filter mx Nothing) = object . map mootch $ mx
+
+-- mootch :: Match -> _
+mootch (Ids t) = "ids" .= t
+mootch (Authors a) = "authors" .= a
+mootch (Kinds k) = "kinds" .= k
+mootch (ETagM e) = "#e" .= e
+mootch (PTagM p) = "#p" .= p
+mootch (Since s) = "since" .= s
+mootch (Until u) = "until" .= u
+
+instance ToJSON Match  
+
+instance FromJSON Filter where 
+    parseJSON = withObject "filter" buildFilter 
+      where 
+      buildFilter :: Object -> Parser Filter
+      buildFilter o = Filter . catMaybes <$> matches o <*> limit o 
+      matches :: Object -> Parser [Maybe Match] 
+      matches o = traverse id [ 
+            fmap (fmap Ids) (o .:? "ids") -- :: Parser (Maybe (Ids a))
+          , fmap (fmap Authors) (o .:? "authors")
+          , fmap (fmap Kinds) (o .:? "kinds")
+          , fmap (fmap ETagM) $ o .:? "#e"
+          , fmap (fmap PTagM) $ o .:? "#p"
+          , fmap (fmap Since) $ o .:? "since"
+          , fmap (fmap Until) $ o .:? "until"
+          ]
+      limit :: Object -> Parser (Maybe Int)
+      limit o = o .:? "limit"
+
+instance FromJSON Match
 data Up
     = Submit Event
     | Subscribe SubId [Filter]
@@ -140,7 +186,8 @@ instance FromJSON Up where
         case V.head a of 
             "EVENT" -> Submit <$> parseJSON (V.last a)
             "REQ" -> Subscribe <$> parseJSON (a V.! 1) 
-                               <*> pure (V.foldr (:) [] (V.drop 2 a)) 
+                               <*> (traverse id $ 
+                                    V.foldr ((:) . parseJSON ) [] (V.drop 2 a)) 
             "CLOSE" -> Close <$> parseJSON (V.last a)
             _ -> fail "unimpl parseJSON"
             
@@ -152,7 +199,7 @@ instance ToJSON Up where
     toJSON (Subscribe s fx) = toJSON $ [
           String "REQ"
         , String s 
-        ] <> fx
+        ] <> (map toJSON fx)
     toJSON (Close s) = toJSON [String "CLOSE", String s]
 
 instance FromJSON Down where 
@@ -173,8 +220,6 @@ instance ToJSON Down where
     toJSON (Live s) = toJSON [String "EOSE", String s]
     toJSON (Notice n) = toJSON [String "NOTICE", String n]
     
-    
-
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
 newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
 

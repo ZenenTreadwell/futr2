@@ -37,7 +37,12 @@ main = do
           case decode . encode $ See "1" wev of 
             Just (See _ e) -> e
             _ -> undefined 
+      it "loops filter" $ flip shouldBe ff $
+          case decode . encode $ ff of 
+            Just (fff) -> fff
+            _ -> undefined 
 
+      
     describe "uses schnorr" do
       it "verifies!" $ shouldBe (isValid wev) (Just True)
       it "bkey2 " $ flip shouldNotBe Nothing bkey2
@@ -47,6 +52,7 @@ main = do
 
     describe "what the length is it anyway" do
       it "bkey length" $ flip shouldBe 32 (BS.length . un32 $ bkey)
+      it "show bkey" $ shouldBe (Just (toJSON bkey)) Nothing
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . eve $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
@@ -75,3 +81,5 @@ evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 
 wev = Event evid esig ev 
+
+ff = Filter [Kinds [0,1]] (Just 42) 

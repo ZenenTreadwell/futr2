@@ -111,11 +111,9 @@ ws connection = do
             Right Nothing -> print "--------down incomplete"
             Left z -> print . show $ z
 
-    sec :: Integer <- round <$> getPOSIXTime
-    WS.sendBinaryData connection $ encode $ Subscribe "a" [object [
-          "kinds" .= [Number 1]
-        , "since" .= sec
-        ]]
-
+    sec :: Int <- round <$> getPOSIXTime
+    WS.sendBinaryData connection $ encode $ Subscribe "a" $ [
+          Filter [Since sec, Kinds [1]] Nothing
+        ] 
     threadDelay maxBound
     -- sendClose connection (pack "Bye!")
