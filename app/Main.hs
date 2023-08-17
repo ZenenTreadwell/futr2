@@ -21,7 +21,7 @@ import qualified Text.URI.QQ as QQ
 --
 import Wuss
 
-import qualified Control.Exception as E
+import Control.Exception as E
 import qualified Data.ByteString.Lazy as LB
 -- import qualified Data.Map as Map
 
@@ -48,7 +48,8 @@ import Data.Either
 import Control.Monad
 import Data.Aeson
 import Control.Concurrent
-import Nostr
+import Nostr.Event
+import Nostr.Relay
 import Data.Time.Clock.POSIX
 
 curve :: Curve 
@@ -67,7 +68,6 @@ defaultRelay =
     -- , [QQ.uri|wss://nostr-relay.untethr.me|]
     , [QQ.uri|wss://relay.kronkltd.net|]
     ]
-
 
 -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 startCli uri app = 
@@ -92,7 +92,6 @@ extractURI uri = do
         where joined = foldl append "" $ 
                        fmap (flip append "/" . unRText) rx  
 
-    
 main :: IO ()
 main = undefined -- runSecureClient "nostr.wine" 443 "/" ws
 
@@ -105,15 +104,19 @@ ws connection = do
                     :: IO (Either WS.ConnectionException LB.ByteString)
         case decode <$> eo of 
             Right (Just d) -> case d of 
-                See subid e -> print . content . eve $ e
+                See subid e -> do 
+                    print . content . con $ e
+                    print =<< verifyE e
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
-            Left z -> print . show $ z
-
+            Left z -> do 
+                print . ("----left " <>) . show $ z
+                throw Deadlock
     sec :: Int <- round <$> getPOSIXTime
     WS.sendBinaryData connection $ encode $ Subscribe "a" $ [
           Filter [Since sec, Kinds [1]] Nothing
+        -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 
     threadDelay maxBound
     -- sendClose connection (pack "Bye!")

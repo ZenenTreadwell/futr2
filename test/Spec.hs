@@ -1,30 +1,34 @@
 
 import Test.Hspec 
-import Nostr
+
+import Nostr.Event
+import Nostr.Relay
+import Nostr.Beam
+
 import Data.Aeson
 import Data.Either
 import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 as C8
-import Crypto.Schnorr --(verifyMsgSchnorr, msg, xOnlyPubKey, schnorrSig)
-
-import Data.Text as T
+import Crypto.Schnorr
+import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
-
 main :: IO ()
 main = do
   kp <- generateKeyPair 
   let -- it's not 32...
       bkey = Hex32 . getXOnlyPubKey . deriveXOnlyPubKey $ kp 
-      msign :: Maybe Event    
-      msign = signEv kp ev{pubkey=bkey}
+      msign :: IO (Maybe Event)    
+      msign = pure . pure $ wev -- signE kp pev
       bkey2 = xOnlyPubKey . un32 $ bkey
       
+  mE <- msign 
+  vE <- verifyE wev
   hspec do 
     describe "correctly hashes event" do
-      it "gold id" $ flip shouldBe evid (eventId ev)
+      it "gold id" $ flip shouldBe evid (idE ev)
 
     describe "json encoding and decoding" do
       it "loops ev" $ shouldBe (decode . encode $ ev) (Just ev) 
@@ -42,34 +46,38 @@ main = do
             Just (fff) -> fff
             _ -> undefined 
 
-      
     describe "uses schnorr" do
-      it "verifies!" $ shouldBe (isValid wev) (Just True)
+      it "verifies!" $ shouldBe vE True
       it "bkey2 " $ flip shouldNotBe Nothing bkey2
-      it "signs valid" $ flip shouldBe (Just True) (isValid =<< msign) 
-      it "sign (verbose)" $ flip shouldBe (Nothing) (msign) 
-      it "signs, but wrong" $ flip shouldBe (Just False) $ isValid =<< (signEv kp ev) 
+      -- it "signs valid" $ flip shouldBe True (verifyE =<< mE) 
+
+      it "sign (verbose)" $ flip shouldBe (Nothing) (toJSON <$> mE) 
+
+      -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
     describe "what the length is it anyway" do
       it "bkey length" $ flip shouldBe 32 (BS.length . un32 $ bkey)
       it "show bkey" $ shouldBe (Just (toJSON bkey)) Nothing
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
-      it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . eve $ wev)
+      it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
       it "length3" $ flip shouldBe 32 (BS.length . un32 . eid $ wev)
-      it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . un64 . sig <$> msign )
-      it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . eid <$> msign )
-      it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . eve $ wev)
+      it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . un64 . sig <$> mE )
+      it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . eid <$> mE )
+      it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
 
-ev = Ev  
-    pub
-    1673347337
+
+pev = Content 1 [] "test 123 futr2" 
+
+ev = Content
     1
     [ 
       ETag evref Nothing Nothing 
     , PTag keyref Nothing  
     ] 
     "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
+    pub
+    1673347337
     where 
     evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
     keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"

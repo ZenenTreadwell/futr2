@@ -13,21 +13,21 @@
     , MultiParamTypeClasses
     #-}
 
-module Base where
+module Nostr.Beam where
 
 -- import Data.Aeson
 -- import Data.Int
 -- import Data.Text
--- import Database.Beam
--- import Database.Beam.Sqlite
--- import Database.SQLite.Simple
--- import Database.Beam.Migrate
--- import Database.Beam.Migrate.Simple
--- import Database.Beam.Backend.SQL
--- import Database.Beam.Sqlite.Syntax
--- import Database.Beam.Sqlite.Migrate (migrationBackend)
+import Database.Beam
+import Database.Beam.Sqlite
+import Database.SQLite.Simple
+import Database.Beam.Migrate
+import Database.Beam.Migrate.Simple
+import Database.Beam.Backend.SQL
+import Database.Beam.Sqlite.Syntax
+import Database.Beam.Sqlite.Migrate (migrationBackend)
     
--- -- settings :: DatabaseSettings be HoldDb
+-- settings :: DatabaseSettings be HoldDb
 -- settings = defaultDbSettings
 
 -- spec :: CheckedDatabaseSettings Sqlite Db
@@ -42,7 +42,7 @@ module Base where
 
 -- data Db f = Db {
 --       _events :: f (TableEntity _)
---     , _tags :: f (TableEntity _)
+--     , _profiles :: f (TableEntity _)
 --     , _identities :: f (TableEntity _)
 --     } deriving (Generic, Database Sqlite) 
     

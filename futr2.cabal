@@ -25,8 +25,13 @@ source-repository head
 
 library
   exposed-modules:
-      Base
-      Nostr
+      Crypto.Secp256k1
+      Crypto.Secp256k1.Gen
+      Crypto.Secp256k1.Internal
+      Crypto.Secp256k1.Prim
+      Nostr.Beam
+      Nostr.Event
+      Nostr.Relay
   other-modules:
       Paths_futr2
   hs-source-dirs:
@@ -36,7 +41,6 @@ library
       ViewPatterns
       BlockArguments
       OverloadedStrings
-      PackageImports
       LambdaCase
   ghc-options: -Wall
   build-depends:
@@ -44,16 +48,22 @@ library
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
+    , beam-core
+    , beam-migrate
+    , beam-sqlite
     , bytestring
     , cipher-aes128
     , connection
     , cryptohash-sha256
     , cryptonite
     , hspec
+    , memory
     , modern-uri
     , secp256k1-schnorr
+    , sqlite-simple
     , text
     , time
+    , transformers
     , vector
     , websockets
     , wuss
@@ -70,7 +80,6 @@ executable futr
       ViewPatterns
       BlockArguments
       OverloadedStrings
-      PackageImports
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
@@ -78,6 +87,9 @@ executable futr
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
+    , beam-core
+    , beam-migrate
+    , beam-sqlite
     , bytestring
     , cipher-aes128
     , connection
@@ -85,10 +97,13 @@ executable futr
     , cryptonite
     , futr2
     , hspec
+    , memory
     , modern-uri
     , secp256k1-schnorr
+    , sqlite-simple
     , text
     , time
+    , transformers
     , vector
     , websockets
     , wuss
@@ -106,7 +121,6 @@ test-suite futr2-test
       ViewPatterns
       BlockArguments
       OverloadedStrings
-      PackageImports
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
@@ -114,6 +128,9 @@ test-suite futr2-test
     , aeson
     , base >=4.7 && <5
     , base16-bytestring
+    , beam-core
+    , beam-migrate
+    , beam-sqlite
     , bytestring
     , cipher-aes128
     , connection
@@ -121,10 +138,13 @@ test-suite futr2-test
     , cryptonite
     , futr2
     , hspec
+    , memory
     , modern-uri
     , secp256k1-schnorr
+    , sqlite-simple
     , text
     , time
+    , transformers
     , vector
     , websockets
     , wuss

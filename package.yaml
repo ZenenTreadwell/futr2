@@ -27,6 +27,7 @@ dependencies:
 - bytestring
 - base16-bytestring
 - vector 
+- transformers
 
 - wuss
 - websockets
@@ -38,7 +39,14 @@ dependencies:
 - DRBG
 - cipher-aes128
 - cryptohash-sha256
+- memory
+# - libsecp256k1
 
+- beam-core
+- beam-sqlite
+- beam-migrate
+- sqlite-simple
+  
 - hspec
 
 language: GHC2021
@@ -48,7 +56,6 @@ default-extensions:
 - ViewPatterns
 - BlockArguments
 - OverloadedStrings
-- PackageImports 
 - LambdaCase
 
 
