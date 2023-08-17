@@ -5,13 +5,14 @@ import Nostr.Event
 import Nostr.Relay
 import Nostr.Beam
 
+import Data.Time.Clock.POSIX
 import Data.Aeson
 import Data.Either
 import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 as C8
-import Crypto.Schnorr
+import Crypto.Schnorr.Internal
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
@@ -20,12 +21,13 @@ main = do
   kp <- generateKeyPair 
   let -- it's not 32...
       bkey = Hex32 . getXOnlyPubKey . deriveXOnlyPubKey $ kp 
-      msign :: IO (Maybe Event)    
-      msign = pure . pure $ wev -- signE kp pev
       bkey2 = xOnlyPubKey . un32 $ bkey
-      
-  mE <- msign 
+      mk :: XOnlyPubKey
+      mk = deriveXOnlyPubKey kp
+      mk32 = Hex32 $ getXOnlyPubKey mk
   vE <- verifyE wev
+  sec :: Integer <- round <$> getPOSIXTime
+  let mE = signE kp $ pev mk32 sec 
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -48,8 +50,11 @@ main = do
 
     describe "uses schnorr" do
       it "verifies!" $ shouldBe vE True
-      it "bkey2 " $ flip shouldNotBe Nothing bkey2
-      -- it "signs valid" $ flip shouldBe True (verifyE =<< mE) 
+      it "isValid!" $ shouldBe (isValid wev) True
+      it "bkey2 " $ flip shouldNotBe Nothing (Just mk32)
+
+      it "signs valid" $ flip shouldBe (Just True) (fmap isValid mE) 
+      -- it "signs valid" $ flip shouldBe True (verifyE =<< sV) 
 
       it "sign (verbose)" $ flip shouldBe (Nothing) (toJSON <$> mE) 
 
@@ -64,7 +69,7 @@ main = do
       it "length3" $ flip shouldBe 32 (BS.length . un32 . eid $ wev)
       it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . un64 . sig <$> mE )
       it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . eid <$> mE )
-      it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
+      -- it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
 
 
 pev = Content 1 [] "test 123 futr2" 

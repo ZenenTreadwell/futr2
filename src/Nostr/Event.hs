@@ -20,21 +20,31 @@ import Foreign.Ptr
 
 import qualified Crypto.Hash.SHA256 as SHA256
 -- import Crypto.Schnorr
-import Crypto.Secp256k1
-import Crypto.Secp256k1.Internal
-import Crypto.Secp256k1.Prim
+-- import Crypto.Secp256k1
+-- import Crypto.Secp256k1.Internal
+-- import Crypto.Secp256k1.Prim
 
 import System.IO.Unsafe
 import Data.Word (Word8)
 import qualified Data.ByteString.Char8 as Char8
+-- import Crypto.Schnorr
 
-padZ :: BS.ByteString -> BS.ByteString
-padZ bs
-    | BS.length bs >= 64 = bs
-    | otherwise = bs `BS.append` zeroBytes
-  where
-    zeroBytes = Char8.pack (replicate (64 - BS.length bs) '\0')
-    
+import Crypto.Schnorr.Internal
+
+isValid :: Event -> Bool 
+isValid (Event i s e) = 
+    let p = xOnlyPubKey . un32 . pubkey $ e
+        s' = schnorrSig . un64 $ s
+        m = msg . un32 $ i
+    in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
+
+signE :: KeyPair -> Content -> Maybe Event
+signE kp c@(Content{..}) = 
+    let i' = idE c
+        m' = msg . un32 $ i'   
+        s' = signMsgSchnorr kp <$> m' 
+    in Event i' <$> (Hex64 . getSchnorrSig <$> s') <*> (Just c)     
+
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
     | idE con == eid = do 
@@ -43,19 +53,23 @@ verifyE Event{..}
             unsafeUseByteString (un32 eid) \(msg', 32) ->
             unsafeUseByteString (padZ . un32 . pubkey $ con) \(pub', 64) -> 
             unsafeUseByteString (un64 sig) \(sig', 64) -> do
-                print "fuck"
-                pure . isSuccess <$> schnorrVerify cx sig' msg' 32 pub' 
+                pure . isSuccess <$> schnorrSignatureVerify cx sig' msg' 32 pub' 
+    where 
+    padZ :: BS.ByteString -> BS.ByteString
+    padZ bs 
+        | BS.length bs >= 64 = bs
+        | otherwise =
+            let zeroBytes = Char8.pack (replicate (64 - BS.length bs) '\0')
+            in bs `BS.append` zeroBytes
+    isSuccess 1 = True
+    isSuccess 0 = False
+    isSuccess _ = undefined
               
 
-    -- | idE e == i = verifyMsgSchnorr 
-    --     <$> xOnlyPubKey . un32 . pubkey $ e 
-    --     <*> schnorrSig . un64 $ s 
-    --     <*>  msg . un32 $ i
-    | otherwise = pure False
+-- signE :: Hex32 -> (Hex32 -> Integer -> Content) -> IO (Maybe Event) 
+-- signE kp partC  =
+--     let 
 
-signE :: Hex32 -> (Hex32 -> Integer -> Content) -> IO (Maybe Event) 
-signE kp partC  = pure Nothing
---  do 
 --     sec :: Integer <- round <$> getPOSIXTime
 --     let pubkey = Hex32 . getXOnlyPubKey . deriveXOnlyPubKey $ kp  
 --         con = partC pubkey sec

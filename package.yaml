@@ -28,6 +28,8 @@ dependencies:
 - base16-bytestring
 - vector 
 - transformers
+- utf8-string
+- string-conversions
 
 - wuss
 - websockets
@@ -35,7 +37,7 @@ dependencies:
 - connection
 
 - cryptonite
-- secp256k1-schnorr
+# - secp256k1-schnorr
 - DRBG
 - cipher-aes128
 - cryptohash-sha256
@@ -58,12 +60,15 @@ default-extensions:
 - OverloadedStrings
 - LambdaCase
 
+extra-lib-dirs: [//to/secp256k1/library]
 
 ghc-options:
 - -Wall
 
 library:
   source-dirs: src
+  pkg-config-dependencies:
+  - libsecp256k1
 
 executables:
   futr:
@@ -80,6 +85,8 @@ tests:
   futr2-test:
     main:                Spec.hs
     source-dirs:         test
+    pkg-config-dependencies:
+    - libsecp256k1
     ghc-options:
     - -threaded
     - -rtsopts

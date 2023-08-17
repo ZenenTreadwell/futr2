@@ -27,9 +27,7 @@ import qualified Data.ByteString.Lazy as LB
 
 -- ?
 import qualified Network.Connection as Connection
-import Crypto.Schnorr (KeyPair, SchnorrSig, XOnlyPubKey,
-                       decodeHex, exportSchnorrSig, exportXOnlyPubKey,
-                       msg, signMsgSchnorr, verifyMsgSchnorr)
+import Crypto.Schnorr.Internal 
 import qualified Crypto.Hash.SHA256 as SHA256
 
 
@@ -106,7 +104,7 @@ ws connection = do
             Right (Just d) -> case d of 
                 See subid e -> do 
                     print . content . con $ e
-                    print =<< verifyE e
+                    print $ isValid e
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"

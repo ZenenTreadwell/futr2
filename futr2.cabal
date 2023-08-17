@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Crypto.Schnorr.Internal
       Crypto.Secp256k1
       Crypto.Secp256k1.Gen
       Crypto.Secp256k1.Internal
@@ -43,6 +44,10 @@ library
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall
+  extra-lib-dirs:
+      //to/secp256k1/library
+  pkgconfig-depends:
+      libsecp256k1
   build-depends:
       DRBG
     , aeson
@@ -59,11 +64,12 @@ library
     , hspec
     , memory
     , modern-uri
-    , secp256k1-schnorr
     , sqlite-simple
+    , string-conversions
     , text
     , time
     , transformers
+    , utf8-string
     , vector
     , websockets
     , wuss
@@ -82,6 +88,8 @@ executable futr
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  extra-lib-dirs:
+      //to/secp256k1/library
   build-depends:
       DRBG
     , aeson
@@ -99,11 +107,12 @@ executable futr
     , hspec
     , memory
     , modern-uri
-    , secp256k1-schnorr
     , sqlite-simple
+    , string-conversions
     , text
     , time
     , transformers
+    , utf8-string
     , vector
     , websockets
     , wuss
@@ -123,6 +132,10 @@ test-suite futr2-test
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  extra-lib-dirs:
+      //to/secp256k1/library
+  pkgconfig-depends:
+      libsecp256k1
   build-depends:
       DRBG
     , aeson
@@ -140,11 +153,12 @@ test-suite futr2-test
     , hspec
     , memory
     , modern-uri
-    , secp256k1-schnorr
     , sqlite-simple
+    , string-conversions
     , text
     , time
     , transformers
+    , utf8-string
     , vector
     , websockets
     , wuss
