@@ -2,7 +2,6 @@
 module Nostr.Event where 
 
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BU
 import Data.ByteString.Base16 as Hex
 
 import Data.ByteString (ByteString)
@@ -10,44 +9,28 @@ import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson as J
 import Data.Aeson.Types
 import qualified Data.Vector as V
-import Data.Either
 import Data.Text (Text)
-import Data.Maybe
 import GHC.Generics 
-import Data.Time.Clock.POSIX
 import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array as F
-import Foreign.Storable
 import Foreign.Ptr
-import Foreign.C.Types
-
-import           Crypto.Random.DRBG      (CtrDRBG, genBytes, newGen, newGenIO)
+import Crypto.Random.DRBG
 import qualified Crypto.Hash.SHA256 as SHA256
--- import Crypto.Schnorr
--- import Crypto.Secp256k1
--- import Crypto.Secp256k1.Internal
--- import Crypto.Secp256k1.Prim
-
 import System.IO.Unsafe
-import Data.Word (Word8)
-import qualified Data.ByteString.Char8 as Char8
--- import Crypto.Schnorr
+import Secp256k1.Internal
 
-import Crypto.Schnorr.Internal
-
-getSignPub :: Hex32 -> IO Hex64
-getSignPub (Hex32 bs) = do 
+parsePub :: Hex32 -> IO Hex64
+parsePub (Hex32 bs) = do 
     pub64 <- mallocBytes 64
     (pub32, 32) <- getPtr bs
     ret <- schnorrXOnlyPubKeyParse ctx pub64 pub32
     case ret of
         1 -> Hex64 <$> packPtr (pub64, 64) 
-        0 -> undefined 
+        _ -> undefined -- XXX how sometimes?
 
 genKeyPair :: IO Hex96
 genKeyPair = do 
     gen <- newGenIO :: IO CtrDRBG
-    let Right (bs, newGen) = genBytes 32 gen
+    let Right (bs, _) = genBytes 32 gen
     (salt, 32) <- getPtr bs
     keypair <- mallocBytes 96
     ret <- keyPairCreate ctx keypair salt
@@ -58,14 +41,16 @@ genKeyPair = do
 exportKeyPair :: Hex96 -> IO Hex32 
 exportKeyPair (Hex96 bs) = do 
     (priv, 96) <- getPtr bs
+    pub64 <- mallocBytes 64
+    _ <- keyPairXOnlyPubKey ctx pub64 nullPtr priv
     pub <- mallocBytes 32
-    schnorrPubKeySerialize ctx pub priv
+    _ <- schnorrPubKeySerialize ctx pub (castPtr pub64)
     Hex32 <$> packPtr (pub, 32)
 
 verifyE :: Event -> Bool 
 verifyE Event{..}  
     | idE con == eid = unsafePerformIO $ do 
-        signPub <- getSignPub . pubkey $ con
+        signPub <- parsePub . pubkey $ con
         (msg', 32) <- getPtr (un32 eid) -- \(msg', 32) ->  
         (sig', 64) <- getPtr (un64 sig) 
         (pub', 64) <- getPtr (un64 signPub)
@@ -79,12 +64,18 @@ signE kp c@(Content{..}) =
     (priv, 96) <- getPtr (un96 kp)
     sig <- mallocBytes 64
     (msg, 32) <- getPtr . un32 $ eid
-    ret <- schnorrSign ctx sig msg priv nullPtr
+    gen <- newGenIO :: IO CtrDRBG
+    let Right (bs, _) = genBytes 32 gen
+    (salt, 32) <- getPtr bs
+    ret <- schnorrSign ctx sig msg priv salt
     case ret of 
         1 -> do 
             sigBS <- Hex64 <$> packPtr (sig, 64)
-            pure $ Event eid sigBS c
-        _ -> undefined 
+            let newE = Event eid sigBS c
+            pure if verifyE newE 
+                then newE
+                else signE kp c
+        _ -> pure $ signE kp c
              
 idE :: Content -> Hex32
 idE Content{..} = Hex32 
@@ -151,8 +142,8 @@ instance FromJSON Tag where
     parseJSON = J.withArray "tag" \a -> do 
         let tag = a V.! 0
             evId = parseJSON (a V.! 1)
-            rel = sequenceA $ parseJSON <$> a V.!? 2
-            mar = sequenceA $ parseJSON <$> a V.!? 3
+            rel = traverse parseJSON $ a V.!? 2
+            mar = traverse parseJSON $ a V.!? 3
         case tag of 
             String "e" -> ETag <$> evId <*> rel <*> mar 
             String "p" -> PTag <$> evId <*> rel

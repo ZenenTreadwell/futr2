@@ -1,23 +1,11 @@
 
-module Crypto.Schnorr.Internal where
+module Secp256k1.Internal where
 
-import           Data.ByteString        (ByteString)
-import qualified Data.ByteString        as BS
-import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Unsafe as BU
-import           Foreign                (Ptr, castPtr, free, mallocBytes, nullPtr)
-import           Foreign.C              (CInt (..), CSize (..), CString, CUChar,
-                                         CUInt (..))
+import           Foreign                
+import           Foreign.C              
 import           System.IO.Unsafe       (unsafePerformIO)
-import           Control.Monad           (unless)
-import qualified Crypto.Hash.SHA256      as SHA256
-import           Crypto.Random.DRBG      (CtrDRBG, genBytes, newGen, newGenIO)
-import qualified Data.ByteString.Char8   as B8
 import           Data.ByteString.UTF8    as BUTF8
-import           Data.Either             (fromRight)
-import           Data.String.Conversions (ConvertibleStrings, cs)
-import           Data.Text               (unpack)
-import           System.IO.Unsafe        (unsafePerformIO)
 
 data XOnlyPubKey64
 
@@ -65,10 +53,10 @@ foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_parse" schnorrXOnl
 foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_serialize" schnorrPubKeySerialize
   :: Ctx -> Ptr CUChar -> Ptr XOnlyPubKey64 -> IO Ret
 
-foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_cmp" xOnlyPubKeyCompare
-  :: Ctx -> Ptr XOnlyPubKey64 -> Ptr XOnlyPubKey64 -> IO Ret
-foreign import ccall safe "secp256k1.h secp256k1_ec_seckey_verify" ecSecKeyVerify
-  :: Ctx -> Ptr SecKey32 -> IO Ret
+-- foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_cmp" xOnlyPubKeyCompare
+--   :: Ctx -> Ptr XOnlyPubKey64 -> Ptr XOnlyPubKey64 -> IO Ret
+-- foreign import ccall safe "secp256k1.h secp256k1_ec_seckey_verify" ecSecKeyVerify
+--   :: Ctx -> Ptr SecKey32 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_from_pubkey" xOnlyPubKeyFromPubKey
   :: Ctx -> Ptr XOnlyPubKey64 -> Ptr CInt -> Ptr PubKey64 -> IO Ret
@@ -83,7 +71,7 @@ foreign import ccall safe "secp256k1.h secp256k1_keypair_pub" keyPairPubKey
   :: Ctx -> Ptr PubKey64 -> Ptr KeyPair96 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_keypair_xonly_pub" keyPairXOnlyPubKey
-  :: Ctx -> Ptr PubKey64 -> CInt -> Ptr KeyPair96 -> IO Ret
+  :: Ctx -> Ptr PubKey64 -> Ptr CInt -> Ptr KeyPair96 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_ec_pubkey_create" ecPubKeyCreate
   :: Ctx -> Ptr PubKey64 -> Ptr SecKey32 -> IO Ret

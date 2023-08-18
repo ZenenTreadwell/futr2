@@ -6,7 +6,6 @@
 
 module Main (main) where
 
--- modern-uri                          
 import Text.URI -- (URI, render)
 
 -- import qualified Data.ByteString.Base16 as Hex 
@@ -27,7 +26,7 @@ import qualified Data.ByteString.Lazy as LB
 
 -- ?
 import qualified Network.Connection as Connection
-import Crypto.Schnorr.Internal 
+import Secp256k1.Internal 
 import qualified Crypto.Hash.SHA256 as SHA256
 
 

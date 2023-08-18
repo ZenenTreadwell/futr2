@@ -12,7 +12,7 @@ import Data.Maybe
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 as C8
-import Crypto.Schnorr.Internal
+import Secp256k1.Internal
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
@@ -25,7 +25,7 @@ main = do
   sec :: Integer <- round <$> getPOSIXTime
   let cCC = Content 1 
                     [ETag evid Nothing (Just Root)] 
-                    "garden gordon golgun"
+                    "garden golgun goodoo"
                     pub
                     sec
   let mE = signE kp cCC  
@@ -58,7 +58,6 @@ main = do
     describe "signs with schnorr" do
       -- it "signs valid" $ flip shouldBe True (isValid mE) 
       it "signs valid 2" $ flip shouldBe True mEE 
-      it "sign (verbose)" $ flip shouldBe (Nothing) (Just $ toJSON mE) 
 
       -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
