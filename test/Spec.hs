@@ -20,13 +20,11 @@ import Control.Monad.IO.Class
 
 main :: IO ()
 main = do
-  kp <- generateKeyPair 
+  ((Hex96 . getKeyPair) -> kp) <- generateKeyPair 
   cCC <- pev kp
   let mE = signE kp cCC  
   let vEE = verifyE wev
-  mEE <- case mE of 
-    Just be -> pure $ verifyE be
-    Nothing -> pure False
+  let mEE = verifyE mE 
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -47,14 +45,14 @@ main = do
             Just fff -> fff
             _ -> undefined 
 
-    describe "uses schnorr" do
+    describe "validates with schnorr" do
       it "verifiesE!" $ shouldBe vEE True
       it "isValid!" $ shouldBe (isValid wev) True
 
-      it "signs valid" $ flip shouldBe (Just True) (fmap isValid mE) 
+    describe "signs with schnorr" do
+      it "signs valid" $ flip shouldBe True (isValid mE) 
       it "signs valid 2" $ flip shouldBe True mEE 
-
-      it "sign (verbose)" $ flip shouldBe (Nothing) (toJSON <$> mE) 
+      it "sign (verbose)" $ flip shouldBe (Nothing) (Just $ toJSON mE) 
 
       -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
@@ -64,9 +62,9 @@ main = do
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
       it "length3" $ flip shouldBe 32 (BS.length . un32 . eid $ wev)
-      it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . un64 . sig <$> mE )
-      it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . eid <$> mE )
-      it "msign pub length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . pubkey . con <$> mE)
+      it "msign sig length" $ shouldBe 64 (BS.length . un64 . sig $ mE )
+      it "msign eid length" $ shouldBe 32 (BS.length . un32 . eid $ mE )
+      it "msign pub length" $ shouldBe 32 (BS.length . un32 . pubkey . con $ mE)
       --it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
 
 

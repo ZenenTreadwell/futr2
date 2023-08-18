@@ -45,14 +45,24 @@ getPtr :: ByteString -> IO (Ptr x, CSize)
 getPtr bs = 
     BU.unsafeUseAsCStringLen bs \(p, l) -> pure (castPtr p, fromIntegral l) 
 
+packPtr :: (Ptr x, CSize) -> IO ByteString 
+packPtr (p, l) = BU.unsafePackMallocCStringLen (castPtr p, fromIntegral l) 
+
 getSignPub :: Hex32 -> IO Hex64
 getSignPub (Hex32 bs) = do 
     pub64 <- mallocBytes 64
     (pub32, 32) <- getPtr bs
     ret <- schnorrXOnlyPubKeyParse ctx pub64 pub32
     case ret of
-        1 -> Hex64 <$> BU.unsafePackMallocCStringLen (castPtr pub64, 64) 
+        1 -> Hex64 <$> packPtr (pub64, 64) 
         0 -> undefined 
+
+exportKeyPair :: Hex96 -> IO Hex32 
+exportKeyPair (Hex96 bs) = do 
+    (priv, 96) <- getPtr bs
+    pub <- mallocBytes 32
+    schnorrPubKeySerialize ctx pub priv
+    Hex32 <$> packPtr (pub, 32)
 
 verifyE :: Event -> Bool 
 verifyE Event{..}  
@@ -64,14 +74,22 @@ verifyE Event{..}
         (== 1) <$> schnorrSignatureVerify ctx sig' msg' 32 pub' 
     | otherwise = False 
 
-signE :: KeyPair -> Content -> Maybe Event
+-- signE :: KeyPair -> Content -> 
+
+signE :: Hex96 -> Content -> Event
 signE kp c@(Content{..}) = 
-    let i' = idE c
-        m' = msg . un32 $ i'   
-        s' = signMsgSchnorr kp <$> m' 
-    in Event i' <$> (Hex64 . getSchnorrSig <$> s') <*> (Just c)     
-
-
+  let eid = idE c
+  in unsafePerformIO do
+    (priv, 96) <- getPtr (un96 kp)
+    sig <- mallocBytes 64
+    (msg, 32) <- getPtr . un32 $ eid
+    ret <- schnorrSign ctx sig msg priv nullPtr
+    case ret of 
+        1 -> do 
+            sigBS <- packPtr (sig, 64)
+            pure $ Event eid (Hex64 sigBS) c
+        _ -> undefined 
+             
 -- signE :: Hex32 -> (Hex32 -> Integer -> Content) -> IO (Maybe Event) 
 -- signE kp partC  =
 --     let 
@@ -102,11 +120,14 @@ idE Content{..} = Hex32
         , String content
         ]
 
-createC :: KeyPair -> Int -> [Tag] -> Text -> IO Content
+createC :: Hex96 -> Int -> [Tag] -> Text -> IO Content
 createC kp kind' tag' content' = do 
+    (priv, 96) <- getPtr (un96 kp)
+    pub32 <- mallocBytes 32
+    schnorrPubKeySerialize ctx pub32 priv
+    serialPub <- Hex32 <$> packPtr (pub32, 32)
     sec :: Integer <- round <$> getPOSIXTime
-    let pk = Hex32 . schnorrPort $ kp
-    pure $ Content kind' tag' content' pk sec
+    pure $ Content kind' tag' content' serialPub sec
 
 data Event = Event {
       eid :: Hex32
@@ -188,8 +209,12 @@ instance ToJSON Marker where
     toJSON Root = String "root"
     toJSON Mention = String "mention"
     
+newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show)
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
 newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
+
+instance ToJSON Hex96 where
+  toJSON (Hex96 bs) = toHex bs
 
 instance ToJSON Hex64 where
   toJSON (Hex64 bs) = toHex bs
@@ -197,17 +222,18 @@ instance ToJSON Hex64 where
 instance ToJSON Hex32 where
   toJSON (Hex32 bs) = toHex bs 
 
+instance FromJSON Hex96 where
+  parseJSON v = parseHex v >>= (fixBS 96 Hex96)
+            
 instance FromJSON Hex64 where
-  parseJSON v = parseHex v >>= hex64 
-    where 
-    hex64 bs | BS.length bs == 64 = pure $ Hex64 bs
-             | otherwise          = fail "length not 64"
+  parseJSON v = parseHex v >>= (fixBS 64 Hex64) 
 
 instance FromJSON Hex32 where
-  parseJSON v = parseHex v >>= hex32 
-    where 
-    hex32 bs | BS.length bs == 32 = pure $ Hex32 bs
-             | otherwise          = fail "length not 32"
+  parseJSON v = parseHex v >>= (fixBS 32 Hex32) 
+
+fixBS l c bs
+    | BS.length bs == l = pure . c $ bs
+    | otherwise = fail $ "incorrect length " <> show l
 
 toHex :: ByteString -> Value
 toHex = toJSON . decodeUtf8 . Hex.encode 
