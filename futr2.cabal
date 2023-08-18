@@ -44,8 +44,6 @@ library
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall
-  extra-lib-dirs:
-      //to/secp256k1/library
   pkgconfig-depends:
       libsecp256k1
   build-depends:
@@ -88,8 +86,8 @@ executable futr
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
-  extra-lib-dirs:
-      //to/secp256k1/library
+  pkgconfig-depends:
+      libsecp256k1
   build-depends:
       DRBG
     , aeson
@@ -132,8 +130,6 @@ test-suite futr2-test
       OverloadedStrings
       LambdaCase
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
-  extra-lib-dirs:
-      //to/secp256k1/library
   pkgconfig-depends:
       libsecp256k1
   build-depends:

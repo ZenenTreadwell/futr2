@@ -50,10 +50,13 @@ verifyE Event{..}
     | idE con == eid = do 
         cx <- contextCreate signVerify 
         unsafePerformIO $ 
-            unsafeUseByteString (un32 eid) \(msg', 32) ->
-            unsafeUseByteString (padZ . un32 . pubkey $ con) \(pub', 64) -> 
-            unsafeUseByteString (un64 sig) \(sig', 64) -> do
-                pure . isSuccess <$> schnorrSignatureVerify cx sig' msg' 32 pub' 
+            unsafeUseByteString (un32 eid) \(msg', 32) ->  
+            case xOnlyPubKey . un32 . pubkey $ con of 
+                Just (getXOnlyPubKey -> pk') ->  
+                    unsafeUseByteString pk' \(pub', 64) -> 
+                        unsafeUseByteString (un64 sig) \(sig', 64) -> do
+                            pure . (== 1) <$> schnorrSignatureVerify cx sig' msg' 32 pub' 
+                otherwise -> pure . pure $ False 
     where 
     padZ :: BS.ByteString -> BS.ByteString
     padZ bs 
@@ -61,9 +64,6 @@ verifyE Event{..}
         | otherwise =
             let zeroBytes = Char8.pack (replicate (64 - BS.length bs) '\0')
             in bs `BS.append` zeroBytes
-    isSuccess 1 = True
-    isSuccess 0 = False
-    isSuccess _ = undefined
               
 
 -- signE :: Hex32 -> (Hex32 -> Integer -> Content) -> IO (Maybe Event) 
@@ -85,7 +85,6 @@ idE :: Content -> Hex32
 idE Content{..} = Hex32 
     . Hex.decodeLenient 
     . Hex.encode 
-    -- . _
     . SHA256.hash 
     . BS.toStrict 
     . J.encode $ 
@@ -206,3 +205,4 @@ parseHex = withText "HexByteString" $ \txt -> do
     case Hex.decode . encodeUtf8 $ txt of
       Left err -> fail err
       Right bs -> return bs
+

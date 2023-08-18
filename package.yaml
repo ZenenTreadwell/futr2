@@ -51,6 +51,9 @@ dependencies:
   
 - hspec
 
+pkg-config-dependencies:
+- libsecp256k1
+
 language: GHC2021
 
 default-extensions: 
@@ -60,15 +63,11 @@ default-extensions:
 - OverloadedStrings
 - LambdaCase
 
-extra-lib-dirs: [//to/secp256k1/library]
-
 ghc-options:
 - -Wall
 
 library:
   source-dirs: src
-  pkg-config-dependencies:
-  - libsecp256k1
 
 executables:
   futr:
@@ -85,8 +84,6 @@ tests:
   futr2-test:
     main:                Spec.hs
     source-dirs:         test
-    pkg-config-dependencies:
-    - libsecp256k1
     ghc-options:
     - -threaded
     - -rtsopts

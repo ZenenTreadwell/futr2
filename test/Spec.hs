@@ -16,18 +16,18 @@ import Crypto.Schnorr.Internal
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
+import Control.Monad.IO.Class
+
 main :: IO ()
 main = do
   kp <- generateKeyPair 
-  let -- it's not 32...
-      bkey = Hex32 . getXOnlyPubKey . deriveXOnlyPubKey $ kp 
-      bkey2 = xOnlyPubKey . un32 $ bkey
-      mk :: XOnlyPubKey
-      mk = deriveXOnlyPubKey kp
-      mk32 = Hex32 $ getXOnlyPubKey mk
-  vE <- verifyE wev
+  let pk = Hex32 $ schnorrPort kp
   sec :: Integer <- round <$> getPOSIXTime
-  let mE = signE kp $ pev mk32 sec 
+  let mE = signE kp $ pev pk sec 
+  vEE <- verifyE wev
+  mEE <- case mE of 
+    Just be -> verifyE be
+    Nothing -> pure False
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -45,31 +45,30 @@ main = do
             _ -> undefined 
       it "loops filter" $ flip shouldBe ff $
           case decode . encode $ ff of 
-            Just (fff) -> fff
+            Just fff -> fff
             _ -> undefined 
 
     describe "uses schnorr" do
-      it "verifies!" $ shouldBe vE True
+      it "verifiesE!" $ shouldBe vEE True
       it "isValid!" $ shouldBe (isValid wev) True
-      it "bkey2 " $ flip shouldNotBe Nothing (Just mk32)
 
       it "signs valid" $ flip shouldBe (Just True) (fmap isValid mE) 
-      -- it "signs valid" $ flip shouldBe True (verifyE =<< sV) 
+      it "signs valid 2" $ flip shouldBe True mEE 
 
       it "sign (verbose)" $ flip shouldBe (Nothing) (toJSON <$> mE) 
 
       -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
     describe "what the length is it anyway" do
-      it "bkey length" $ flip shouldBe 32 (BS.length . un32 $ bkey)
-      it "show bkey" $ shouldBe (Just (toJSON bkey)) Nothing
+      it "bkey length" $ flip shouldBe 32 (BS.length . un32 $ pk)
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
       it "length3" $ flip shouldBe 32 (BS.length . un32 . eid $ wev)
       it "msign sig length" $ shouldBe 64 (maybe 0 id $ BS.length . un64 . sig <$> mE )
       it "msign eid length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . eid <$> mE )
-      -- it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
+      it "msign pub length" $ shouldBe 32 (maybe 0 id $ BS.length . un32 . pubkey . con <$> mE)
+      --it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
 
 
 pev = Content 1 [] "test 123 futr2" 

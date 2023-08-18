@@ -62,78 +62,12 @@ newtype SecKey =
     }
   deriving (Eq)
 
--- showsEncoded = shows . B16.encodeBase16
-
--- instance Show KeyPair where
---   showsPrec _ = showsEncoded . getKeyPair
-
--- instance Show Msg where
---   showsPrec _ = showsEncoded . getMsg
-
--- instance Show PubKey where
---   showsPrec _ = showsEncoded . getPubKey
-
--- instance Show SecKey where
---   showsPrec _ = showsEncoded . getSecKey
-
--- instance Show SchnorrSig where
---   showsPrec _ = showsEncoded . getSchnorrSig
-
--- instance Eq XOnlyPubKey where
---   (XOnlyPubKey a) == (XOnlyPubKey b) =
---     unsafePerformIO $
---     unsafeUseByteString a $ \(a_ptr, _) ->
---       unsafeUseByteString b $ \(b_ptr, _) -> do
---         ret <- xOnlyPubKeyCompare ctx a_ptr b_ptr
---         return $ 0 == ret
-
--- instance Show XOnlyPubKey where
---   showsPrec _ (XOnlyPubKey p) =
---     showsEncoded . unsafePerformIO $ do
---       unsafeUseByteString p $ \(p_ptr, _) -> do
---         serialized <- mallocBytes 64
---         ret <- schnorrPubKeySerialize ctx serialized p_ptr
---         unless (isSuccess ret) $ do
---           free serialized
---           error "could not serialize x-only public key"
---         out <- unsafePackByteString (serialized, 64)
---         return out
-
--- exportText :: ByteString -> String
--- exportText = unpack . B16.encodeBase16
-
--- exportKeyPair :: KeyPair -> String
--- exportKeyPair k = exportText $ getKeyPair k
-
--- exportMsg :: Msg -> String
--- exportMsg m = exportText $ getMsg m
-
--- exportPubKey :: PubKey -> String
--- exportPubKey p = exportText $ getPubKey p
-
--- exportSecKey :: SecKey -> String
--- exportSecKey s = exportText $ getSecKey s
-
--- exportSchnorrSig :: SchnorrSig -> String
--- exportSchnorrSig s = exportText $ getSchnorrSig s
-
--- exportXOnlyPubKey :: XOnlyPubKey -> String
--- exportXOnlyPubKey (XOnlyPubKey p) = unsafePerformIO $ do
---          unsafeUseByteString p $ \(p_ptr, _) -> do
---            serialized <- mallocBytes 64
---            ret <- schnorrPubKeySerialize ctx serialized p_ptr
---            unless (isSuccess ret) $ do
---              free serialized
---              error "could not serialize x-only public key"
---            out <- unsafePackByteString (serialized, 64)
---            return $ exportText out
-
 -- | Signs a 32-byte 'Msg' using a 'KeyPair'
 signMsgSchnorr :: KeyPair -> Msg -> SchnorrSig
 signMsgSchnorr (KeyPair sec_key) (Msg m) =
   unsafePerformIO $
-  unsafeUseByteString sec_key $ \(sec_key_ptr, _) ->
-    unsafeUseByteString m $ \(msg_ptr, _) -> do
+  unsafeUseByteString sec_key $ \(sec_key_ptr, 96) ->
+    unsafeUseByteString m $ \(msg_ptr, 32) -> do
       sig_ptr <- mallocBytes 64
       ret <- schnorrSign ctx sig_ptr msg_ptr sec_key_ptr nullPtr
       unless (isSuccess ret) $ do
@@ -141,6 +75,13 @@ signMsgSchnorr (KeyPair sec_key) (Msg m) =
         error "could not schnorr-sign message"
       SchnorrSig <$> unsafePackByteString (sig_ptr, 64)
 
+schnorrPort :: KeyPair -> ByteString -- Maybe XOnlyPubKey
+schnorrPort (KeyPair sk) = unsafePerformIO $ 
+    unsafeUseByteString sk \(sk', 96) -> do  
+        pk' <- mallocBytes 32
+        schnorrPubKeySerialize ctx pk' sk'
+        unsafePackByteString (pk', 32)
+                  
 -- | Verifies a schnorr signature.
 verifyMsgSchnorr :: XOnlyPubKey -> SchnorrSig -> Msg -> Bool
 verifyMsgSchnorr (XOnlyPubKey p) (SchnorrSig s) (Msg m) =
@@ -165,6 +106,9 @@ generateKeyPair = do
       else do
         free keypair
         error "could not generate key pair"
+
+
+
 
 -- | Generate new 'SecKey'.
 generateSecretKey :: IO SecKey
@@ -218,6 +162,8 @@ deriveXOnlyPubKeyFromPubKey (PubKey bs) =
       else do
         free x_only_pub_key
         error "could not derive xonly pub key from pub key"
+
+-- schnorrPubKeySerialize
 
 -- decodeHex :: ConvertibleStrings a ByteString => a -> Maybe ByteString
 -- decodeHex str =
@@ -348,8 +294,8 @@ packByteString (b, l) = BS.packCStringLen (castPtr b, fromIntegral l)
 
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate signVerify
-
 {-# NOINLINE ctx #-}
+
 foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
   :: CtxFlags -> IO Ctx
 
