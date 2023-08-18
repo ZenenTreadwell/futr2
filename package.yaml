@@ -36,11 +36,11 @@ dependencies:
 - modern-uri
 - connection
 
-- cryptonite
 - DRBG
 - cipher-aes128
 - cryptohash-sha256
 - memory
+- cryptonite
 # - secp256k1-schnorr
 # - libsecp256k1
 

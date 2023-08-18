@@ -21,6 +21,7 @@ import Foreign.Storable
 import Foreign.Ptr
 import Foreign.C.Types
 
+import           Crypto.Random.DRBG      (CtrDRBG, genBytes, newGen, newGenIO)
 import qualified Crypto.Hash.SHA256 as SHA256
 -- import Crypto.Schnorr
 -- import Crypto.Secp256k1
@@ -34,20 +35,6 @@ import qualified Data.ByteString.Char8 as Char8
 
 import Crypto.Schnorr.Internal
 
-isValid :: Event -> Bool 
-isValid (Event{..}) = 
-    let p = xOnlyPubKey . un32 . pubkey $ con
-        s' = schnorrSig . un64 $ sig
-        m = msg . un32 $ eid
-    in maybe False id $ verifyMsgSchnorr <$> p  <*> s'  <*> m
-
-getPtr :: ByteString -> IO (Ptr x, CSize)  
-getPtr bs = 
-    BU.unsafeUseAsCStringLen bs \(p, l) -> pure (castPtr p, fromIntegral l) 
-
-packPtr :: (Ptr x, CSize) -> IO ByteString 
-packPtr (p, l) = BU.unsafePackMallocCStringLen (castPtr p, fromIntegral l) 
-
 getSignPub :: Hex32 -> IO Hex64
 getSignPub (Hex32 bs) = do 
     pub64 <- mallocBytes 64
@@ -56,6 +43,17 @@ getSignPub (Hex32 bs) = do
     case ret of
         1 -> Hex64 <$> packPtr (pub64, 64) 
         0 -> undefined 
+
+genKeyPair :: IO Hex96
+genKeyPair = do 
+    gen <- newGenIO :: IO CtrDRBG
+    let Right (bs, newGen) = genBytes 32 gen
+    (salt, 32) <- getPtr bs
+    keypair <- mallocBytes 96
+    ret <- keyPairCreate ctx keypair salt
+    case ret of 
+        1 -> Hex96 <$> packPtr (keypair, 96)
+        _ -> undefined 
 
 exportKeyPair :: Hex96 -> IO Hex32 
 exportKeyPair (Hex96 bs) = do 
@@ -74,8 +72,6 @@ verifyE Event{..}
         (== 1) <$> schnorrSignatureVerify ctx sig' msg' 32 pub' 
     | otherwise = False 
 
--- signE :: KeyPair -> Content -> 
-
 signE :: Hex96 -> Content -> Event
 signE kp c@(Content{..}) = 
   let eid = idE c
@@ -86,25 +82,10 @@ signE kp c@(Content{..}) =
     ret <- schnorrSign ctx sig msg priv nullPtr
     case ret of 
         1 -> do 
-            sigBS <- packPtr (sig, 64)
-            pure $ Event eid (Hex64 sigBS) c
+            sigBS <- Hex64 <$> packPtr (sig, 64)
+            pure $ Event eid sigBS c
         _ -> undefined 
              
--- signE :: Hex32 -> (Hex32 -> Integer -> Content) -> IO (Maybe Event) 
--- signE kp partC  =
---     let 
-
---     sec :: Integer <- round <$> getPOSIXTime
---     let pubkey = Hex32 . getXOnlyPubKey . deriveXOnlyPubKey $ kp  
---         con = partC pubkey sec
---         i = idE con 
---     print . toJSON $ pubkey
---     print . toJSON $ i
---     print "pubkey"
---     Just sig <- pure $ Hex64 . getSchnorrSig . signMsgSchnorr kp 
---          <$> (msg . un32 $ i)
---     pure . pure $ Event i sig con
-
 idE :: Content -> Hex32
 idE Content{..} = Hex32 
     . Hex.decodeLenient 
@@ -119,16 +100,7 @@ idE Content{..} = Hex32
         , toJSON tags
         , String content
         ]
-
-createC :: Hex96 -> Int -> [Tag] -> Text -> IO Content
-createC kp kind' tag' content' = do 
-    (priv, 96) <- getPtr (un96 kp)
-    pub32 <- mallocBytes 32
-    schnorrPubKeySerialize ctx pub32 priv
-    serialPub <- Hex32 <$> packPtr (pub32, 32)
-    sec :: Integer <- round <$> getPOSIXTime
-    pure $ Content kind' tag' content' serialPub sec
-
+ 
 data Event = Event {
       eid :: Hex32
     , sig :: Hex64

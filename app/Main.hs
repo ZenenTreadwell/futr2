@@ -107,7 +107,7 @@ ws connection = do
                 See subid e -> do 
                     print . content . con $ e
                     let valid = verifyE e
-                    print $ (,) valid $ isValid e
+                    print $ valid
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
