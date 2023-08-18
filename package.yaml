@@ -37,11 +37,11 @@ dependencies:
 - connection
 
 - cryptonite
-# - secp256k1-schnorr
 - DRBG
 - cipher-aes128
 - cryptohash-sha256
 - memory
+# - secp256k1-schnorr
 # - libsecp256k1
 
 - beam-core

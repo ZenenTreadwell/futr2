@@ -21,12 +21,11 @@ import Control.Monad.IO.Class
 main :: IO ()
 main = do
   kp <- generateKeyPair 
-  let pk = Hex32 $ schnorrPort kp
-  sec :: Integer <- round <$> getPOSIXTime
-  let mE = signE kp $ pev pk sec 
-  vEE <- verifyE wev
+  cCC <- pev kp
+  let mE = signE kp cCC  
+  let vEE = verifyE wev
   mEE <- case mE of 
-    Just be -> verifyE be
+    Just be -> pure $ verifyE be
     Nothing -> pure False
   hspec do 
     describe "correctly hashes event" do
@@ -60,7 +59,7 @@ main = do
       -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
     describe "what the length is it anyway" do
-      it "bkey length" $ flip shouldBe 32 (BS.length . un32 $ pk)
+      it "bkey length" $ flip shouldBe 32 (BS.length . un32 . pubkey $ cCC)
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
@@ -71,7 +70,7 @@ main = do
       --it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
 
 
-pev = Content 1 [] "test 123 futr2" 
+pev kp = createC kp 1 [ETag evid Nothing (Just Root)] "garden gordon golgun" 
 
 ev = Content
     1

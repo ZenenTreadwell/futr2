@@ -1,12 +1,4 @@
-{-|
-Module      : Crypto.Schnorr.Internal
-License     : MIT
-Maintainer  : Sascha-Oliver Prolic <saschaprolic@googlemail.com>
-Stability   : experimental
-Portability : POSIX
 
-Schnorr signatures from Bitcoin’s secp256k1 library.
--}
 module Crypto.Schnorr.Internal where
 
 import           Data.ByteString        (ByteString)
@@ -137,7 +129,7 @@ deriveSecKey (KeyPair kp) =
 derivePubKey :: SecKey -> PubKey
 derivePubKey (SecKey sec_key) =
   unsafePerformIO $
-  unsafeUseByteString sec_key $ \(sec_key_ptr, _) -> do
+  unsafeUseByteString sec_key $ \(sec_key_ptr, 32) -> do
     pub_key_ptr <- mallocBytes 64
     ret <- ecPubKeyCreate ctx pub_key_ptr sec_key_ptr
     unless (isSuccess ret) $ do
@@ -299,7 +291,7 @@ ctx = unsafePerformIO $ contextCreate signVerify
 foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
   :: CtxFlags -> IO Ctx
 
-foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign" schnorrSign
+foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
   :: Ctx ->
   Ptr SchnorrSig64 -> Ptr Msg32 -> Ptr KeyPair96 -> Ptr a -> IO Ret
 
@@ -316,7 +308,6 @@ foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_serialize" schnorr
 
 foreign import ccall safe "secp256k1.h secp256k1_xonly_pubkey_cmp" xOnlyPubKeyCompare
   :: Ctx -> Ptr XOnlyPubKey64 -> Ptr XOnlyPubKey64 -> IO Ret
-
 foreign import ccall safe "secp256k1.h secp256k1_ec_seckey_verify" ecSecKeyVerify
   :: Ctx -> Ptr SecKey32 -> IO Ret
 

@@ -60,7 +60,9 @@ keypair = generate curve >>= pure
 -- import Nostr.Event
 defaultRelay :: [URI] 
 defaultRelay = 
-    [ [QQ.uri|wss://nostr.wine|] 
+    [ 
+      [QQ.uri|wss://nostr.rubberdoll.cc|]
+    , [QQ.uri|wss://nostr.wine|] 
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.bg|] 
     -- , [QQ.uri|wss://nostr-relay.untethr.me|]
@@ -104,7 +106,8 @@ ws connection = do
             Right (Just d) -> case d of 
                 See subid e -> do 
                     print . content . con $ e
-                    print $ isValid e
+                    let valid = verifyE e
+                    print $ (,) valid $ isValid e
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
