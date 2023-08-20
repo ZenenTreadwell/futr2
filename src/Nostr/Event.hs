@@ -70,8 +70,8 @@ signE kp keyless = do
             trust <- verifyE newE
             if trust 
                 then pure newE
-                -- XXX danger?
-                else signE kp keyless 
+        -- XXX handle failure? 
+                else undefined -- signE kp keyless 
         _ -> undefined -- pure $ signE kp c
              
 idE :: Content -> Hex32
