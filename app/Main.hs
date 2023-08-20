@@ -6,6 +6,7 @@
 
 module Main (main) where
 
+-- modern-uri                          
 import Text.URI -- (URI, render)
 
 -- import qualified Data.ByteString.Base16 as Hex 
@@ -59,9 +60,7 @@ keypair = generate curve >>= pure
 -- import Nostr.Event
 defaultRelay :: [URI] 
 defaultRelay = 
-    [ 
-      [QQ.uri|wss://nostr.rubberdoll.cc|]
-    , [QQ.uri|wss://nostr.wine|] 
+    [ [QQ.uri|wss://nostr.wine|] 
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.bg|] 
     -- , [QQ.uri|wss://nostr-relay.untethr.me|]
@@ -105,8 +104,8 @@ ws connection = do
             Right (Just d) -> case d of 
                 See subid e -> do 
                     print . content . con $ e
-                    let valid = verifyE e
-                    print $ valid
+                    trust <- verifyE e
+                    print trust
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"

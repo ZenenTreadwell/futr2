@@ -21,16 +21,14 @@ import Control.Monad.IO.Class
 main :: IO ()
 main = do
   kp <- genKeyPair 
-  pub <- exportKeyPair kp 
   sec :: Integer <- round <$> getPOSIXTime
-  let cCC = Content 1 
+  let keyless = Content 1 
                     [ETag evid Nothing (Just Root)] 
                     "garden golgun goodoo"
-                    pub
                     sec
-  let mE = signE kp cCC  
-  let vEE = verifyE wev
-  let mEE = verifyE mE 
+  mE <- signE kp keyless 
+  vEE <- verifyE wev
+  mEE <- verifyE mE 
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -62,7 +60,6 @@ main = do
       -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
 
     describe "what the length is it anyway" do
-      it "bkey length" $ flip shouldBe 32 (BS.length . un32 . pubkey $ cCC)
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
@@ -79,8 +76,8 @@ ev = Content
     , PTag keyref Nothing  
     ] 
     "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
-    pub
     1673347337
+    pub
     where 
     evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
     keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"

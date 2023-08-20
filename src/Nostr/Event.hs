@@ -3,7 +3,6 @@ module Nostr.Event where
 
 import qualified Data.ByteString as BS
 import Data.ByteString.Base16 as Hex
-
 import Data.ByteString (ByteString)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson as J
@@ -13,11 +12,29 @@ import Data.Text (Text)
 import GHC.Generics 
 import Foreign.Marshal.Alloc
 import Foreign.Ptr
-import Crypto.Random.DRBG
 import qualified Crypto.Hash.SHA256 as SHA256
 import System.IO.Unsafe
 import Secp256k1.Internal
 
+
+genKeyPair :: IO Hex96
+genKeyPair = do 
+    (salt, 32) <- genSalt
+    keypair <- mallocBytes 96
+    ret <- keyPairCreate ctx keypair salt
+    case ret of 
+        1 -> Hex96 <$> packPtr (keypair, 96)
+        _ -> undefined 
+
+exportPub :: Hex96 -> IO Hex32 
+exportPub (Hex96 bs) = do 
+    (priv, 96) <- getPtr bs
+    pub64 <- mallocBytes 64
+    _ <- keyPairXOnlyPubKey ctx pub64 nullPtr priv
+    pub <- mallocBytes 32
+    _ <- schnorrPubKeySerialize ctx pub (castPtr pub64)
+    Hex32 <$> packPtr (pub, 32)
+    
 parsePub :: Hex32 -> IO Hex64
 parsePub (Hex32 bs) = do 
     pub64 <- mallocBytes 64
@@ -27,55 +44,35 @@ parsePub (Hex32 bs) = do
         1 -> Hex64 <$> packPtr (pub64, 64) 
         _ -> undefined -- XXX how sometimes?
 
-genKeyPair :: IO Hex96
-genKeyPair = do 
-    gen <- newGenIO :: IO CtrDRBG
-    let Right (bs, _) = genBytes 32 gen
-    (salt, 32) <- getPtr bs
-    keypair <- mallocBytes 96
-    ret <- keyPairCreate ctx keypair salt
-    case ret of 
-        1 -> Hex96 <$> packPtr (keypair, 96)
-        _ -> undefined 
-
-exportKeyPair :: Hex96 -> IO Hex32 
-exportKeyPair (Hex96 bs) = do 
-    (priv, 96) <- getPtr bs
-    pub64 <- mallocBytes 64
-    _ <- keyPairXOnlyPubKey ctx pub64 nullPtr priv
-    pub <- mallocBytes 32
-    _ <- schnorrPubKeySerialize ctx pub (castPtr pub64)
-    Hex32 <$> packPtr (pub, 32)
-
-verifyE :: Event -> Bool 
+verifyE :: Event -> IO Bool 
 verifyE Event{..}  
-    | idE con == eid = unsafePerformIO $ do 
+    | idE con == eid = do 
         signPub <- parsePub . pubkey $ con
         (msg', 32) <- getPtr (un32 eid) -- \(msg', 32) ->  
         (sig', 64) <- getPtr (un64 sig) 
         (pub', 64) <- getPtr (un64 signPub)
         (== 1) <$> schnorrSignatureVerify ctx sig' msg' 32 pub' 
-    | otherwise = False 
+    | otherwise = pure False 
 
-signE :: Hex96 -> Content -> Event
-signE kp c@(Content{..}) = 
-  let eid = idE c
-  in unsafePerformIO do
+signE :: Hex96 -> Keyless -> IO Event
+signE kp keyless = do
+    content <- keyless <$> exportPub kp
+    let eid = idE content
     (priv, 96) <- getPtr (un96 kp)
     sig <- mallocBytes 64
-    (msg, 32) <- getPtr . un32 $ eid
-    gen <- newGenIO :: IO CtrDRBG
-    let Right (bs, _) = genBytes 32 gen
-    (salt, 32) <- getPtr bs
+    (msg, 32) <- getPtr . un32 $ eid 
+    (salt, 32) <- genSalt
     ret <- schnorrSign ctx sig msg priv salt
     case ret of 
         1 -> do 
-            sigBS <- Hex64 <$> packPtr (sig, 64)
-            let newE = Event eid sigBS c
-            pure if verifyE newE 
-                then newE
-                else signE kp c
-        _ -> pure $ signE kp c
+            sig' <- Hex64 <$> packPtr (sig, 64)
+            let newE = Event eid sig' content
+            trust <- verifyE newE
+            if trust 
+                then pure newE
+                -- XXX danger?
+                else signE kp keyless 
+        _ -> undefined -- pure $ signE kp c
              
 idE :: Content -> Hex32
 idE Content{..} = Hex32 
@@ -102,11 +99,13 @@ data Content = Content {
       kind       :: Int
     , tags       :: [Tag]
     , content    :: Text
-    , pubkey     :: Hex32
     , created_at :: Integer
+    , pubkey     :: Hex32
     } deriving (Eq, Show, Generic)
 instance ToJSON Content
 instance FromJSON Content
+
+type Keyless = (Hex32 -> Content)
 
 instance ToJSON Event where 
     toJSON (Event i s (Content{..})) = object [
@@ -127,8 +126,8 @@ instance FromJSON Event where
                   <$> o .: "kind"
                   <*> o .: "tags" 
                   <*> o .: "content"
-                  <*> o .: "pubkey" 
                   <*> o .: "created_at" 
+                  <*> o .: "pubkey" 
                   )
 data Tag = 
       ETag Hex32 (Maybe Text) (Maybe Marker)

@@ -6,6 +6,7 @@ import           Foreign
 import           Foreign.C              
 import           System.IO.Unsafe       (unsafePerformIO)
 import           Data.ByteString.UTF8    as BUTF8
+import Crypto.Random.DRBG
 
 data XOnlyPubKey64
 
@@ -95,3 +96,10 @@ getPtr bs =
 
 packPtr :: (Ptr x, CSize) -> IO ByteString 
 packPtr (p, l) = BU.unsafePackMallocCStringLen (castPtr p, fromIntegral l) 
+
+genSalt :: IO (Ptr x, CSize)
+genSalt = do 
+    gen <- genBytes 32 <$> (newGenIO :: IO CtrDRBG) 
+    case gen of 
+        Right (bs, _) -> getPtr bs
+        _              -> genSalt 
