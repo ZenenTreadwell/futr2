@@ -69,8 +69,7 @@ defaultRelay =
     ]
 zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
-startCli uri app = forkIO $ do  
-    print (host, port, path)
+startCli uri app = forkIO $   
     case unRText . fromJust . uriScheme $ uri of 
         "wss" -> runSecureClient host (fromIntegral port) path app 
         "ws"  -> WS.runClient host (fromIntegral port) path app
@@ -105,7 +104,7 @@ main = do
 wsr :: ClientApp () 
 wsr conn = do 
     print "wsr"
-    void . forkIO . forever $ runRelay 
+    forever $ runRelay 
     where 
     runRelay = do
         eo <- E.try . receiveData $ conn 
@@ -117,7 +116,7 @@ wsr conn = do
                 End s -> print "!!!!!!!! end !!!!!!!!!!!" 
             Right Nothing -> print "--------up incomplete"
             Left z -> do 
-                print . ("----left UP " <>) . show $ z
+                print . ("----left UP " <>) . show $ eo
                 myThreadId >>= killThread 
 
 ws :: ClientApp ()
@@ -136,7 +135,7 @@ ws conn = do
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
             Left z -> do 
-                print . ("----left DOWN " <>) . show $ z
+                print . ("----left DOWN " <>) . show $ eo
                 myThreadId >>= killThread 
     sec :: Integer <- round <$> getPOSIXTime
     WS.sendBinaryData conn $ encode $ Subscribe "a" $ [
