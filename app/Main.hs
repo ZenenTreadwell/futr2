@@ -7,7 +7,9 @@
 module Main (main) where
 
 -- modern-uri                          
-import Text.URI -- (URI, render)
+import Text.URI --(URI)
+-- import Control.Lensi
+-- import Text.URI.Lens
 
 -- import qualified Data.ByteString.Base16 as Hex 
 -- import qualified Data.Base16.Types as Hex
@@ -53,27 +55,26 @@ import Nostr.Filter
 
 import Data.Time.Clock.POSIX
 
-curve :: Curve 
-curve = getCurveByName SEC_p256k1
--- m (PublicKey, PrivateKey)	
-
-keypair :: IO (PublicKey, PrivateKey) 
-keypair = generate curve >>= pure  
-
 -- import Nostr.Event
 defaultRelay :: [URI] 
 defaultRelay = 
-    [ [QQ.uri|wss://relay.kronkltd.net|]
-    , [QQ.uri|wss://nostr-relay.untethr.me|]
+    [ 
+      [QQ.uri|ws://127.0.0.1:9481|]  
+    --   [QQ.uri|wss://relay.kronkltd.net|]
+    -- , [QQ.uri|wss://nostr-relay.untethr.me|]
     , [QQ.uri|wss://nostr.wine|] 
-    , [QQ.uri|wss://nostr.sandwich.farm|]
-    , [QQ.uri|wss://nostr.rocks|] 
-    , [QQ.uri|wss://relay.nostr.bg|] 
+    -- , [QQ.uri|wss://nostr.sandwich.farm|]
+    -- , [QQ.uri|wss://nostr.rocks|] 
+    -- , [QQ.uri|wss://relay.nostr.bg|]
     ]
+zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
--- startCli :: MonadIO m => URI -> ClientApp a -> m a 
-startCli uri app = 
-    runSecureClient host (fromIntegral port) path app 
+startCli uri app = forkIO $ do  
+    print (host, port, path)
+    case unRText . fromJust . uriScheme $ uri of 
+        "wss" -> runSecureClient host (fromIntegral port) path app 
+        "ws"  -> WS.runClient host (fromIntegral port) path app
+        _ -> pure ()
     where 
     Just (host, port, path) = extractURI uri
 
@@ -95,14 +96,35 @@ extractURI uri = do
                        fmap (flip append "/" . unRText) rx  
 
 main :: IO ()
-main = startCli (head . drop 2 $ defaultRelay) ws
+main = do 
+    forkIO $ runServer "127.0.0.1" 9481 \p -> acceptRequest p >>= wsr 
+    (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d ws
+    threadDelay maxBound
+    pure ()
+
+wsr :: ClientApp () 
+wsr conn = do 
+    print "wsr"
+    void . forkIO . forever $ runRelay 
+    where 
+    runRelay = do
+        eo <- E.try . receiveData $ conn 
+                    :: IO (Either WS.ConnectionException LB.ByteString)
+        case decode <$> eo of 
+            Right (Just d) -> case d of 
+                Subscribe s fx -> print "!!!!!!!!!!! subscribe !!!!!!!!!!" 
+                Submit e -> print . content . con $ e  
+                End s -> print "!!!!!!!! end !!!!!!!!!!!" 
+            Right Nothing -> print "--------up incomplete"
+            Left z -> do 
+                print . ("----left UP " <>) . show $ z
+                myThreadId >>= killThread 
 
 ws :: ClientApp ()
-ws connection = do
-    putStrLn "Connected!"
-    -- putStrLn $ show connection 
+ws conn = do
+    print "ws"
     void . forkIO . forever $ do
-        eo <- E.try . receiveData $ connection 
+        eo <- E.try . receiveData $ conn 
                     :: IO (Either WS.ConnectionException LB.ByteString)
         case decode <$> eo of 
             Right (Just d) -> case d of 
@@ -114,10 +136,10 @@ ws connection = do
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
             Left z -> do 
-                print . ("----left " <>) . show $ z
-                throw Deadlock
+                print . ("----left DOWN " <>) . show $ z
+                myThreadId >>= killThread 
     sec :: Integer <- round <$> getPOSIXTime
-    WS.sendBinaryData connection $ encode $ Subscribe "a" $ [
+    WS.sendBinaryData conn $ encode $ Subscribe "a" $ [
           Filter [Since sec, Kinds [1]] Nothing
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 

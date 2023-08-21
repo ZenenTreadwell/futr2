@@ -1,6 +1,5 @@
 module Nostr.Wire where 
 
-
 import Data.Aeson as J
 import qualified Data.Vector as V
 import Data.Text (Text)
@@ -8,12 +7,11 @@ import GHC.Generics
 import Nostr.Filter
 import Nostr.Event 
 
-
 -- | client -> server 
 data Up
     = Submit Event
     | Subscribe Text [Filter]
-    | Close Text
+    | End Text
     deriving (Generic)
 
 -- | server -> client
@@ -29,7 +27,7 @@ instance FromJSON Up where
             "REQ" -> Subscribe <$> parseJSON (a V.! 1) 
                                <*> traverse id  
                                    (V.foldr ((:) . parseJSON) [] (V.drop 2 a)) 
-            "CLOSE" -> Close <$> parseJSON (V.last a)
+            "CLOSE" -> End <$> parseJSON (V.last a)
             _ -> fail "unimpl parseJSON"
             
 instance ToJSON Up where 
@@ -41,7 +39,7 @@ instance ToJSON Up where
           String "REQ"
         , String s 
         ] <> map toJSON fx
-    toJSON (Close s) = toJSON [String "CLOSE", String s]
+    toJSON (End s) = toJSON [String "CLOSE", String s]
 
 instance FromJSON Down where 
     parseJSON = withArray "down" \a -> 
