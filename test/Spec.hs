@@ -57,8 +57,6 @@ main = do
       -- it "signs valid" $ flip shouldBe True (isValid mE) 
       it "signs valid 2" $ flip shouldBe True mEE 
 
-      -- it "signs, but wrong" $ flip shouldBe (Just False) $ verifyE =<< (signE kp ev) 
-
     describe "what the length is it anyway" do
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
@@ -68,6 +66,18 @@ main = do
       it "msign eid length" $ shouldBe 32 (BS.length . un32 . eid $ mE )
       it "msign pub length" $ shouldBe 32 (BS.length . un32 . pubkey . con $ mE)
       --it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
+    describe "matchM checks" do 
+      it "matches by id" $ shouldBe True (matchM wev (Ids ["37", "437"]))
+      it "doesn't match by id" $ shouldBe False (matchM wev (Ids ["37"]))
+      it "matches by author" $ shouldBe True (matchM wev (Authors ["6", "7"])) 
+      it "matches by author" $ shouldBe False (matchM wev (Authors ["7"])) 
+      it "matches by etag" $ shouldBe True (matchM wev (ETagM [evref]))
+      it "matches by ptag" $ shouldBe True (matchM wev (PTagM [keyref]))
+      it "matches since" $ shouldBe True (matchM wev (Since 1673347336))
+      it "matches since" $ shouldBe False (matchM wev (Since 1673347338))
+      it "matches until" $ shouldBe False (matchM wev (Until 1673347336))
+      it "matches until" $ shouldBe True (matchM wev (Until 1673347338))
+
 
 ev = Content
     1
@@ -78,9 +88,10 @@ ev = Content
     "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
     1673347337
     pub
-    where 
-    evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
-    keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"
+
+evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
+
+keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"
 
 pub = Hex32 $ Hex.decodeLenient "6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"
 

@@ -57,4 +57,4 @@ genSalt = do
     gen <- genBytes 32 <$> (newGenIO :: IO CtrDRBG) 
     case gen of 
         Right (bs, _) -> getPtr bs
-        _              -> genSalt 
+        _             -> genSalt 

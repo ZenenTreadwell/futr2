@@ -1,6 +1,7 @@
 
 module Nostr.Event where 
 
+import Control.Monad
 import qualified Data.ByteString as BS
 import Data.ByteString.Base16 as Hex
 import Data.ByteString (ByteString)
@@ -29,9 +30,9 @@ exportPub :: Hex96 -> IO Hex32
 exportPub (Hex96 bs) = do 
     (priv, 96) <- getPtr bs
     pub64 <- mallocBytes 64
-    _ <- keyPairXOnlyPubKey ctx pub64 nullPtr priv
+    void $ keyPairXOnlyPubKey ctx pub64 nullPtr priv
     pub <- mallocBytes 32
-    _ <- schnorrPubKeySerialize ctx pub (castPtr pub64)
+    void $ schnorrPubKeySerialize ctx pub (castPtr pub64)
     Hex32 <$> packPtr (pub, 32)
     
 parsePub :: Hex32 -> IO Hex64
@@ -41,7 +42,7 @@ parsePub (Hex32 bs) = do
     ret <- schnorrXOnlyPubKeyParse ctx pub64 pub32
     case ret of
         1 -> Hex64 <$> packPtr (pub64, 64) 
-        _ -> undefined -- XXX how sometimes?
+        _ -> free pub64 >> error "parsePub error"
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -67,11 +68,9 @@ signE kp keyless = do
             sig' <- Hex64 <$> packPtr (sig, 64)
             let newE = Event eid sig' content
             trust <- verifyE newE
-            if trust 
-                then pure newE
-        -- XXX handle failure? 
-                else undefined -- signE kp keyless 
-        _ -> undefined -- pure $ signE kp c
+            if trust then pure newE
+                     else signE kp keyless 
+        _ -> free sig >> error "schnorrSign error"
              
 idE :: Content -> Hex32
 idE Content{..} = Hex32 

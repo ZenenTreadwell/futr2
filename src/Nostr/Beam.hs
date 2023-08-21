@@ -53,6 +53,7 @@ data Db f = Db {
 data EvT f = Ev {
         _eid :: C f Text 
       , _pub :: PrimaryKey PlebT f
+      , _time :: C f Int64
       , _con :: C f Text 
       } deriving (Generic, Beamable)
 type Ev = EvT 

@@ -60,12 +60,12 @@ keypair = generate curve >>= pure
 -- import Nostr.Event
 defaultRelay :: [URI] 
 defaultRelay = 
-    [ [QQ.uri|wss://nostr.wine|] 
+    [ [QQ.uri|wss://relay.kronkltd.net|]
+    , [QQ.uri|wss://nostr-relay.untethr.me|]
+    , [QQ.uri|wss://nostr.wine|] 
     , [QQ.uri|wss://nostr.sandwich.farm|]
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.bg|] 
-    -- , [QQ.uri|wss://nostr-relay.untethr.me|]
-    , [QQ.uri|wss://relay.kronkltd.net|]
     ]
 
 -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
@@ -92,7 +92,7 @@ extractURI uri = do
                        fmap (flip append "/" . unRText) rx  
 
 main :: IO ()
-main = startCli (head . drop 1 $ defaultRelay) ws
+main = startCli (head . drop 2 $ defaultRelay) ws
 
 ws :: ClientApp ()
 ws connection = do
@@ -113,7 +113,7 @@ ws connection = do
             Left z -> do 
                 print . ("----left " <>) . show $ z
                 throw Deadlock
-    sec :: Int <- round <$> getPOSIXTime
+    sec :: Integer <- round <$> getPOSIXTime
     WS.sendBinaryData connection $ encode $ Subscribe "a" $ [
           Filter [Since sec, Kinds [1]] Nothing
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
