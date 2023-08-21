@@ -46,8 +46,11 @@ import Data.Either
 import Control.Monad
 import Data.Aeson
 import Control.Concurrent
+
 import Nostr.Event
 import Nostr.Relay
+import Nostr.Filter 
+
 import Data.Time.Clock.POSIX
 
 curve :: Curve 

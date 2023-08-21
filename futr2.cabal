@@ -27,6 +27,7 @@ library
   exposed-modules:
       Nostr.Beam
       Nostr.Event
+      Nostr.Filter
       Nostr.Relay
       Secp256k1.Internal
   other-modules:
