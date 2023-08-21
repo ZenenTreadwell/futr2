@@ -48,7 +48,7 @@ import Data.Aeson
 import Control.Concurrent
 
 import Nostr.Event
-import Nostr.Relay
+import Nostr.Wire 
 import Nostr.Filter 
 
 import Data.Time.Clock.POSIX

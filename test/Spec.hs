@@ -5,7 +5,7 @@ import Nostr.Event
 import Nostr.Relay
 import Nostr.Beam
 import Nostr.Filter
-
+import Nostr.Wire 
 import Data.Time.Clock.POSIX
 import Data.Aeson
 import Data.Either

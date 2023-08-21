@@ -29,6 +29,7 @@ library
       Nostr.Event
       Nostr.Filter
       Nostr.Relay
+      Nostr.Wire
       Secp256k1.Internal
   other-modules:
       Paths_futr2
@@ -73,6 +74,7 @@ library
 executable futr
   main-is: Main.hs
   other-modules:
+      Relay
       Paths_futr2
   hs-source-dirs:
       app

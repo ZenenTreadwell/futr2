@@ -71,14 +71,23 @@ library:
 
 executables:
   futr:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - futr2
+  # relay: 
+  #   main: Relay.hs
+  #   source-dirs: app
+  #   ghc-options:
+  #   - -threaded
+  #   - -rtsopts
+  #   - -with-rtsopts=-N
+  #   dependencies:
+  #   - futr2
 
 tests:
   futr2-test:
