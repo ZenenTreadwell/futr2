@@ -61,6 +61,7 @@ keypair = generate curve >>= pure
 defaultRelay :: [URI] 
 defaultRelay = 
     [ [QQ.uri|wss://nostr.wine|] 
+    , [QQ.uri|wss://nostr.sandwich.farm|]
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.bg|] 
     -- , [QQ.uri|wss://nostr-relay.untethr.me|]
@@ -91,7 +92,7 @@ extractURI uri = do
                        fmap (flip append "/" . unRText) rx  
 
 main :: IO ()
-main = undefined -- runSecureClient "nostr.wine" 443 "/" ws
+main = startCli (head . drop 1 $ defaultRelay) ws
 
 ws :: ClientApp ()
 ws connection = do

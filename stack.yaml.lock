@@ -5,6 +5,45 @@
 
 packages:
 - completed:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    name: beam-core
+    pantry-tree:
+      sha256: cb1ab85a80a5b3c7f5464abee020481b916bafef828d3c05f5ab4e39b5a5870a
+      size: 2705
+    subdir: beam-core
+    version: 0.10.1.0
+  original:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    subdir: beam-core
+- completed:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    name: beam-sqlite
+    pantry-tree:
+      sha256: d8bcf283107e01832d237208c9bc5910da12b607f376761e5ea2ab616f4927ff
+      size: 1229
+    subdir: beam-sqlite
+    version: 0.5.3.0
+  original:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    subdir: beam-sqlite
+- completed:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    name: beam-migrate
+    pantry-tree:
+      sha256: e5d4ae4a22d124524d20c84d628633a052d71668c7b217e86527d696a43d9bc9
+      size: 1826
+    subdir: beam-migrate
+    version: 0.5.2.1
+  original:
+    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    git: https://github.com/AutonomousOrganization/beam
+    subdir: beam-migrate
+- completed:
     commit: 6f634f6c1ecb2b4173dbe4f46d269ee612c68840
     git: https://github.com/TomMD/cipher-aes128.git
     name: cipher-aes128
@@ -33,27 +72,6 @@ packages:
       size: 896
   original:
     hackage: DRBG-0.5.5
-- completed:
-    hackage: beam-core-0.10.1.0@sha256:40abec08810f961e7b62d33f7ae92fac50513c6d47387cc6e1fb0c91ebe25d0e,5295
-    pantry-tree:
-      sha256: c56d0ac5021efa997c2ddfc95dd9f88e30ac1fea08eddd7922316cc2f050b38d
-      size: 2705
-  original:
-    hackage: beam-core-0.10.1.0
-- completed:
-    hackage: beam-migrate-0.5.2.1@sha256:1ad12bcf5c6e092b9dd5f2a8c23f62dde07bb9e04198b0f59dc5fac855d18bf8,4924
-    pantry-tree:
-      sha256: cc5024fae77beeca8c7e24bc00f1e04474cfc23461b41d2cd10ddcce52f764ba
-      size: 1721
-  original:
-    hackage: beam-migrate-0.5.2.1
-- completed:
-    hackage: beam-sqlite-0.5.3.0@sha256:7f2259583370e7cd81d822f6dba09807e95928c624eb95fa022fe83e17dec774,3671
-    pantry-tree:
-      sha256: 07145387d69a8f73aeda7303d7101db7166e329ca79c374aa4eaf8145691a5a4
-      size: 988
-  original:
-    hackage: beam-sqlite-0.5.3.0
 - completed:
     hackage: vector-sized-1.5.0@sha256:900bfb7b358b2f40ae817d2f04e320db800d255d179b2bd3e07b44d6343093f5,1835
     pantry-tree:

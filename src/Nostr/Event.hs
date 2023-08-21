@@ -16,7 +16,6 @@ import qualified Crypto.Hash.SHA256 as SHA256
 import System.IO.Unsafe
 import Secp256k1.Internal
 
-
 genKeyPair :: IO Hex96
 genKeyPair = do 
     (salt, 32) <- genSalt
