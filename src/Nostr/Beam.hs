@@ -51,7 +51,7 @@ data Db f = Db {
       , _identities :: f (T IdT)
       , _relays :: f (T RelayT)
       , _plebs :: f (T PlebT)
-      -- , _replies :: f (T ReplyT)
+      , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       } deriving (Generic, Database Sqlite)
 
@@ -95,16 +95,16 @@ instance Table PlebT where
       primaryKey = PlebId . _pubp
 
 data ReplyT f = Reply {
-        _idxR :: C f Int32
-      , _eidR :: PrimaryKey EvT f
-      , _eidRR :: PrimaryKey EvT f
-      , _markerR :: C f (Maybe Marker)
+        _idxr :: C f Int32
+      , _eidr :: PrimaryKey EvT f
+      , _eidrr :: PrimaryKey EvT f
+      , _markerr :: C f (Maybe Marker)
       } deriving (Generic, Beamable) 
 type Reply = ReplyT
 type ReplyId = PrimaryKey ReplyT Identity 
 instance Table ReplyT where 
       data PrimaryKey ReplyT f = ReplyId (C f Int32) deriving (Generic, Beamable)
-      primaryKey = ReplyId . _idxR
+      primaryKey = ReplyId . _idxr
 
 data MentionT f = Mention {
         _idxM :: C f Int32
@@ -125,22 +125,12 @@ instance FromBackendRow Sqlite Marker where
     fromBackendRow = read . T.unpack <$> fromBackendRow 
 
 insertEv :: Connection -> Event -> IO ()
-insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn $ do
+insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn do
     runInsert $ insert (_plebs spec') $ insertValues [Pleb . wq $ pubkey]
     runInsert $ insert (_events spec') (insertValues [toEv e])
     let (m', r') = fromTags i tags
     runInsert $ insert (_mentions spec') $ insertValues m' 
-    -- insertReply r'
-    where 
- 
-    -- insertReply :: [ReplyT Identity] -> SqliteM ()
-    -- insertReply mx
-    --     = runInsert 
-    --     $ insert (_replies spec') 
-    --     $ insertValues mx 
-
--- fromTags :: [Tag] -> ([MentionT Identity], [ReplyT Identity])
--- fromTags t = undefined 
+    runInsert $ insert (_replies spec') $ insertValues r' 
 
 type TagS = ([MentionT Identity], [ReplyT Identity])
 

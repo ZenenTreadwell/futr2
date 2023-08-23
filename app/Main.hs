@@ -149,9 +149,17 @@ ws conn = do
     threadDelay 3000000  
     kp <- genKeyPair 
     pu <- exportPub kp
-    e <- signE kp $ Content 1 [PTag pu Nothing] "test futr3 " sec  
+    e <- signE kp $ Content 1 [
+          
+          PTag pu Nothing
+        , 
+          ETag evref Nothing Nothing 
+
+        ] "test futr3 " sec  
     sendE conn e
     threadDelay maxBound
 
 sendE :: WS.Connection -> Event -> IO ()
 sendE c = WS.sendBinaryData c . encode . Submit 
+
+evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
