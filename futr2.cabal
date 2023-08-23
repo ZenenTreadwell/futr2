@@ -41,6 +41,8 @@ library
       BlockArguments
       OverloadedStrings
       LambdaCase
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall
   pkgconfig-depends:
       libsecp256k1
@@ -60,6 +62,7 @@ library
     , hspec
     , memory
     , modern-uri
+    , mtl
     , sqlite-simple
     , string-conversions
     , text
@@ -84,6 +87,8 @@ executable futr
       BlockArguments
       OverloadedStrings
       LambdaCase
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -104,6 +109,7 @@ executable futr
     , hspec
     , memory
     , modern-uri
+    , mtl
     , sqlite-simple
     , string-conversions
     , text
@@ -128,6 +134,8 @@ test-suite futr2-test
       BlockArguments
       OverloadedStrings
       LambdaCase
+      QuasiQuotes
+      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -148,6 +156,7 @@ test-suite futr2-test
     , hspec
     , memory
     , modern-uri
+    , mtl
     , sqlite-simple
     , string-conversions
     , text

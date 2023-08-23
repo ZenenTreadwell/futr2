@@ -132,8 +132,8 @@ data Tag =
     | PTag Hex32 (Maybe Text)
     | Tag  Array
     deriving (Eq, Show, Generic)
-data Marker = Reply | Root | Mention
-    deriving (Eq, Show, Generic)
+data Marker = Reply' | Root' | Mention'
+    deriving (Eq, Show, Read, Generic)
     
 instance FromJSON Tag where 
     parseJSON = J.withArray "tag" \a -> do 
@@ -160,14 +160,14 @@ instance ToJSON Tag where
   
 instance FromJSON Marker where 
     parseJSON = withText "marker" \case 
-        "reply" -> pure Reply
-        "root"  -> pure Root
-        "mention" -> pure Mention 
+        "reply" -> pure Reply'
+        "root"  -> pure Root'
+        "mention" -> pure Mention' 
         _ -> fail "invalid marker"
 instance ToJSON Marker where 
-    toJSON Reply = String "reply"
-    toJSON Root = String "root"
-    toJSON Mention = String "mention"
+    toJSON Reply' = String "reply"
+    toJSON Root' = String "root"
+    toJSON Mention' = String "mention"
     
 newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show)
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)

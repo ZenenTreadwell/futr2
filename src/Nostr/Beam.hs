@@ -2,6 +2,7 @@
       DeriveAnyClass 
     , StandaloneDeriving
     , TypeFamilies
+    , UndecidableInstances 
     #-}
     -- DeriveGeneric 
     -- , FlexibleContexts
@@ -25,12 +26,16 @@ import Database.Beam.Sqlite.Syntax
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Int
 import Data.Text as T 
-
+import Data.Text.Encoding 
+import Data.ByteString 
+import Control.Monad.State
 import Nostr.Event
 import Data.Aeson
 
 spec :: CheckedDatabaseSettings Sqlite Db
 spec = defaultMigratableDbSettings 
+spec' :: DatabaseSettings Sqlite Db
+spec' = defaultDbSettings
 
 createDb :: Connection -> IO () 
 createDb conn = runBeamSqlite conn $ do 
@@ -46,7 +51,7 @@ data Db f = Db {
       , _identities :: f (T IdT)
       , _relays :: f (T RelayT)
       , _plebs :: f (T PlebT)
-      , _replys :: f (T ReplyT)
+      -- , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       } deriving (Generic, Database Sqlite)
 
@@ -92,7 +97,8 @@ instance Table PlebT where
 data ReplyT f = Reply {
         _idxR :: C f Int32
       , _eidR :: PrimaryKey EvT f
-      , _eidR' :: PrimaryKey EvT f
+      , _eidRR :: PrimaryKey EvT f
+      , _markerR :: C f (Maybe Marker)
       } deriving (Generic, Beamable) 
 type Reply = ReplyT
 type ReplyId = PrimaryKey ReplyT Identity 
@@ -111,59 +117,80 @@ instance Table MentionT where
       data PrimaryKey MentionT f = MentionId (C f Int32) deriving (Generic, Beamable)
       primaryKey = MentionId . _idxM
 
+instance HasDefaultSqlDataType Sqlite Marker where 
+    defaultSqlDataType _ _ _ = sqliteTextType 
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Marker where 
+    sqlValueSyntax = autoSqlValueSyntax
+instance FromBackendRow Sqlite Marker where
+    fromBackendRow = read . T.unpack <$> fromBackendRow 
 
-      
-
-      
-
-
-
-
--- instance HasDefaultSqlDataType Sqlite Hex96 where 
---       defaultSqlDataType _ _ _ = toJSON
-      
--- createDb conn = runBeamSqlite conn $ do 
---    veri <- verifySchema migrationBackend spec
---    _ <- checkSchema migrationBackend spec mempty
---    case veri of 
---        VerificationFailed _ -> autoMigrate migrationBackend spec
---        VerificationSucceeded -> pure () 
-
--- data Db f = Db {
---       _events :: f (TableEntity _)
---     , _profiles :: f (TableEntity _)
---     , _identities :: f (TableEntity _)
---     } deriving (Generic, Database Sqlite) 
+insertEv :: Connection -> Event -> IO ()
+insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn $ do
+    runInsert $ insert (_plebs spec') $ insertValues [Pleb . wq $ pubkey]
+    runInsert $ insert (_events spec') (insertValues [toEv e])
+    let (m', r') = fromTags i tags
+    insertMention m'
+    -- insertReply r'
+    where 
+    insertMention :: [MentionT Identity] -> SqliteM ()
+    insertMention mx -- idx eventEid pubKey = 
+        = runInsert 
+        $ insert (_mentions spec') 
+        $ insertValues mx 
     
--- data HoldT f = Hold {
---       _held :: Columnar f (Maybe Text)
---     , _label :: Columnar f Text
---     , _status :: Columnar f HoldStatus
---     } deriving (Generic, Beamable) 
--- type Hold = HoldT Identity
--- type HoldId = PrimaryKey HoldT Identity
+    -- insertReply :: [ReplyT Identity] -> SqliteM ()
+    -- insertReply mx
+    --     = runInsert 
+    --     $ insert (_replies spec') 
+    --     $ insertValues mx 
 
--- instance ToJSON (HoldT Identity) 
+-- fromTags :: [Tag] -> ([MentionT Identity], [ReplyT Identity])
+-- fromTags t = undefined 
 
--- instance Table HoldT where
---     data PrimaryKey HoldT f = HoldId (Columnar f Text) deriving (Generic, Beamable)
---     primaryKey = HoldId . _label  
+type TagS = ([MentionT Identity], [ReplyT Identity])
+
+-- fromTags :: [Tag] -> TagS 
+fromTags eid tags = evalState runTags (tags, ([], []))
+    where 
+
+    runTags :: State ([Tag], TagS) TagS
+       
+    runTags = do 
+        ( tx , b@(m', r') ) <- get
+        case tx of 
+            [] -> undefined -- pure b 
+            t' : tx' -> case t' of
+                ETag idx _ marker -> 
+                    put ( tx' , ( 
+                      m' 
+                    , Reply 2 (EvId . wq $ eid) (EvId . wq $ idx) marker : r'
+                    ))
+                PTag idx _ -> 
+                    put (tx, (
+                        Mention 3 (EvId . wq $ eid) (PlebId . wq $ idx) : m'
+                      , r'
+                      ))
+                Tag _ -> pure () 
+        runTags 
 
 
 
+insertId :: Connection -> Text -> IO ()
+insertId conn privKey = runBeamSqlite conn $ do
+    runInsert $ insert (_identities spec') $ insertValues [Id privKey]
+    runInsert $ insert (_identities spec') $ insertValues [Id privKey]
+
+insertRelay :: Connection -> Text -> IO ()
+insertRelay conn relayText = runBeamSqlite conn $ do
+    runInsert $ insert (_relays spec') 
+              $ insertValues [Relay relayText]
 
 
+toEv e = Ev 
+      (wq $ eid e) 
+      (PlebId . wq . pubkey . con $ e) 
+      (fromInteger . created_at . con $ e) 
+      (wq e)
 
--- data HoldStatus = Created | Held | Pulled | Dropped
---                   deriving (Show, Read, Eq, Ord, Enum, Generic)
--- instance ToJSON HoldStatus
-
--- instance HasDefaultSqlDataType Sqlite HoldStatus where 
---     defaultSqlDataType _ _ _ = sqliteTextType 
-
--- instance HasSqlValueSyntax be String => HasSqlValueSyntax be HoldStatus where 
---     sqlValueSyntax = autoSqlValueSyntax
--- instance FromBackendRow Sqlite HoldStatus where
---     fromBackendRow = read . unpack <$> fromBackendRow
-
-
+wq :: ToJSON a => a -> Text 
+wq = decodeUtf8 . toStrict . encode 
