@@ -56,12 +56,12 @@ import Data.Time.Clock.POSIX
 defaultRelay :: [URI] --_ -- m [URI] 
 defaultRelay =  
     [ 
-      [QQ.uri|ws://127.0.0.1:9481|]  
-    --   [QQ.uri|wss://relay.nostr.bg|]
-    -- , [QQ.uri|wss://nostr-relay.untethr.me|]
-    -- , [QQ.uri|wss://nostr.wine|]
-    -- , [QQ.uri|wss://nostr.sandwich.farm|]
-    -- , [QQ.uri|wss://nostr.rocks|] 
+      -- [QQ.uri|ws://127.0.0.1:9481|]  
+      [QQ.uri|wss://relay.nostr.bg|]
+    , [QQ.uri|wss://nostr-relay.untethr.me|]
+    , [QQ.uri|wss://nostr.wine|]
+    , [QQ.uri|wss://nostr.sandwich.farm|]
+    , [QQ.uri|wss://nostr.rocks|] 
     ]
 zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
@@ -99,7 +99,7 @@ main = do
            >>= (wsr o) 
 
     
-    (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d ws
+    (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d (ws o)
     
     
     threadDelay maxBound
@@ -125,8 +125,8 @@ wsr db ws = forever do
         Right Nothing -> print . (<> " - nothing") . show $ eo
         Left z -> killing z eo
 
-ws :: ClientApp ()
-ws conn = do
+ws :: SQL.Connection -> ClientApp ()
+ws db conn = do
     print "client"
     void . forkIO . forever $ do
         eo <- E.try . receiveData $ conn 
@@ -134,6 +134,8 @@ ws conn = do
         case decode <$> eo of 
             Right (Just d) -> case d of 
                 See subid e -> do 
+                    trust <- verifyE e 
+                    when trust (insertEv db e)  
                     print . content . con $ e
                     -- insert db
                 Live subid -> print "--------live"

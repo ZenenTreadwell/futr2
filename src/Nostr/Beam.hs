@@ -25,9 +25,10 @@ import Database.Beam.Backend.SQL
 import Database.Beam.Sqlite.Syntax
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Int
-import Data.Text as T 
+import Data.Text (Text)
+import qualified Data.Text as T 
 import Data.Text.Encoding 
-import Data.ByteString 
+import qualified Data.ByteString as BS 
 import Control.Monad.State
 import Nostr.Event
 import Data.Aeson
@@ -129,8 +130,10 @@ insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn do
     runInsert $ insert (_plebs spec') $ insertValues [Pleb . wq $ pubkey]
     runInsert $ insert (_events spec') (insertValues [toEv e])
     let (m', r') = fromTags i tags
-    runInsert $ insert (_mentions spec') $ insertValues m' 
-    runInsert $ insert (_replies spec') $ insertValues r' 
+    runInsert $ insert (_mentions spec') $ insertExpressions $ flip map m' \(Mention _ b c)-> 
+        Mention default_ (val_ b) (val_ c)      
+    runInsert $ insert (_replies spec') $ insertExpressions $ flip map r' \(Reply _ e r m)->
+        Reply default_ (val_ e) (val_ r) (val_ m) 
 
 type TagS = ([MentionT Identity], [ReplyT Identity])
 
@@ -149,11 +152,11 @@ fromTags eid tags = evalState runTags (tags, ([], []))
                 ETag idx _ marker -> 
                     put ( tx' , ( 
                       m' 
-                    , Reply 2 (EvId . wq $ eid) (EvId . wq $ idx) marker : r'
+                    , Reply 1 (EvId . wq $ eid) (EvId . wq $ idx) marker : r'
                     ))
                 PTag idx _ -> 
                     put (tx', (
-                        Mention 3 (EvId . wq $ eid) (PlebId . wq $ idx) : m'
+                        Mention 1 (EvId . wq $ eid) (PlebId . wq $ idx) : m'
                       , r'
                       ))
                 Tag _ -> put (tx', b) 
@@ -178,4 +181,4 @@ toEv e = Ev
       (wq e)
 
 wq :: ToJSON a => a -> Text 
-wq = decodeUtf8 . toStrict . encode 
+wq = decodeUtf8 . BS.toStrict . encode 
