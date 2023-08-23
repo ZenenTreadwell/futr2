@@ -21,6 +21,7 @@ import Database.Beam.Sqlite
 import Database.SQLite.Simple
 import Database.Beam.Migrate
 import Database.Beam.Migrate.Simple
+import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Backend.SQL
 import Database.Beam.Sqlite.Syntax
 import Database.Beam.Sqlite.Migrate (migrationBackend)
@@ -32,6 +33,7 @@ import qualified Data.ByteString as BS
 import Control.Monad.State
 import Nostr.Event
 import Data.Aeson
+import Control.Exception as E 
 
 spec :: CheckedDatabaseSettings Sqlite Db
 spec = defaultMigratableDbSettings 
@@ -126,14 +128,26 @@ instance FromBackendRow Sqlite Marker where
     fromBackendRow = read . T.unpack <$> fromBackendRow 
 
 insertEv :: Connection -> Event -> IO ()
-insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn do
-    runInsert $ insert (_plebs spec') $ insertValues [Pleb . wq $ pubkey]
-    runInsert $ insert (_events spec') (insertValues [toEv e])
-    let (m', r') = fromTags i tags
-    runInsert $ insert (_mentions spec') $ insertExpressions $ flip map m' \(Mention _ b c)-> 
-        Mention default_ (val_ b) (val_ c)      
-    runInsert $ insert (_replies spec') $ insertExpressions $ flip map r' \(Reply _ e r m)->
-        Reply default_ (val_ e) (val_ r) (val_ m) 
+insertEv conn e@(Event i s (Content{..})) = -- do 
+    -- ins <- E.try 
+    (runBeamSqlite conn $ do
+
+        runInsert $ insertOnConflict (_plebs spec') (insertValues [Pleb . wq $ pubkey]) anyConflict onConflictDoNothing
+        
+        runInsert $ insert (_events spec') (insertValues [toEv e])
+        
+        let (m', r') = fromTags i tags
+        
+        runInsert $ insert (_mentions spec') $ insertExpressions $ flip map m' \(Mention _ b c)-> 
+            Mention default_ (val_ b) (val_ c)      
+        runInsert $ insert (_replies spec') $ insertExpressions $ flip map r' \(Reply _ e r m)->
+            Reply default_ (val_ e) (val_ r) (val_ m) 
+        
+        ) -- ??? :: Exception e => IO (Either e ())
+
+    -- case ins of 
+    --     Right r -> print "insert right" >> print r  
+    --     Left _ -> print "insert left " 
 
 type TagS = ([MentionT Identity], [ReplyT Identity])
 

@@ -62,6 +62,7 @@ defaultRelay =
     , [QQ.uri|wss://nostr.wine|]
     , [QQ.uri|wss://nostr.sandwich.farm|]
     , [QQ.uri|wss://nostr.rocks|] 
+    , [QQ.uri|wss://relay.nostr.com.au|]
     ]
 zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
@@ -148,17 +149,18 @@ ws db conn = do
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 
      
-    threadDelay 3000000  
-    kp <- genKeyPair 
-    pu <- exportPub kp
-    e <- signE kp $ Content 1 [
+    -- 
+    -- threadDelay 3000000  
+    -- kp <- genKeyPair 
+    -- pu <- exportPub kp
+    -- e <- signE kp $ Content 1 [
           
-          PTag pu Nothing
-        , 
-          ETag evref Nothing Nothing 
+    --       PTag pu Nothing
+    --     , 
+    --       ETag evref Nothing Nothing 
 
-        ] "test futr3 " sec  
-    sendE conn e
+    --     ] "test futr3 " sec  
+    -- sendE conn e
     threadDelay maxBound
 
 sendE :: WS.Connection -> Event -> IO ()

@@ -4,12 +4,11 @@ nostr client from future
 
 `stack build`
 
-recomment to run client through proxy: 
+recomment to run through proxy: 
 
 `torify <path to futr>`
-`stack exec futr`
+`stack exec futr`  -- no proxy
 
-no ui will print to terminal
 
 ghci tip: 
 ```
@@ -21,8 +20,12 @@ $ stack ghci --ghc-options "<FLAGS>"
 
 dependencies 
 - libsecp256k1
-- sdl2
+- ...
 
+nips 
+- [ ] 1
+- [ ] ?
+- [ ] ?
 
 there are some tests
 
