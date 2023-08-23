@@ -148,7 +148,8 @@ ws conn = do
      
     threadDelay 3000000  
     kp <- genKeyPair 
-    e <- signE kp $ Content 1 [] "test futr2" sec  
+    pu <- exportPub kp
+    e <- signE kp $ Content 1 [PTag pu Nothing] "test futr3 " sec  
     sendE conn e
     threadDelay maxBound
 

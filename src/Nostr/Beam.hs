@@ -129,15 +129,10 @@ insertEv conn e@(Event i s (Content{..})) = runBeamSqlite conn $ do
     runInsert $ insert (_plebs spec') $ insertValues [Pleb . wq $ pubkey]
     runInsert $ insert (_events spec') (insertValues [toEv e])
     let (m', r') = fromTags i tags
-    insertMention m'
+    runInsert $ insert (_mentions spec') $ insertValues m' 
     -- insertReply r'
     where 
-    insertMention :: [MentionT Identity] -> SqliteM ()
-    insertMention mx -- idx eventEid pubKey = 
-        = runInsert 
-        $ insert (_mentions spec') 
-        $ insertValues mx 
-    
+ 
     -- insertReply :: [ReplyT Identity] -> SqliteM ()
     -- insertReply mx
     --     = runInsert 
@@ -158,21 +153,21 @@ fromTags eid tags = evalState runTags (tags, ([], []))
     runTags = do 
         ( tx , b@(m', r') ) <- get
         case tx of 
-            [] -> undefined -- pure b 
-            t' : tx' -> case t' of
+            [] -> pure b 
+            t' : tx' -> do 
+              case t' of
                 ETag idx _ marker -> 
                     put ( tx' , ( 
                       m' 
                     , Reply 2 (EvId . wq $ eid) (EvId . wq $ idx) marker : r'
                     ))
                 PTag idx _ -> 
-                    put (tx, (
+                    put (tx', (
                         Mention 3 (EvId . wq $ eid) (PlebId . wq $ idx) : m'
                       , r'
                       ))
-                Tag _ -> pure () 
-        runTags 
-
+                Tag _ -> put (tx', b) 
+              runTags
 
 
 insertId :: Connection -> Text -> IO ()
