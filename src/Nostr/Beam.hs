@@ -65,6 +65,7 @@ insertEv conn e@(Event i _ (Content{..})) = -- do
         g (Right r) (mx, rx) = (mx, r:rx)  
         g (Left l) (mx, rx) = (l:mx, rx)
     
+    reply :: Hex32 -> Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
     reply i id marker = 
         Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id) (val_ marker)
     
