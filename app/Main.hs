@@ -1,47 +1,15 @@
 
 module Main (main) where
 
--- modern-uri                          
 import Text.URI --(URI)
--- import Control.Lensi
--- import Text.URI.Lens
-
--- import qualified Data.ByteString.Base16 as Hex 
--- import qualified Data.Base16.Types as Hex
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import Data.Text (append, Text, unpack, pack)
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import Data.List 
--- import Text.URI.Lens
 import qualified Text.URI.QQ as QQ
 import qualified Data.ByteString.Base16 as Hex
---
 import Wuss
-
 import Control.Exception as E
 import qualified Data.ByteString.Lazy as LB
--- import qualified Data.Map as Map
-
--- ?
-import qualified Network.Connection as Connection
-import Secp256k1.Internal 
-import qualified Crypto.Hash.SHA256 as SHA256
-
-
-import Crypto.PubKey.ECC.Types
-import Crypto.PubKey.ECC.ECDSA
-import Crypto.PubKey.ECC.Generate
-import Crypto.PubKey.ECC.ECDSA (PublicKey, PrivateKey, Signature, sign, verify)
-
--- websockets
 import Network.WebSockets as WS
-import qualified Network.WebSockets.Stream as Stream
 import Control.Monad
-import Control.Monad.IO.Class
 import Data.Maybe
-import Data.Either
-import Control.Monad
 import Data.Aeson
 import Control.Concurrent
 import Database.SQLite.Simple as SQL
@@ -49,8 +17,8 @@ import Nostr.Event
 import Nostr.Wire 
 import Nostr.Filter 
 import Nostr.Beam
-
 import Data.Time.Clock.POSIX
+import qualified Data.Text as T 
 
 -- import Nostr.Event
 defaultRelay :: [URI] --_ -- m [URI] 
@@ -63,9 +31,14 @@ defaultRelay =
     , [QQ.uri|wss://nostr.sandwich.farm|]
     , [QQ.uri|wss://nostr.rocks|] 
     , [QQ.uri|wss://relay.nostr.com.au|]
+    , [QQ.uri|wss://nostrja-kari.heguro.com|]
+    , [QQ.uri|wss://nostrja-kari-nip50.heguro.com|]
     ]
+
+zippy :: [a] -> [(URI, a)]
 zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
+startCli :: URI -> ClientApp () -> IO ThreadId
 startCli uri app = forkIO $   
     case unRText . fromJust . uriScheme $ uri of 
         "wss" -> runSecureClient host (fromIntegral port) path app 
@@ -79,17 +52,17 @@ extractURI uri = do
     a <- case auth of
         Right a -> Just a 
         _       -> Nothing 
-    let host = unpack . unRText $ authHost a
+    let host = T.unpack . unRText $ authHost a
     let port = maybe 443 id $ authPort a
-    let path = unpack $ maybe "/" joinpath $ uriPath uri
+    let path = T.unpack $ maybe "/" joinpath $ uriPath uri
     pure (host, port, path)
     where 
     auth = uriAuthority uri
     joinpath (trailingSlash, rx) = if not trailingSlash 
-        then joined `append` "/"
+        then joined `T.append` "/"
         else joined 
-        where joined = foldl append "" $ 
-                       fmap (flip append "/" . unRText) rx  
+        where joined = foldl T.append "" $ 
+                       fmap (flip T.append "/" . unRText) rx  
 
 main :: IO ()
 main = do 
@@ -134,18 +107,21 @@ ws db conn = do
                     :: IO (Either WS.ConnectionException LB.ByteString)
         case decode <$> eo of 
             Right (Just d) -> case d of 
-                See subid e -> do 
-                    trust <- verifyE e 
-                    when trust (insertEv db e)  
-                    print . content . con $ e
-                    -- insert db
+                See subid e@(Event _ _ (Content{kind})) -> do 
+                    -- XXX the overlap of record fields and named puns is wierd
+                    case kind of 
+                        1 -> do 
+                            trust <- verifyE e 
+                            when trust (insertEv db e)  
+                            print . content . con $ e
+                        _ -> print "unniplementented"
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
             Left z -> killing z eo 
     sec :: Integer <- round <$> getPOSIXTime
     WS.sendTextData conn $ encode $ Subscribe "a" $ [
-          Filter [Since sec, Kinds [1]] Nothing
+          Filter [Since sec, Kinds [1]] (Just 1000000)
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 
      

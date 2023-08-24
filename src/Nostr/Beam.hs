@@ -3,6 +3,8 @@
     , StandaloneDeriving
     , TypeFamilies
     , UndecidableInstances 
+    , PartialTypeSignatures
+    , ImpredicativeTypes
     #-}
     -- DeriveGeneric 
     -- , FlexibleContexts
@@ -27,6 +29,7 @@ import Database.Beam.Sqlite.Syntax
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Int
 import Data.Text (Text)
+import Data.Maybe
 import qualified Data.Text as T 
 import Data.Text.Encoding 
 import qualified Data.ByteString as BS 
@@ -34,9 +37,11 @@ import Control.Monad.State
 import Nostr.Event
 import Data.Aeson
 import Control.Exception as E 
+import GHC.Utils.Misc (uncurry3)
 
 spec :: CheckedDatabaseSettings Sqlite Db
 spec = defaultMigratableDbSettings 
+
 spec' :: DatabaseSettings Sqlite Db
 spec' = defaultDbSettings
 
@@ -89,7 +94,8 @@ instance Table RelayT where
       primaryKey = RelayId . _relay
 
 data PlebT f = Pleb {
-        _pubp :: C f Text 
+          _pubp :: C f Text 
+        , _conp :: C f (Maybe Text)
       } deriving (Generic, Beamable)
 type Pleb = PlebT 
 type PlebId = PrimaryKey PlebT Identity 
@@ -127,36 +133,53 @@ instance HasSqlValueSyntax be String => HasSqlValueSyntax be Marker where
 instance FromBackendRow Sqlite Marker where
     fromBackendRow = read . T.unpack <$> fromBackendRow 
 
+gather :: [Either a b] ->  ([a], [b]) 
+gather = foldr g ([],[]) 
+    where 
+    g (Right r) (mx, rx) = (mx, r:rx)  
+    g (Left l) (mx, rx) = (l:mx, rx)
+
+-- reply :: ReplyT (QExpr Sqlite a)
+-- reply :: Hex32 -> Hex32 -> Maybe Marker -> RelayT (QExpr Sqlite r)
+
+reply i id marker = 
+    Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id) (val_ marker)
+
+mention :: Hex32 -> Hex32 -> MentionT (QExpr Sqlite m) 
+mention i id = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id) 
+
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i s (Content{..})) = -- do 
     -- ins <- E.try 
     runBeamSqliteDebug print conn $ do
+        -- XXX run as a Transaction??
 
-        -- XXX run as a withTransaction??
-
-        runInsert $ insertOnConflict (_plebs spec') (insertValues [Pleb . wq $ pubkey]) anyConflict onConflictDoNothing
+        runInsert $ insertOnConflict (_plebs spec') 
+                                     (insertExpressions [Pleb (val_ $ wq pubkey) default_])
+                                      anyConflict
+                                      onConflictDoNothing
         
         runInsert $ insert (_events spec') (insertValues [toEv e])
+        -- (mx :: [MentionT (QExpr Sqlite r)] , rx :: [ReplyT (QExpr Sqlite y)]) 
+        let (mx, rx) = gather . catMaybes $ flip map tags \case
+                ETag id _ marker -> Just . Right $ (i, id, marker)
+                PTag id _ -> Just . Left $ (i, id)
+                _ -> Nothing 
+        runInsert . insert (_mentions spec') . insertExpressions $ map (uncurry mention) mx
+        runInsert . insert (_replies spec') . insertExpressions $ map (uncurry3 reply) rx
+        -- pure ()
+        --         where 
+        --             reply :: ReplyT (QExpr Sqlite a)
+        --             reply = Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id) (val_ marker)
+        --             mention :: MentionT (QExpr Sqlite a) 
+        --             mention = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id) 
+                    
+        -- runInsert $ insert (_replies spec') $ insertExpressions $ rx
 
-        mconcat <$> flip mapM tags \case
-            ETag id _ marker -> runInsert $ insert (_replies spec') $ insertExpressions $ [
-                  Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id) (val_ marker)
-                ]
-            PTag id _ -> runInsert $ insert (_mentions spec') $ insertExpressions $ [
-                  Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id) ]
-            _ -> pure () 
+        -- runInsert $ insert (_mentions spec') $ insertExpressions $ [
+        --     Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id) :: _ ]         
 
-insertId :: Connection -> Text -> IO ()
-insertId conn privKey = runBeamSqlite conn $ do
-    runInsert $ insert (_identities spec') $ insertValues [Id privKey]
-    runInsert $ insert (_identities spec') $ insertValues [Id privKey]
-
-insertRelay :: Connection -> Text -> IO ()
-insertRelay conn relayText = runBeamSqlite conn $ do
-    runInsert $ insert (_relays spec') 
-              $ insertValues [Relay relayText]
-
-
+toEv :: Event -> EvT Identity 
 toEv e = Ev 
       (wq $ eid e) 
       (PlebId . wq . pubkey . con $ e) 
@@ -165,3 +188,14 @@ toEv e = Ev
 
 wq :: ToJSON a => a -> Text 
 wq = decodeUtf8 . BS.toStrict . encode 
+
+insertId :: Connection -> Text -> IO ()
+insertId conn privKey = runBeamSqlite conn $
+    runInsert $ insert (_identities spec') 
+              $ insertValues [Id privKey]
+
+insertRelay :: Connection -> Text -> IO ()
+insertRelay conn relayText = runBeamSqlite conn $ do
+    runInsert $ insert (_relays spec') 
+              $ insertValues [Relay relayText]
+

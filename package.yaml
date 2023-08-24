@@ -1,6 +1,6 @@
 name:                futr2
 version:             0.1.0.0
-github:              "githubuser/futr2"
+github:              "autonomousorganization/futr2"
 license:             BSD3
 author:              "Author name here"
 maintainer:          "example@example.com"
@@ -10,17 +10,11 @@ extra-source-files:
 - README.md
 - CHANGELOG.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/futr2#readme>
+description: "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."      
 
 dependencies:
 - base >= 4.7 && < 5
+- ghc
 - mtl
 - text
 - time
@@ -28,23 +22,22 @@ dependencies:
 - bytestring
 - base16-bytestring
 - vector 
-- transformers
 - utf8-string
 - string-conversions
 
+
+  ## sockets 
 - wuss
 - websockets
 - modern-uri
 - connection
 
+## crypto
 - DRBG
 - cipher-aes128
 - cryptohash-sha256
-- memory
-- cryptonite
-# - secp256k1-schnorr
-# - libsecp256k1
-
+  
+## database
 - beam-core
 - beam-sqlite
 - beam-migrate
@@ -82,15 +75,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - futr2
-  # relay: 
-  #   main: Relay.hs
-  #   source-dirs: app
-  #   ghc-options:
-  #   - -threaded
-  #   - -rtsopts
-  #   - -with-rtsopts=-N
-  #   dependencies:
-  #   - futr2
 
 tests:
   futr2-test:

@@ -6,9 +6,9 @@ cabal-version: 1.12
 
 name:           futr2
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/futr2#readme>
-homepage:       https://github.com/githubuser/futr2#readme
-bug-reports:    https://github.com/githubuser/futr2/issues
+description:    Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls.
+homepage:       https://github.com/autonomousorganization/futr2#readme
+bug-reports:    https://github.com/autonomousorganization/futr2/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2023 Author name here
@@ -21,11 +21,12 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/futr2
+  location: https://github.com/autonomousorganization/futr2
 
 library
   exposed-modules:
       Nostr.Beam
+      Nostr.Db
       Nostr.Event
       Nostr.Filter
       Nostr.Relay
@@ -58,16 +59,14 @@ library
     , cipher-aes128
     , connection
     , cryptohash-sha256
-    , cryptonite
+    , ghc
     , hspec
-    , memory
     , modern-uri
     , mtl
     , sqlite-simple
     , string-conversions
     , text
     , time
-    , transformers
     , utf8-string
     , vector
     , websockets
@@ -104,17 +103,15 @@ executable futr
     , cipher-aes128
     , connection
     , cryptohash-sha256
-    , cryptonite
     , futr2
+    , ghc
     , hspec
-    , memory
     , modern-uri
     , mtl
     , sqlite-simple
     , string-conversions
     , text
     , time
-    , transformers
     , utf8-string
     , vector
     , websockets
@@ -151,17 +148,15 @@ test-suite futr2-test
     , cipher-aes128
     , connection
     , cryptohash-sha256
-    , cryptonite
     , futr2
+    , ghc
     , hspec
-    , memory
     , modern-uri
     , mtl
     , sqlite-simple
     , string-conversions
     , text
     , time
-    , transformers
     , utf8-string
     , vector
     , websockets
