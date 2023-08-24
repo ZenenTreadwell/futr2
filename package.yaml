@@ -14,7 +14,6 @@ description: "Walled gardens became prisons, and nostr is the first step towards
 
 dependencies:
 - base >= 4.7 && < 5
-- ghc
 - mtl
 - text
 - time

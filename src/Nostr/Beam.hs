@@ -6,12 +6,6 @@
     , PartialTypeSignatures
     , ImpredicativeTypes
     #-}
-    -- DeriveGeneric 
-    -- , FlexibleContexts
-    -- , FlexibleInstances 
-    -- , TypeSynonymInstances 
-    -- , UndecidableInstances
-    -- , MultiParamTypeClasses
 
 module Nostr.Beam where
 
@@ -27,9 +21,7 @@ import Data.Text.Encoding
 import qualified Data.ByteString as BS 
 import Nostr.Event
 import Data.Aeson
-import GHC.Utils.Misc (uncurry3)
 import Nostr.Db
-
 
 createDb :: Connection -> IO () 
 createDb conn = runBeamSqlite conn $ do 
@@ -42,8 +34,6 @@ createDb conn = runBeamSqlite conn $ do
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) = -- do 
     runBeamSqliteDebug print conn $ do
-        -- XXX n as a Transaction??
-
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                       anyConflict
@@ -51,12 +41,12 @@ insertEv conn e@(Event i _ (Content{..})) = -- do
         
         runInsert $ insert (_events spec') (insertValues [toEv e])
         let (mx, rx) = gather . catMaybes $ flip map tags \case
-                ETag id _ marker -> Just . Right $ (i, id, marker)
-                PTag id _ -> Just . Left $ (i, id)
+                ETag ie _ marker -> Just . Right $ (ie, marker)
+                PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
 
-        runInsert . insert (_mentions spec') . insertExpressions $ map (uncurry mention) mx
-        runInsert . insert (_replies spec') . insertExpressions $ map (uncurry3 reply) rx
+        runInsert . insert (_mentions spec') . insertExpressions $ map mention mx
+        runInsert . insert (_replies spec') . insertExpressions $ map (uncurry reply) rx
 
     where 
     gather :: [Either a b] ->  ([a], [b]) 
@@ -65,12 +55,12 @@ insertEv conn e@(Event i _ (Content{..})) = -- do
         g (Right r) (mx, rx) = (mx, r:rx)  
         g (Left l) (mx, rx) = (l:mx, rx)
     
-    reply :: Hex32 -> Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
-    reply i id marker = 
-        Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id) (val_ marker)
+    reply :: Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
+    reply id' marker = 
+        Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id') (val_ marker)
     
-    mention :: Hex32 -> Hex32 -> MentionT (QExpr Sqlite m) 
-    mention i id = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id) 
+    mention :: Hex32 -> MentionT (QExpr Sqlite m) 
+    mention id' = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id') 
 
 toEv :: Event -> EvT Identity 
 toEv e = Ev 
