@@ -32,6 +32,13 @@ createDb conn = runBeamSqlite conn $ do
        VerificationFailed _ -> autoMigrate migrationBackend spec
        VerificationSucceeded -> pure () 
 
+
+insertPl :: Connection -> Event -> IO () 
+insertPl conn e@(Event i _ (Content{..})) = 
+    runBeamSqliteDebug print conn 
+        $ runUpdate
+        $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
+
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) = -- do 
     runBeamSqliteDebug print conn $ do

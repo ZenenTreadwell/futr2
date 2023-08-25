@@ -71,10 +71,8 @@ main = do
     
     forkIO $ runServer "127.0.0.1" 9481 \p -> acceptRequest p 
            >>= (wsr o) 
-
-    
     (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d (ws o)
-    
+                           
     threadDelay maxBound
     pure ()
     
@@ -113,7 +111,11 @@ ws db conn = do
                             trust <- verifyE e 
                             when trust (insertEv db e)  
                             print . content . con $ e
-                        _ -> print "unniplementented"
+                        0 -> do 
+                            trust <- verifyE e 
+                            when trust (insertPl db e)
+                            print (trust, "insertPl ------")
+                        _ -> print "?"
                 Live subid -> print "--------live"
                 Notice note -> print $ "note:" <> note 
             Right Nothing -> print "--------down incomplete"
@@ -121,7 +123,7 @@ ws db conn = do
     sec :: Integer <- round <$> getPOSIXTime
     WS.sendTextData conn $ encode $ Subscribe "a" $ [
           emptyF { sinceF = Just $ Since sec
-                 , kindsF = Just $ Kinds [1] 
+                 , kindsF = Just $ Kinds [0, 1] 
                  , limitF = Just $ Limit 0 } 
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 

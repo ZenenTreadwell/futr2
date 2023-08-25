@@ -4,12 +4,10 @@ module Nostr.Filter where
 import Data.Aeson as J
 import Data.Aeson.Types
 import Data.Maybe
-import Data.Foldable
 import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics 
 import Nostr.Event 
-
 
 unString :: Value -> Text
 unString (String t) = t 
@@ -74,7 +72,6 @@ instance FromJSON Since
 instance FromJSON Until
 instance FromJSON Limit
 
--- matchM :: Event -> Match -> Bool
 class Matchable a where
     matchM :: Event -> a -> Bool
 
@@ -82,7 +79,8 @@ instance Matchable Ids where
     matchM e (Ids tx) = any (flip T.isPrefixOf (unString . toJSON . eid $ e)) tx
 
 instance Matchable Authors where
-    matchM e (Authors ax) = any (flip T.isPrefixOf (unString . toJSON . pubkey . con $ e)) ax  
+    matchM e (Authors ax) = any 
+        (flip T.isPrefixOf (unString . toJSON . pubkey . con $ e)) ax  
 
 instance Matchable Kinds where 
     matchM e (Kinds kx) = any (== (kind . con $ e)) kx
@@ -92,7 +90,8 @@ instance Matchable ETagM where
         where 
         etags = map (\(ETag e _ _ )-> e) . filter isEtag . tags . con $ e
         isEtag (ETag{}) = True
-        isEtag _ = False   
+        isEtag _ = False 
+          
 instance Matchable PTagM where
     matchM e (PTagM px) = any (flip elem ptags) px
         where 

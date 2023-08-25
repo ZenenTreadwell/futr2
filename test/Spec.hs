@@ -79,6 +79,11 @@ main = do
       it "matches until" $ shouldBe False (matchM wev (Until 1673347336))
       it "matches until" $ shouldBe True (matchM wev (Until 1673347338))
 
+    describe "matchF check" do 
+      it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
+      it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
+
+
 
 ev = Content
     1
