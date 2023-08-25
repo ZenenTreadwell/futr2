@@ -24,7 +24,7 @@ main = do
   kp <- genKeyPair 
   sec :: Integer <- round <$> getPOSIXTime
   let keyless = Content 1 
-                    [ETag evid Nothing (Just Root)] 
+                    [ETag evid Nothing (Just Root')] 
                     "garden golgun goodoo"
                     sec
   mE <- signE kp keyless 
@@ -102,4 +102,6 @@ esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02
 
 wev = Event evid esig ev 
 
-ff = Filter [Kinds [0,1]] (Just 42) 
+ff = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
+
+

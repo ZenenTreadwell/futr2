@@ -20,6 +20,7 @@ import Data.Maybe
 import Data.Text.Encoding 
 import qualified Data.ByteString as BS 
 import Nostr.Event
+import Nostr.Filter
 import Data.Aeson
 import Nostr.Db
 
@@ -38,13 +39,13 @@ insertEv conn e@(Event i _ (Content{..})) = -- do
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                       anyConflict
                                       onConflictDoNothing
-        
+       
+        -- believe if event insert fails will not insert mentions / replies either, should test
         runInsert $ insert (_events spec') (insertValues [toEv e])
         let (mx, rx) = gather . catMaybes $ flip map tags \case
                 ETag ie _ marker -> Just . Right $ (ie, marker)
                 PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
-
         runInsert . insert (_mentions spec') . insertExpressions $ map mention mx
         runInsert . insert (_replies spec') . insertExpressions $ map (uncurry reply) rx
 
@@ -81,4 +82,23 @@ insertRelay :: Connection -> Text -> IO ()
 insertRelay conn relayText = runBeamSqlite conn $ do
     runInsert $ insert (_relays spec') 
               $ insertValues [Relay relayText]
+
+
+
+
+
+-- fetch :: Connection -> Filter -> _
+-- fetch c (Filter mx l) = runSelectReturningList . selectWith $ do 
+--     all_ 
+    
+
+
+
+  
+    
+
+
+
+
+
 

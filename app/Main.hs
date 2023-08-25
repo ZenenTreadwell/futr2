@@ -75,7 +75,6 @@ main = do
     
     (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d (ws o)
     
-    
     threadDelay maxBound
     pure ()
     
@@ -121,7 +120,9 @@ ws db conn = do
             Left z -> killing z eo 
     sec :: Integer <- round <$> getPOSIXTime
     WS.sendTextData conn $ encode $ Subscribe "a" $ [
-          Filter [Since sec, Kinds [1]] (Just 1000000)
+          emptyF { sinceF = Just $ Since sec
+                 , kindsF = Just $ Kinds [1] 
+                 , limitF = Just $ Limit 0 } 
         -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
         ] 
      
