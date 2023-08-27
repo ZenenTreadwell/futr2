@@ -19,13 +19,26 @@ import Nostr.Filter
 import Nostr.Beam
 import Data.Time.Clock.POSIX
 import qualified Data.Text as T 
+import Data.Either
+
+import Control.Monad.Reader
+import Control.Monad.State
 
 -- import Nostr.Event
 defaultRelay :: [URI] --_ -- m [URI] 
 defaultRelay =  
     [ 
       -- [QQ.uri|ws://127.0.0.1:9481|]  
-      [QQ.uri|wss://relay.nostr.bg|]
+      [QQ.uri|wss://nos.lol|]
+    , [QQ.uri|wss://relay.nostr.info|]
+    , [QQ.uri|wss://relay.snort.social|]
+    , [QQ.uri|wss://nostr-pub.wellorder.net|]
+    , [QQ.uri|wss://nostr.oxtr.dev|]
+    , [QQ.uri|wss://brb.io|]
+    , [QQ.uri|wss://nostr-pub.semisol.dev|]
+    , [QQ.uri|wss://nostr.zebedee.cloud|]
+    , [QQ.uri|wss://relay.stoner.com|]
+    , [QQ.uri|wss://relay.nostr.bg|]
     , [QQ.uri|wss://nostr-relay.untethr.me|]
     , [QQ.uri|wss://nostr.wine|]
     , [QQ.uri|wss://nostr.sandwich.farm|]
@@ -38,14 +51,51 @@ defaultRelay =
 zippy :: [a] -> [(URI, a)]
 zippy = zip defaultRelay -- startCli :: MonadIO m => URI -> ClientApp a -> m a 
 
-startCli :: URI -> ClientApp () -> IO ThreadId
-startCli uri app = forkIO $   
+
+startCli :: SQL.Connection -> URI -> IO () 
+startCli db uri =  
     case unRText . fromJust . uriScheme $ uri of 
-        "wss" -> runSecureClient host (fromIntegral port) path app 
-        "ws"  -> WS.runClient host (fromIntegral port) path app
+        "wss" -> runSecureClient host (fromIntegral port) path ws 
+        "ws"  -> WS.runClient host (fromIntegral port) path ws
         _ -> pure ()
     where 
     Just (host, port, path) = extractURI uri
+    ws conn = do
+        print "client"
+        sec :: Integer <- round <$> getPOSIXTime
+        
+        WS.sendTextData conn $ encode $ Subscribe "a" $ [
+              emptyF { sinceF = Just $ Since sec
+                     , kindsF = Just $ Kinds [0, 1] 
+                     , limitF = Just $ Limit 0 } 
+            ]
+             
+        catch (forever harvest) \z -> do 
+            print z 
+            print uri
+            case z of  
+                ConnectionClosed -> pure ()
+                WS.ParseException s -> forever harvest 
+                UnicodeException s -> forever harvest 
+                CloseRequest w16 bs -> sendClose conn ("u said so" :: T.Text)
+        where 
+
+        harvest = fromJust . decode <$> receiveData conn >>= \case
+            See _ e@(Event _ _ (Content{kind})) -> case kind of 
+                1 -> do 
+                    trust <- verifyE e 
+                    when trust (mask_ $ insertEv db e)  
+                    print "-----------"
+                    print . render $ uri
+                    print . content . con $ e
+                0 -> do 
+                    trust <- verifyE e 
+                    when trust (insertPl db e)
+                    print (trust, "insertPl ------")
+                _ -> print "?"
+            Live _ -> print "--------live"
+            Notice note -> print $ "note:" <> note 
+            -- Nothing -> pure () 
 
 -- extractURI :: URI -> Maybe (String, _ , String) 
 extractURI uri = do 
@@ -69,80 +119,52 @@ main = do
     o <- open "./futr.sqlite"
     createDb o
     
-    forkIO $ runServer "127.0.0.1" 9481 \p -> acceptRequest p 
-           >>= (wsr o) 
-    (zippy -> clientThreads) <- flip mapM defaultRelay $ \d -> startCli d (ws o)
-                           
+    flip mapM defaultRelay $ \d -> forkIO $ startCli o d  
+
     threadDelay maxBound
     pure ()
     
-killing z o = case z of 
-    ConnectionClosed -> myThreadId >>= killThread 
-    _ -> print . show $ o
-                    
-type Listen = IO (Either WS.ConnectionException LB.ByteString)
+-- killing z o = case z of 
+--     -- ConnectionClosed -> myThreadId >>= killThread 
 
-wsr :: SQL.Connection -> ClientApp ()
-wsr db ws = forever do
-    print "server"
-    eo <- E.try . WS.receiveData $ ws :: Listen
-    case decode <$> eo of 
-        Right (Just d) -> case d of 
-            Subscribe s fx -> print "sub"  
-            Submit e -> do 
-                trust <- verifyE e 
-                when trust (insertEv db e)  
-            End s -> pure () --myThreadId >>= killThread 
-        Right Nothing -> print . (<> " - nothing") . show $ eo
-        Left z -> killing z eo
+--     _ -> do 
+--         print . show $ o
+--         myThreadId >>= killThread                    
 
-ws :: SQL.Connection -> ClientApp ()
-ws db conn = do
-    print "client"
-    void . forkIO . forever $ do
-        eo <- E.try . receiveData $ conn 
-                    :: IO (Either WS.ConnectionException LB.ByteString)
-        case decode <$> eo of 
-            Right (Just d) -> case d of 
-                See subid e@(Event _ _ (Content{kind})) -> do 
-                    -- XXX the overlap of record fields and named puns is wierd
-                    case kind of 
-                        1 -> do 
-                            trust <- verifyE e 
-                            when trust (insertEv db e)  
-                            print . content . con $ e
-                        0 -> do 
-                            trust <- verifyE e 
-                            when trust (insertPl db e)
-                            print (trust, "insertPl ------")
-                        _ -> print "?"
-                Live subid -> print "--------live"
-                Notice note -> print $ "note:" <> note 
-            Right Nothing -> print "--------down incomplete"
-            Left z -> killing z eo 
-    sec :: Integer <- round <$> getPOSIXTime
-    WS.sendTextData conn $ encode $ Subscribe "a" $ [
-          emptyF { sinceF = Just $ Since sec
-                 , kindsF = Just $ Kinds [0, 1] 
-                 , limitF = Just $ Limit 0 } 
-        -- , Filter [Kinds [0], Authors ["460c25e682fd"]] Nothing
-        ] 
-     
-    -- 
-    -- threadDelay 3000000  
-    -- kp <- genKeyPair 
-    -- pu <- exportPub kp
-    -- e <- signE kp $ Content 1 [
+-- type Listen = IO (Either WS.ConnectionException LB.ByteString)
+
+-- wsr :: SQL.Connection -> ClientApp ()
+-- wsr db ws = forever do
+--     print "server"
+--     eo <- E.try . WS.receiveData $ ws :: Listen
+--     case decode <$> eo of 
+--         Right (Just d) -> case d of 
+--             Subscribe s fx -> print "sub"  
+--             Submit e -> do 
+--                 trust <- verifyE e 
+--                 when trust (mask_ $ insertEv db e)  
+--             End s -> pure () --myThreadId >>= killThread 
+--         Right Nothing -> print . (<> " - nothing") . show $ eo
+--         Left z -> killing z eo
+
+--     -- threadDelay 3000000  
+--     -- kp <- genKeyPair 
+--     -- pu <- exportPub kp
+--     -- e <- signE kp $ Content 1 [
           
-    --       PTag pu Nothing
-    --     , 
-    --       ETag evref Nothing Nothing 
+--     --       PTag pu Nothing
+--     --     , 
+--     --       ETag evref Nothing Nothing 
 
-    --     ] "test futr3 " sec  
-    -- sendE conn e
-    threadDelay maxBound
+--     --     ] "test futr3 " sec  
+--     -- sendE conn e
+--     threadDelay maxBound
 
 sendE :: WS.Connection -> Event -> IO ()
 sendE c = WS.sendBinaryData c . encode . Submit 
 
 evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
+
+
+
+

@@ -41,6 +41,7 @@ data Filter = Filter {
 emptyF :: Filter
 emptyF = 
      Filter Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+     -- foldr (\f -> f Nothing) Filter $ take 7 $ 
     
 instance ToJSON Filter where 
     toJSON (Filter i a k e p s u ml) = object . catMaybes $ 

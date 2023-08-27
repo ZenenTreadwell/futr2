@@ -83,6 +83,8 @@ main = do
       it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
 
+    describe ""
+
 
 
 ev = Content

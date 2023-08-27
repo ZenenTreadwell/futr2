@@ -5,6 +5,7 @@
     , UndecidableInstances 
     , PartialTypeSignatures
     , ImpredicativeTypes
+    , DuplicateRecordFields
     #-}
 
 module Nostr.Beam where
@@ -23,6 +24,7 @@ import Nostr.Event
 import Nostr.Filter
 import Data.Aeson
 import Nostr.Db
+import Control.Monad.State
 
 createDb :: Connection -> IO () 
 createDb conn = runBeamSqlite conn $ do 
@@ -35,13 +37,13 @@ createDb conn = runBeamSqlite conn $ do
 
 insertPl :: Connection -> Event -> IO () 
 insertPl conn e@(Event i _ (Content{..})) = 
-    runBeamSqliteDebug print conn 
+    runBeamSqlite conn 
         $ runUpdate
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) = -- do 
-    runBeamSqliteDebug print conn $ do
+    runBeamSqlite conn $ do
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                       anyConflict
@@ -92,6 +94,8 @@ insertRelay conn relayText = runBeamSqlite conn $ do
 
 
 
+              
+               
 
 
 -- fetch :: Connection -> Filter -> _
