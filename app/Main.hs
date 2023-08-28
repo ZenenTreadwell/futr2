@@ -32,7 +32,7 @@ defaultRelay =
       [QQ.uri|wss://nos.lol|]
     , [QQ.uri|wss://relay.nostr.info|]
     , [QQ.uri|wss://relay.snort.social|]
-    , [QQ.uri|wss://nostr-pub.wellorder.net|]
+    -- , [QQ.uri|wss://nostr-pub.wellorder.net|]
     , [QQ.uri|wss://nostr.oxtr.dev|]
     , [QQ.uri|wss://brb.io|]
     , [QQ.uri|wss://nostr-pub.semisol.dev|]
@@ -61,26 +61,28 @@ startCli db uri =
     where 
     Just (host, port, path) = extractURI uri
     ws conn = do
-        print "client"
+
         sec :: Integer <- round <$> getPOSIXTime
-        
         WS.sendTextData conn $ encode $ Subscribe "a" $ [
-              emptyF { sinceF = Just $ Since sec
+              emptyF { sinceF = Just $ Since (sec + 11)
                      , kindsF = Just $ Kinds [0, 1] 
                      , limitF = Just $ Limit 0 } 
             ]
-             
-        catch (forever harvest) \z -> do 
-            print z 
-            print uri
-            case z of  
-                ConnectionClosed -> pure ()
-                WS.ParseException s -> forever harvest 
-                UnicodeException s -> forever harvest 
-                CloseRequest w16 bs -> sendClose conn ("u said so" :: T.Text)
+            
+        harvest'     
         where 
 
-        harvest = fromJust . decode <$> receiveData conn >>= \case
+        harvest' = catch harvest \z -> do 
+            print z 
+            print . render $ uri
+            case z :: ConnectionException of  
+                ConnectionClosed -> pure ()
+                WS.ParseException s -> harvest' 
+                UnicodeException s -> harvest' 
+                CloseRequest w16 bs -> sendClose conn ("u said so" :: T.Text)
+
+        -- fmap is not redundant?
+        harvest = (fromJust . decode <$> receiveData conn) >>= \case
             See _ e@(Event _ _ (Content{kind})) -> case kind of 
                 1 -> do 
                     trust <- verifyE e 
@@ -91,10 +93,12 @@ startCli db uri =
                 0 -> do 
                     trust <- verifyE e 
                     when trust (insertPl db e)
-                    print (trust, "insertPl ------")
                 _ -> print "?"
             Live _ -> print "--------live"
             Notice note -> print $ "note:" <> note 
+            
+            >> do harvest
+            
             -- Nothing -> pure () 
 
 -- extractURI :: URI -> Maybe (String, _ , String) 
@@ -119,7 +123,7 @@ main = do
     o <- open "./futr.sqlite"
     createDb o
     
-    flip mapM defaultRelay $ \d -> forkIO $ startCli o d  
+    void $ flip mapM defaultRelay $ \d -> forkIO $ startCli o d  
 
     threadDelay maxBound
     pure ()

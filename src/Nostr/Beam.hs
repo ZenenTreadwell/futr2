@@ -12,7 +12,7 @@ module Nostr.Beam where
 
 import Database.Beam
 import Database.Beam.Sqlite
-import Database.SQLite.Simple
+import Database.SQLite.Simple as SQL
 import Database.Beam.Migrate.Simple
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Sqlite.Migrate (migrationBackend)
@@ -25,6 +25,7 @@ import Nostr.Filter
 import Data.Aeson
 import Nostr.Db
 import Control.Monad.State
+import Control.Exception
 
 createDb :: Connection -> IO () 
 createDb conn = runBeamSqlite conn $ do 
@@ -42,23 +43,28 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
 insertEv :: Connection -> Event -> IO ()
-insertEv conn e@(Event i _ (Content{..})) = -- do 
-    runBeamSqlite conn $ do
+insertEv conn e@(Event i _ (Content{..})) = catch runIns \(e :: SQLError)-> do 
+        print "SQLERROR!!!!"
+        print e 
+    where
+    runIns = runBeamSqlite conn $ do
+    
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                       anyConflict
                                       onConflictDoNothing
        
-        -- believe if event insert fails will not insert mentions / replies either, should test
+                                                                                               
         runInsert $ insert (_events spec') (insertValues [toEv e])
         let (mx, rx) = gather . catMaybes $ flip map tags \case
                 ETag ie _ marker -> Just . Right $ (ie, marker)
                 PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
+
+        
         runInsert . insert (_mentions spec') . insertExpressions $ map mention mx
         runInsert . insert (_replies spec') . insertExpressions $ map (uncurry reply) rx
 
-    where 
     gather :: [Either a b] ->  ([a], [b]) 
     gather = foldr g ([],[]) 
         where 
