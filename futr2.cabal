@@ -29,6 +29,7 @@ library
       Nostr.Db
       Nostr.Event
       Nostr.Filter
+      Nostr.Harvest
       Nostr.Relay
       Nostr.Wire
       Secp256k1.Internal
