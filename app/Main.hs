@@ -42,7 +42,7 @@ main = do
     
     void $ flip mapM defaultRelay $ \d -> forkIO $ startCli o d  
 
-    runServer "127.0.0.1" 9481 \p -> acceptRequest p >>= (relay o) 
+    runServer "127.0.0.1" 9481 \p -> acceptRequest p >>= relay o 
 
     threadDelay maxBound
     pure ()

@@ -87,6 +87,8 @@ main = do
 
 
 
+esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
+wev = Event evid esig ev 
 ev = Content
     1
     [ 
@@ -105,9 +107,6 @@ pub = Hex32 $ Hex.decodeLenient "6e468422dfb74a5738702a8823b9b28168abab8655faacb
 
 evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65"
 
-esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
-
-wev = Event evid esig ev 
 
 ff = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 

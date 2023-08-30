@@ -39,7 +39,8 @@ liveF sec = emptyF {
     , limitF = Just $ Limit 0 } 
 
 
-harvest :: SQL.Connection -> ClientApp () -- WS.Connection -> IO ()  
+
+harvest :: SQL.Connection -> ClientApp () 
 harvest db ws = catch (forever rec) \z -> do 
     print z 
     case z :: ConnectionException of  
@@ -49,8 +50,12 @@ harvest db ws = catch (forever rec) \z -> do
         CloseRequest w16 bs -> sendClose ws ("u said so" :: T.Text)
     where 
     rec = do 
-        Just down <- decode <$> receiveData ws 
-        case down of 
+        mdown <- receiveData ws 
+        case decode mdown of 
+            Just town -> goDown town
+            Nothing -> print mdown >> print "decode failed?" 
+        where
+        goDown down = case down of 
             See _ e@(Event _ _ (Content{kind})) -> case kind of 
                 1 -> do 
                     trust <- verifyE e 
