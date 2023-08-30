@@ -38,9 +38,6 @@ relay db ws = forever do
 fetchx :: SQL.Connection -> [Filter] -> IO [Event]
 fetchx db fx = mconcat <$> mapM (fetch db) fx 
 
-fetch :: SQL.Connection -> Filter -> IO [Event]
-fetch _ _ = pure $ [wev, wev, wev, wev]
-
 
 
 

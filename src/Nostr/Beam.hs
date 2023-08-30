@@ -10,6 +10,7 @@
 
 module Nostr.Beam where
 
+import Prelude as P
 import Database.Beam
 import Database.Beam.Sqlite
 import Database.SQLite.Simple as SQL
@@ -17,6 +18,7 @@ import Database.Beam.Migrate.Simple
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Text (Text)
+import Data.Text as T
 import Data.Maybe
 import Data.Text.Encoding 
 import qualified Data.ByteString as BS 
@@ -56,17 +58,17 @@ insertEv conn e@(Event i _ (Content{..})) = catch runIns \(e :: SQLError)-> do
        
                                                                                                
         runInsert $ insert (_events spec') (insertValues [toEv e])
-        let (mx, rx) = gather . catMaybes $ flip map tags \case
+        let (mx, rx) = gather . catMaybes $ flip P.map tags \case
                 ETag ie _ marker -> Just . Right $ (ie, marker)
                 PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
 
         
-        runInsert . insert (_mentions spec') . insertExpressions $ map mention mx
-        runInsert . insert (_replies spec') . insertExpressions $ map (uncurry reply) rx
+        runInsert . insert (_mentions spec') . insertExpressions $ P.map mention mx
+        runInsert . insert (_replies spec') . insertExpressions $ P.map (uncurry reply) rx
 
     gather :: [Either a b] ->  ([a], [b]) 
-    gather = foldr g ([],[]) 
+    gather = P.foldr g ([],[]) 
         where 
         g (Right r) (mx, rx) = (mx, r:rx)  
         g (Left l) (mx, rx) = (l:mx, rx)
@@ -88,6 +90,9 @@ toEv e = Ev
 wq :: ToJSON a => a -> Text 
 wq = decodeUtf8 . BS.toStrict . encode 
 
+qw :: FromJSON a => Text -> Maybe a
+qw = decode . BS.fromStrict . encodeUtf8 
+
 insertId :: Connection -> Text -> IO ()
 insertId conn privKey = runBeamSqlite conn $
     runInsert $ insert (_identities spec') 
@@ -101,6 +106,10 @@ insertRelay db uri = runBeamSqlite db $ do
 
 
 
+fetch :: SQL.Connection -> Filter -> IO [Event]
+fetch db Filter{..} = do 
+    catMaybes . P.map (qw . _con) <$> runBeamSqlite db ( 
+        runSelectReturningList . select $ all_ (_events spec'))
               
                
 
