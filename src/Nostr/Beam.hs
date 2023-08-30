@@ -27,7 +27,7 @@ import Nostr.Db
 import Control.Monad.State
 import Control.Exception
 
-createDb :: Connection -> IO () 
+createDb :: SQL.Connection -> IO () 
 createDb conn = runBeamSqlite conn $ do 
    veri <- verifySchema migrationBackend spec
    _ <- checkSchema migrationBackend spec mempty
@@ -94,9 +94,10 @@ insertId conn privKey = runBeamSqlite conn $
               $ insertValues [Id privKey]
 
 insertRelay :: Connection -> Text -> IO ()
-insertRelay conn relayText = runBeamSqlite conn $ do
+insertRelay db uri = runBeamSqlite db $ do
     runInsert $ insert (_relays spec') 
-              $ insertValues [Relay relayText]
+              $ insertExpressions 
+              [ Relay default_  (val_ uri) (val_ False) ]
 
 
 

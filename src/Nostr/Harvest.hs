@@ -39,7 +39,7 @@ liveF sec = emptyF {
     , limitF = Just $ Limit 0 } 
 
 
-harvest :: SQL.Connection -> WS.Connection -> IO ()  
+harvest :: SQL.Connection -> ClientApp () -- WS.Connection -> IO ()  
 harvest db ws = catch (forever rec) \z -> do 
     print z 
     case z :: ConnectionException of  
