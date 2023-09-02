@@ -42,25 +42,25 @@ fetchx db fx = mconcat <$> mapM (fetch db) fx
 
 
 
-esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
-wev = Event evid esig ev 
-ev = Content
-    1
-    [ 
-      ETag evref Nothing Nothing 
-    , PTag keyref Nothing  
-    ] 
-    "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
-    1673347337
-    pub
+-- esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
+-- wev = Event evid esig ev 
+-- ev = Content
+--     1
+--     [ 
+--       ETag evref Nothing Nothing 
+--     , PTag keyref Nothing  
+--     ] 
+--     "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
+--     1673347337
+--     pub
 
-evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
+-- evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
 
-keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"
+-- keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"
 
-pub = Hex32 $ Hex.decodeLenient "6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"
+-- pub = Hex32 $ Hex.decodeLenient "6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"
 
-evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65"
+-- evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65"
 
 
 

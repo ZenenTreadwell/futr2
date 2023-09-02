@@ -15,8 +15,8 @@ import Nostr.Relay
 defaultRelay :: [URI] --_ -- m [URI] 
 defaultRelay =  
     [ 
-        [QQ.uri|ws://127.0.0.1:9481|]  
-      , [QQ.uri|wss://nos.lol|]
+        [QQ.uri|ws://127.0.0.1:9487|]  
+    --   , [QQ.uri|wss://nos.lol|]
     -- , [QQ.uri|wss://relay.nostr.info|]
     -- , [QQ.uri|wss://relay.snort.social|]
     -- , [QQ.uri|wss://nostr-pub.wellorder.net|]
@@ -27,7 +27,7 @@ defaultRelay =
     -- , [QQ.uri|wss://relay.stoner.com|]
     -- , [QQ.uri|wss://relay.nostr.bg|]
     -- , [QQ.uri|wss://nostr-relay.untethr.me|]
-    -- , [QQ.uri|wss://nostr.wine|]
+    , [QQ.uri|wss://nostr.wine|]
     -- , [QQ.uri|wss://nostr.sandwich.farm|]
     -- , [QQ.uri|wss://nostr.rocks|] 
     -- , [QQ.uri|wss://relay.nostr.com.au|]
@@ -40,12 +40,14 @@ main = do
     o <- open "./futr.sqlite"
     createDb o
     
-    void $ flip mapM defaultRelay $ \d -> forkIO $ startCli o d  
+    void $ flip mapM defaultRelay $  
+        forkIO . harvestRelay o   
 
-    runServer "127.0.0.1" 9481 \p -> acceptRequest p >>= relay o 
+    runServer "127.0.0.1" 9487 \p -> 
+        acceptRequest p >>= relay o 
 
-    threadDelay maxBound
-    pure ()
+    -- threadDelay maxBound
+    -- pure ()
 
 
 

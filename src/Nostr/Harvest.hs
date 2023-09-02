@@ -16,8 +16,8 @@ import Nostr.Wire
 import Nostr.Filter 
 import Nostr.Beam
 
-startCli :: SQL.Connection -> URI -> IO () 
-startCli db uri =  
+harvestRelay :: SQL.Connection -> URI -> IO () 
+harvestRelay db uri =  
     case unRText . fromJust . uriScheme $ uri of 
         "wss" -> runSecureClient host (fromIntegral port) path ws 
         "ws"  -> WS.runClient host (fromIntegral port) path ws
@@ -28,17 +28,6 @@ startCli db uri =
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
         harvest db conn     
-
-subscribe :: Text -> WS.Connection -> [Filter] -> IO ()
-subscribe a conn fx = WS.sendTextData conn . encode $ Subscribe a fx
-
-liveF :: Integer -> Filter 
-liveF sec = emptyF { 
-      sinceF = Just $ Since (sec + 11)
-    , kindsF = Just $ Kinds [0, 1] 
-    , limitF = Just $ Limit 0 } 
-
-
 
 harvest :: SQL.Connection -> ClientApp () 
 harvest db ws = catch (forever rec) \z -> do 
@@ -85,3 +74,15 @@ extractURI uri = do
         else joined 
         where joined = P.foldl T.append "" $ 
                        fmap (flip T.append "/" . unRText) rx  
+
+subscribe :: Text -> WS.Connection -> [Filter] -> IO ()
+subscribe a conn = WS.sendTextData conn . encode . Subscribe a
+
+liveF :: Integer -> Filter 
+liveF sec = emptyF { 
+
+      sinceF = Just $ Since $ sec 
+    , kindsF = Just $ Kinds [0, 1] 
+    , limitF = Just $ Limit 0 
+    
+    } 

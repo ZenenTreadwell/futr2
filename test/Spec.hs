@@ -30,6 +30,7 @@ main = do
   mE <- signE kp keyless 
   vEE <- verifyE wev
   mEE <- verifyE mE 
+  o <- open 
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -83,7 +84,8 @@ main = do
       it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
 
-    describe ""
+    describe "database queries" do 
+      it "matches replies" $ 
 
 
 

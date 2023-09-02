@@ -45,11 +45,15 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
 insertEv :: Connection -> Event -> IO ()
-insertEv conn e@(Event i _ (Content{..})) = catch runIns \(e :: SQLError)-> do 
+insertEv conn e@(Event i _ (Content{..})) =  
+    catch runIns \(e :: SQLError)-> do 
         print "SQLERROR!!!!"
         print e 
     where
-    runIns = runBeamSqlite conn $ do
+    runIns = 
+        -- withTransaction conn $ 
+        -- runBeamSqliteDebug print conn $ do
+        runBeamSqlite conn $ do
     
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
@@ -105,27 +109,66 @@ insertRelay db uri = runBeamSqlite db $ do
               [ Relay default_  (val_ uri) (val_ False) ]
 
 
+fetchBaseline :: SQL.Connection -> Filter -> IO [Event]
+fetchBaseline db f@Filter{..} = do 
+    P.filter (flip matchF f) . catMaybes . P.map (qw . _con)  
+        <$> runBeamSqlite db (s d) 
+    where 
+    s = runSelectReturningList . select 
+    d = all_ (_events spec')
+       
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 fetch db Filter{..} = do 
-    catMaybes . P.map (qw . _con) <$> runBeamSqlite db ( 
-        runSelectReturningList . select $ all_ (_events spec'))
-              
-               
+    catMaybes . P.map (qw . _con)  
+        <$> runBeamSqlite db (s d) 
+    where 
+    -- s :: _ 
+    s = case limitF of 
+       Just (Limit (fromIntegral -> x)) -> runSelectReturningList . select . limit_ x  
+       -- type error if limit not included
+       _ -> runSelectReturningList . select . limit_ 10000000   
+        
+    d = do 
+        e <- all_ (_events spec')
+        case idsF of 
+            Just (Ids (P.map (val_ . (<> "%")) -> px)) -> 
+                guard_ $ P.foldr (||.) (val_ False) 
+                       $ P.map (like_ (_eid e)) px
+            _ -> pure () 
+        
+        case authorsF of 
+            Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
+                guard_ $ P.foldr (||.) (val_ False) 
+                       $ P.map (like_ ((\(PlebId p) -> p) $ _pub e)) px
+            _ -> pure () 
+        
+        -- case kindF c -- only support kind 1 anyway?
+        
+        case etagF of 
+            Just (ETagM (P.map (val_ . wq) -> ex)) -> do  
+                ref <- filter_ (\rep ->
+                  (in_ (_eidrr rep) ex)) (all_ (_replies spec'))
+                guard_ (_eidr ref `references_` e)
+            _ -> pure ()
 
+        case ptagF of 
+            Just (PTagM (P.map (val_ .wq) -> px)) -> do 
+                ref <- filter_ (\men -> (
+                    (in_ (_pidm men) px)
+                    )) (all_ $ _mentions spec')
+                guard_ (_eidm ref `references_` e)
+            _ -> pure () 
 
--- fetch :: Connection -> Filter -> _
--- fetch c (Filter mx l) = runSelectReturningList . selectWith $ do 
---     all_ 
-    
+        case sinceF of 
+            Just (Since (fromIntegral -> s)) -> 
+                guard_ $ (_time e >. val_ s )
+            _ -> pure ()
 
-
-
+        case untilF of 
+            Just (Until (fromIntegral -> u)) -> 
+                guard_ $ (_time e <. val_ u )
+            _ -> pure () 
+            
+        pure e
   
-    
-
-
-
-
-
-
