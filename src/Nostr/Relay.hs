@@ -16,7 +16,6 @@ import Control.Monad.STM
 import Control.Concurrent.STM.TVar
 import Control.Concurrent
 import Nostr.Wire
-import qualified Data.ByteString.Base16 as Hex
 import Nostr.Beam
 import Nostr.Event 
 import Nostr.Filter 

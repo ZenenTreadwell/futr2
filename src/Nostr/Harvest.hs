@@ -16,14 +16,15 @@ import Nostr.Wire
 import Nostr.Filter 
 import Nostr.Beam
 
-harvestr :: SQL.Connection -> URI -> IO () 
-harvestr db uri =  
-    case unRText . fromJust . uriScheme $ uri of 
-        "wss" -> runSecureClient host (fromIntegral port) path ws 
-        "ws"  -> WS.runClient host (fromIntegral port) path ws
-        _ -> pure ()
+harvestr :: SQL.Connection -> URI -> Maybe (IO ()) 
+harvestr db uri = do 
+    sch <- unRText <$> uriScheme uri 
+    (host, port, path) <- extractURI uri
+    case sch of 
+        "wss" -> pure $ runSecureClient host (fromIntegral port) path ws 
+        "ws"  -> pure $ WS.runClient host (fromIntegral port) path ws
+        _ -> Nothing
     where 
-    Just (host, port, path) = extractURI uri
     ws conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
