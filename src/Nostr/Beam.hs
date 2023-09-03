@@ -27,15 +27,32 @@ import Nostr.Filter
 import Data.Aeson
 import Nostr.Db
 import Control.Monad.State
+import Control.Monad.STM
 import Control.Exception
+import Control.Concurrent.STM.TChan
+import Database.SQLite.Simple.Function as SQL
 
-createDb :: SQL.Connection -> IO () 
-createDb conn = runBeamSqlite conn $ do 
-   veri <- verifySchema migrationBackend spec
-   _ <- checkSchema migrationBackend spec mempty
-   case veri of 
-       VerificationFailed _ -> autoMigrate migrationBackend spec
-       VerificationSucceeded -> pure () 
+createDb :: SQL.Connection -> IO (TChan Event) 
+createDb o = do 
+    runBeamSqlite o $ do 
+        veri <- verifySchema migrationBackend spec
+        _ <- checkSchema migrationBackend spec mempty
+        case veri of 
+            VerificationFailed _ -> autoMigrate migrationBackend spec
+            VerificationSucceeded -> pure () 
+    _ <- execute_ o "CREATE TRIGGER IF NOT EXISTS updaterhook AFTER INSERT ON events BEGIN SELECT eventfeed(NEW.con); END;"
+    chan <- newTChanIO
+    _ <- createFunction o "eventfeed" (increm chan) 
+    pure chan
+    
+    
+increm :: TChan Event -> Text -> IO Text  
+increm chan t = do 
+    case qw t of 
+        Just e -> atomically $ writeTChan chan e
+        _ -> pure () 
+    print t
+    pure "1" 
 
 
 insertPl :: Connection -> Event -> IO () 
@@ -120,43 +137,45 @@ fetchBaseline db f@Filter{..} = do
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 fetch db Filter{..} = do 
-    catMaybes . P.map (qw . _con)  
-        <$> runBeamSqlite db (s d) 
+    catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s d) 
     where 
     -- s :: _ 
     s = case limitF of 
        Just (Limit (fromIntegral -> x)) -> runSelectReturningList . select . limit_ x  
-       -- type error if limit not included
+       -- error if limit not included XXX
        _ -> runSelectReturningList . select . limit_ 10000000   
         
     d = do 
         e <- all_ (_events spec')
+
         case idsF of 
             Just (Ids (P.map (val_ . (<> "%")) -> px)) -> 
-                guard_ $ P.foldr (||.) (val_ False) 
-                       $ P.map (like_ (_eid e)) px
+                guard_ $ P.foldr ((||.) . like_ (_eid e)) 
+                                 (val_ False) px 
             _ -> pure () 
         
         case authorsF of 
             Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
-                guard_ $ P.foldr (||.) (val_ False) 
-                       $ P.map (like_ ((\(PlebId p) -> p) $ _pub e)) px
+                guard_ $ P.foldr ((||.) . like_ ((\(PlebId p) -> p) $ _pub e)) 
+                                 (val_ False) px
             _ -> pure () 
         
-        -- case kindF c -- only support kind 1 anyway?
+        -- only support kind 1 ??XXX
+        case kindsF of 
+            Just (Kinds (P.elem 1 -> False)) -> guard_ (val_ False) 
+            _ -> pure () 
         
         case etagF of 
             Just (ETagM (P.map (val_ . wq) -> ex)) -> do  
-                ref <- filter_ (\rep ->
-                  (in_ (_eidrr rep) ex)) (all_ (_replies spec'))
+                ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
+                               (all_ (_replies spec'))
                 guard_ (_eidr ref `references_` e)
             _ -> pure ()
 
         case ptagF of 
             Just (PTagM (P.map (val_ .wq) -> px)) -> do 
-                ref <- filter_ (\men -> (
-                    (in_ (_pidm men) px)
-                    )) (all_ $ _mentions spec')
+                ref <- filter_ (\men -> in_ (_pidm men) px)
+                               (all_ $ _mentions spec')
                 guard_ (_eidm ref `references_` e)
             _ -> pure () 
 

@@ -23,6 +23,7 @@ dependencies:
 - vector 
 - utf8-string
 - string-conversions
+- stm 
 
 
   ## sockets 

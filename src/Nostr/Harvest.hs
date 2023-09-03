@@ -16,8 +16,8 @@ import Nostr.Wire
 import Nostr.Filter 
 import Nostr.Beam
 
-harvestRelay :: SQL.Connection -> URI -> IO () 
-harvestRelay db uri =  
+harvestr :: SQL.Connection -> URI -> IO () 
+harvestr db uri =  
     case unRText . fromJust . uriScheme $ uri of 
         "wss" -> runSecureClient host (fromIntegral port) path ws 
         "ws"  -> WS.runClient host (fromIntegral port) path ws
