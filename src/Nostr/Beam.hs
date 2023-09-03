@@ -25,6 +25,7 @@ import qualified Data.ByteString as BS
 import Nostr.Event
 import Nostr.Filter
 import Data.Aeson
+import Data.Int
 import Nostr.Db
 import Control.Monad.State
 import Control.Monad.STM
@@ -42,16 +43,16 @@ createDb o = do
             VerificationSucceeded -> pure () 
     _ <- execute_ o "CREATE TRIGGER IF NOT EXISTS updaterhook AFTER INSERT ON events BEGIN SELECT eventfeed(NEW.con); END;"
     chan <- newTChanIO
-    _ <- createFunction o "eventfeed" (increm chan) 
+    _ <- createFunction o "eventfeed" (eventfeed chan) 
     pure chan
     
-    
-increm :: TChan Event -> Text -> IO Text  
-increm chan t = do 
+eventfeed :: TChan Event -> Text -> IO Text  
+eventfeed chan t = do 
     case qw t of 
-        Just e -> atomically $ writeTChan chan e
+        Just e -> do 
+            print . content . con $ e
+            atomically $ writeTChan chan e
         _ -> pure () 
-    print t
     pure "1" 
 
 
@@ -64,12 +65,9 @@ insertPl conn e@(Event i _ (Content{..})) =
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) =  
     catch runIns \(e :: SQLError)-> do 
-        print "SQLERROR!!!!"
-        print e 
+        pure () 
     where
     runIns = 
-        -- withTransaction conn $ 
-        -- runBeamSqliteDebug print conn $ do
         runBeamSqlite conn $ do
     
         runInsert $ insertOnConflict (_plebs spec') 
@@ -136,10 +134,9 @@ fetchBaseline db f@Filter{..} = do
        
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
-fetch db Filter{..} = do 
+fetch db Filter{..} =  
     catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s d) 
     where 
-    -- s :: _ 
     s = case limitF of 
        Just (Limit (fromIntegral -> x)) -> runSelectReturningList . select . limit_ x  
        -- error if limit not included XXX
@@ -191,3 +188,12 @@ fetch db Filter{..} = do
             
         pure e
   
+popularityContest :: SQL.Connection -> IO _
+popularityContest db = runBeamSqlite db (s d) 
+    where 
+    s = runSelectReturningList . select . limit_ 1 . orderBy_ (desc_ . snd) 
+    d = do 
+        aggregate_ 
+            (\p -> (group_ (_pidm p), as_ @Int32 countAll_) ) 
+            (all_ . _mentions $ spec')            
+            

@@ -49,7 +49,6 @@ harvest db ws = catch (forever rec) \z -> do
                 1 -> do 
                     trust <- verifyE e 
                     when trust (mask_ $ insertEv db e)  
-                    print . content . con $ e
                 0 -> do 
                     trust <- verifyE e 
                     when trust (insertPl db e)
