@@ -51,6 +51,7 @@ library
   build-depends:
       DRBG
     , aeson
+    , async
     , base >=4.7 && <5
     , base16-bytestring
     , beam-core
@@ -59,6 +60,7 @@ library
     , bytestring
     , cipher-aes128
     , connection
+    , containers
     , cryptohash-sha256
     , hspec
     , modern-uri
@@ -95,6 +97,7 @@ executable futr
   build-depends:
       DRBG
     , aeson
+    , async
     , base >=4.7 && <5
     , base16-bytestring
     , beam-core
@@ -103,6 +106,7 @@ executable futr
     , bytestring
     , cipher-aes128
     , connection
+    , containers
     , cryptohash-sha256
     , futr2
     , hspec
@@ -140,6 +144,7 @@ test-suite futr2-test
   build-depends:
       DRBG
     , aeson
+    , async
     , base >=4.7 && <5
     , base16-bytestring
     , beam-core
@@ -148,6 +153,7 @@ test-suite futr2-test
     , bytestring
     , cipher-aes128
     , connection
+    , containers
     , cryptohash-sha256
     , futr2
     , hspec

@@ -23,10 +23,13 @@ dependencies:
 - vector 
 - utf8-string
 - string-conversions
+- containers
+
+## concurrency 
+- async  
 - stm 
 
-
-  ## sockets 
+## sockets 
 - wuss
 - websockets
 - modern-uri

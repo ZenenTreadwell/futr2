@@ -77,12 +77,12 @@ insertEv conn e@(Event i _ (Content{..})) =
        
                                                                                                
         runInsert $ insert (_events spec') (insertValues [toEv e])
+        
         let (mx, rx) = gather . catMaybes $ flip P.map tags \case
                 ETag ie _ marker -> Just . Right $ (ie, marker)
                 PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
 
-        
         runInsert . insert (_mentions spec') . insertExpressions $ P.map mention mx
         runInsert . insert (_replies spec') . insertExpressions $ P.map (uncurry reply) rx
 
@@ -197,3 +197,19 @@ popularityContest db = runBeamSqlite db (s d)
             (\p -> (group_ (_pidm p), as_ @Int32 countAll_) ) 
             (all_ . _mentions $ spec')            
             
+
+activityContest :: SQL.Connection -> IO _
+activityContest db = runBeamSqlite db $ s d 
+    where 
+    s = runSelectReturningList . select . limit_ 5 . orderBy_ (desc_ . snd) 
+    d = do 
+        aggregate_ 
+            (\p -> (group_ (_eidrr p), as_ @Int32 countAll_) ) 
+            (all_ . _replies $ spec')            
+
+lookupEid :: SQL.Connection -> Text -> IO _ 
+lookupEid db t = (_con <$>) <$> runBeamSqlite db (s d) 
+    where 
+    s = runSelectReturningOne  
+    d = lookup_ (_events spec') (EvId t) 
+        
