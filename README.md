@@ -1,16 +1,17 @@
 # futr2
 
-nostr client from future
+nostr types, relay and harvester ... wip 
 
-`stack build`
+`stack build` -- build exec
 
-recomment to run through proxy: 
+`stack exec futr`  -- start relay on 9487 and start collecting events (see app/Main.hs)
+
+Running over tor works: 
 
 `torify <path to futr>`
-`stack exec futr`  -- no proxy
 
 
-ghci tip: 
+to explore in ghci, need to link the signing library: 
 ```
 $ pkg-config --cflags --libs libsecp256k1
 <FLAGS>
@@ -19,11 +20,11 @@ $ stack ghci --ghc-options "<FLAGS>"
 ```
 
 dependencies 
-- libsecp256k1
+- [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - ...
 
-nips 
-- [ ] 1
+nips (todo ?)
+- [x] 1
 - [ ] ?
 - [ ] ?
 

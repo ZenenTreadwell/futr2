@@ -191,7 +191,7 @@ fetch db Filter{..} =
 popularityContest :: SQL.Connection -> IO _
 popularityContest db = runBeamSqlite db (s d) 
     where 
-    s = runSelectReturningList . select . limit_ 1 . orderBy_ (desc_ . snd) 
+    s = runSelectReturningList . select . limit_ 5 . orderBy_ (desc_ . snd) 
     d = do 
         aggregate_ 
             (\p -> (group_ (_pidm p), as_ @Int32 countAll_) ) 
