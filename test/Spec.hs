@@ -107,9 +107,16 @@ main = do
                   Left ex -> shouldNotBe 0 (P.length ex)
                   Right ex -> shouldNotBe 0 (P.length ex)
           it ("same result as baseline " <> t') $ do 
-            f1 <- fetch o f'
-            f2 <- fetchBaseline o f'
+            f1 <- P.map (toJSON . eid) <$> fetch o f'
+            f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
             shouldBe (f1 \\ f2, f2 \\ f1) ([],[])
+          it ("same result as baseline 2 " <> t') $ do 
+            f1 <- P.map (toJSON . eid) <$> fetch o f'
+            f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
+            shouldBe (P.length f1) (P.length f2) 
+
+isPP (PTag _ _) = True
+isPP _ = False 
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 

@@ -11,7 +11,7 @@
 module Nostr.Beam where
 
 import Prelude as P
-import Database.Beam
+import Database.Beam as B
 import Database.Beam.Sqlite
 import Database.SQLite.Simple as SQL
 import Database.Beam.Migrate.Simple
@@ -19,6 +19,7 @@ import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Text (Text)
 import Data.Text as T
+import Data.List as L 
 import Data.Maybe
 import Data.Text.Encoding 
 import qualified Data.ByteString as BS 
@@ -55,7 +56,6 @@ eventfeed chan t = do
         _ -> pure () 
     pure "1" 
 
-
 insertPl :: Connection -> Event -> IO () 
 insertPl conn e@(Event i _ (Content{..})) = 
     runBeamSqlite conn 
@@ -65,8 +65,6 @@ insertPl conn e@(Event i _ (Content{..})) =
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) =  
     catch runIns \(e :: SQLError)-> do 
-        print "help"
-        print e
         pure () 
     where
     runIns = 
@@ -78,15 +76,15 @@ insertEv conn e@(Event i _ (Content{..})) =
                                       onConflictDoNothing
        
                                                                                                
-        runInsert $ insert (_events spec') (insertValues [toEv e])
+        runInsert $ B.insert (_events spec') (insertValues [toEv e])
         
         let (mx, rx) = gather . catMaybes $ flip P.map tags \case
                 ETag ie _ marker -> Just . Right $ (ie, marker)
                 PTag ip _ -> Just . Left $ ip
                 _ -> Nothing 
 
-        runInsert . insert (_mentions spec') . insertExpressions $ P.map mention mx
-        runInsert . insert (_replies spec') . insertExpressions $ P.map (uncurry reply) rx
+        runInsert . B.insert (_mentions spec') . insertExpressions $ P.map mention mx
+        runInsert . B.insert (_replies spec') . insertExpressions $ P.map (uncurry reply) rx
 
     gather :: [Either a b] ->  ([a], [b]) 
     gather = P.foldr g ([],[]) 
@@ -116,12 +114,12 @@ qw = decode . BS.fromStrict . encodeUtf8
 
 insertId :: Connection -> Text -> IO ()
 insertId conn privKey = runBeamSqlite conn $
-    runInsert $ insert (_identities spec') 
+    runInsert $ B.insert (_identities spec') 
               $ insertValues [Id privKey]
 
 insertRelay :: Connection -> Text -> IO ()
 insertRelay db uri = runBeamSqlite db $ do
-    runInsert $ insert (_relays spec') 
+    runInsert $ B.insert (_relays spec') 
               $ insertExpressions 
               [ Relay default_  (val_ uri) (val_ False) ]
 
@@ -137,7 +135,7 @@ fetchBaseline db f@Filter{..} = do
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 fetch db Filter{..} =  
-    catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s' d') 
+    nub . catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s' d') 
     where 
     s' = case limitF of 
        Just (Limit (fromIntegral -> x)) 
@@ -209,8 +207,15 @@ activityContest db = runBeamSqlite db $ s d
             (all_ . _replies $ spec')            
 
 lookupEid :: SQL.Connection -> Text -> IO _ 
-lookupEid db t = (_con <$>) <$> runBeamSqlite db (s d) 
+lookupEid db t = P.map (flip matchM aye) <$> fetch db emptyF{idsF=Just aye}
     where 
-    s = runSelectReturningOne  
-    d = lookup_ (_events spec') (EvId t) 
+    aye = Ids [t]    -- XXX > ??? -- \"
+    -- (_con <$>) <$> runBeamSqlite db (s d) 
+    -- where 
+    -- s = runSelectReturningOne  
+    -- d = lookup_ (_events spec') (EvId t) 
+
+
+isPP (PTag _ _) = True
+isPP _ = False 
         
