@@ -7,7 +7,6 @@ import Wuss
 import Database.SQLite.Simple as SQL
 import Text.URI --(URI)
 import Data.Text as T
-import Data.Maybe
 import Data.Time.Clock.POSIX
 import Data.Aeson
 import Control.Monad
@@ -21,8 +20,8 @@ harvestr db uri = do
     sch <- unRText <$> uriScheme uri 
     (host, port, path) <- extractURI uri
     case sch of 
-        "wss" -> pure $ runSecureClient host (fromIntegral port) path ws 
-        "ws"  -> pure $ WS.runClient host (fromIntegral port) path ws
+        "wss" -> Just $ runSecureClient host (fromIntegral port) path ws 
+        "ws"  -> Just $ WS.runClient host (fromIntegral port) path ws
         _ -> Nothing
     where 
     ws conn = do
@@ -35,9 +34,9 @@ harvest db ws = catch (forever rec) \z -> do
     print z 
     case z :: ConnectionException of  
         ConnectionClosed -> pure ()
-        WS.ParseException s -> harvest db ws
-        UnicodeException s -> harvest db ws
-        CloseRequest w16 bs -> sendClose ws ("u said so" :: T.Text)
+        WS.ParseException _ -> harvest db ws
+        UnicodeException _ -> harvest db ws
+        CloseRequest _ _ -> sendClose ws ("u said so" :: T.Text)
     where 
     rec = do 
         mdown <- receiveData ws 
@@ -80,9 +79,7 @@ subscribe a conn = WS.sendTextData conn . encode . Subscribe a
 
 liveF :: Integer -> Filter 
 liveF sec = emptyF { 
-
       sinceF = Just $ Since $ sec 
     , kindsF = Just $ Kinds [0, 1] 
     , limitF = Just $ Limit 0 
-    
     } 

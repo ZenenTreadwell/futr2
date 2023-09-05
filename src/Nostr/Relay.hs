@@ -10,6 +10,7 @@ import Database.SQLite.Simple as SQL
 import Data.Aeson as J
 import Data.ByteString.Lazy as LB
 import Data.List 
+import Data.Text (Text)
 import Data.Map.Strict as M 
 import Control.Monad 
 import Control.Monad.STM
@@ -21,13 +22,14 @@ import Nostr.Event
 import Nostr.Filter 
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
+type Subs = M.Map Text [Filter] 
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
-    s <- atomically $ newTVar M.empty
+    s <- newTVarIO M.empty
     race_ (listen' s) (broadcast' s) 
-
     where 
+    listen' :: TVar Subs -> IO ()
     listen' subs = forever do 
         eo <- E.try . WS.receiveData $ ws :: Listen
         case decode <$> eo of 
@@ -36,7 +38,6 @@ relay db chan ws = do
                     ex <- fetchx db fx
                     void $ WS.sendTextDatas ws 
                          $ P.map (encode . See s) ex   
-
                     atomically $ modifyTVar subs (M.insert s fx) 
                 Submit e -> do 
                     trust <- verifyE e 
@@ -45,6 +46,7 @@ relay db chan ws = do
             Right Nothing -> print . (<> " - nothing") . show $ eo
             Left z -> print z >> myThreadId >>= killThread 
     
+    broadcast' :: TVar Subs -> IO () 
     broadcast' subs = forever do 
         e <- atomically $ readTChan chan
         m <- readTVarIO subs

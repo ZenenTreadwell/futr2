@@ -8,9 +8,11 @@ import qualified Text.URI.QQ as QQ
 import Control.Monad
 import Control.Concurrent
 import Database.SQLite.Simple as SQL
+import Control.Concurrent.STM.TChan 
 import Nostr.Beam
 import Nostr.Harvest
 import Nostr.Relay
+import Nostr.Event
 
 defaultRelay :: [URI] 
 defaultRelay =  
@@ -36,9 +38,15 @@ defaultRelay =
     ]
 
 main :: IO ()
-main = do 
-    o <- open "./futr.sqlite"
+main = 
+    let a :: SQL.Connection -> TChan Event -> ServerApp 
+        a o f = acceptRequest >=> relay o f
+    in do 
+    o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    void . mapM forkIO $ mapMaybe (harvestr o) defaultRelay 
-    runServer "127.0.0.1" 9487 $ acceptRequest >=> relay o f  
+    
+    void . mapM forkIO . mapMaybe (harvestr o) $ defaultRelay 
+
+    runServer "127.0.0.1" 9487 $ a o f
+
 

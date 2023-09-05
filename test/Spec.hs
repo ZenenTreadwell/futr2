@@ -1,12 +1,9 @@
 
 import Test.Hspec 
 
-import Nostr.Event
-import Nostr.Relay
-import Nostr.Beam
-import Nostr.Filter
-import Nostr.Wire 
+import Prelude as P 
 import Data.Time.Clock.POSIX
+import Data.Int
 import Data.Aeson
 import Data.Either
 import Data.Maybe
@@ -17,7 +14,15 @@ import Secp256k1.Internal
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
+import Control.Monad
 import Control.Monad.IO.Class
+import Control.Concurrent.Async
+import Database.SQLite.Simple
+import Nostr.Event
+import Nostr.Relay
+import Nostr.Beam
+import Nostr.Filter
+import Nostr.Wire 
 
 main :: IO ()
 main = do
@@ -30,7 +35,7 @@ main = do
   mE <- signE kp keyless 
   vEE <- verifyE wev
   mEE <- verifyE mE 
-  o <- open 
+  o <- open "./futr.sqlite"
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -85,7 +90,24 @@ main = do
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
 
     describe "database queries" do 
-      it "matches replies" $ 
+             
+       it "uses limit" $ do 
+          f' <- P.length <$> fetch o fl
+          shouldBe 42 f' 
+       void $ flip mapM ff \f' -> do
+          it "faster than baseline" $ do   
+              baseWin <- isRight <$> race (fetch o f') (fetchBaseline o f')
+              shouldBe False baseWin 
+          it "same number of result baseline" $ do 
+            f1 <- fetch o f'
+            f2 <- fetchBaseline o f'
+            shouldBe (P.length f1) (P.length f2)
+
+      
+          -- case line of 
+          --     Right r -> shouldBe False True
+          --     Left l -> shouldBe True True
+
 
 
 
@@ -109,7 +131,15 @@ pub = Hex32 $ Hex.decodeLenient "6e468422dfb74a5738702a8823b9b28168abab8655faacb
 
 evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65"
 
+fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 
-ff = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
+ff = 
+  [ emptyF {idsF = Just . Ids $ ["a"]} 
+  , emptyF {authorsF = Just . Authors $ ["a"]}
+  , emptyF {etagF = Just . ETagM $ [evref]} 
+  , emptyF {ptagF = Just . PTagM $ [pub]}
+  , emptyF {sinceF = Just . Since $ 0} 
+  , emptyF {untilF = Just . Until . fromIntegral $ (maxBound :: Int)} 
+  ]
 
 

@@ -25,7 +25,7 @@ instance FromJSON Up where
         case V.head a of 
             "EVENT" -> Submit <$> parseJSON (V.last a)
             "REQ" -> Subscribe <$> parseJSON (a V.! 1) 
-                               <*> traverse id  
+                               <*> sequenceA  
                                    (V.foldr ((:) . parseJSON) [] (V.drop 2 a)) 
             "CLOSE" -> End <$> parseJSON (V.last a)
             _ -> fail "unimpl parseJSON"

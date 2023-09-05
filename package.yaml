@@ -14,16 +14,18 @@ description: "Walled gardens became prisons, and nostr is the first step towards
 
 dependencies:
 - base >= 4.7 && < 5
-- mtl
-- text
 - time
-- aeson
+- mtl
+
+## data
+- text
+- vector 
 - bytestring
 - base16-bytestring
-- vector 
 - utf8-string
 - string-conversions
 - containers
+- aeson
 
 ## concurrency 
 - async  

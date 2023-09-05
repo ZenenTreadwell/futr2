@@ -135,14 +135,14 @@ fetchBaseline db f@Filter{..} = do
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 fetch db Filter{..} =  
-    catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s d) 
+    catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s' d') 
     where 
-    s = case limitF of 
-       Just (Limit (fromIntegral -> x)) -> runSelectReturningList . select . limit_ x  
-       -- error if limit not included XXX
+    s' = case limitF of 
+       Just (Limit (fromIntegral -> x)) 
+            -> runSelectReturningList . select . limit_ x  
        _ -> runSelectReturningList . select . limit_ 10000000   
         
-    d = do 
+    d' = do 
         e <- all_ (_events spec')
 
         case idsF of 
@@ -157,7 +157,6 @@ fetch db Filter{..} =
                                  (val_ False) px
             _ -> pure () 
         
-        -- only support kind 1 ??XXX
         case kindsF of 
             Just (Kinds (P.elem 1 -> False)) -> guard_ (val_ False) 
             _ -> pure () 
@@ -170,7 +169,7 @@ fetch db Filter{..} =
             _ -> pure ()
 
         case ptagF of 
-            Just (PTagM (P.map (val_ .wq) -> px)) -> do 
+            Just (PTagM (P.map (val_ . wq) -> px)) -> do 
                 ref <- filter_ (\men -> in_ (_pidm men) px)
                                (all_ $ _mentions spec')
                 guard_ (_eidm ref `references_` e)
