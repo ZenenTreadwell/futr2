@@ -94,11 +94,11 @@ main = do
        it "uses limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 
-       void $ flip mapM ff \f' -> do
-          it "faster than baseline" $ do   
+       void $ flip mapM ff \(f', t') -> do
+          it ("faster than baseline " <> t') $ do   
               baseWin <- isRight <$> race (fetch o f') (fetchBaseline o f')
               shouldBe False baseWin 
-          it "same number of result baseline" $ do 
+          it ("same number of result " <> t') $ do 
             f1 <- fetch o f'
             f2 <- fetchBaseline o f'
             shouldBe (P.length f1) (P.length f2)
@@ -140,6 +140,14 @@ ff =
   , emptyF {ptagF = Just . PTagM $ [pub]}
   , emptyF {sinceF = Just . Since $ 0} 
   , emptyF {untilF = Just . Until . fromIntegral $ (maxBound :: Int)} 
-  ]
+  ] `P.zip`
+  [
+    "Ids"
+    , "Authors"
+    , "ETags"
+    , "PTags"
+    , "Since"
+    , "Until"
+   ]
 
 

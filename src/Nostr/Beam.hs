@@ -146,13 +146,13 @@ fetch db Filter{..} =
         e <- all_ (_events spec')
 
         case idsF of 
-            Just (Ids (P.map (val_ . (<> "%")) -> px)) -> 
+            Just (Ids (P.map (val_ . ("\""<>) . (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ (_eid e)) 
                                  (val_ False) px 
             _ -> pure () 
         
         case authorsF of 
-            Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
+            Just (Authors (P.map (val_ . ("\"" <>) . (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ ((\(PlebId p) -> p) $ _pub e)) 
                                  (val_ False) px
             _ -> pure () 
