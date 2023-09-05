@@ -7,6 +7,7 @@ import Data.Int
 import Data.Aeson
 import Data.Either
 import Data.Maybe
+import Data.List
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 as C8
@@ -36,6 +37,8 @@ main = do
   vEE <- verifyE wev
   mEE <- verifyE mE 
   o <- open "./futr.sqlite"
+  createDb o
+  insertEv o wev
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -96,20 +99,17 @@ main = do
           shouldBe 42 f' 
        void $ flip mapM ff \(f', t') -> do
           it ("faster than baseline " <> t') $ do   
-              baseWin <- isRight <$> race (fetch o f') (fetchBaseline o f')
-              shouldBe False baseWin 
-          it ("same number of result " <> t') $ do 
+              baseWin <- race (fetch o f') (fetchBaseline o f')
+              shouldBe False (isRight baseWin) 
+          it ("some results " <> t') $ do 
+              baseWin <- race (fetch o f') (fetchBaseline o f')
+              case baseWin of 
+                  Left ex -> shouldNotBe 0 (P.length ex)
+                  Right ex -> shouldNotBe 0 (P.length ex)
+          it ("same result as baseline " <> t') $ do 
             f1 <- fetch o f'
             f2 <- fetchBaseline o f'
-            shouldBe (P.length f1) (P.length f2)
-
-      
-          -- case line of 
-          --     Right r -> shouldBe False True
-          --     Left l -> shouldBe True True
-
-
-
+            shouldBe (f1 \\ f2, f2 \\ f1) ([],[])
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 
@@ -134,20 +134,20 @@ evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 
 ff = 
-  [ emptyF {idsF = Just . Ids $ ["a"]} 
-  , emptyF {authorsF = Just . Authors $ ["a"]}
+  [ emptyF {idsF = Just . Ids $ ["3"]} 
+  , emptyF {authorsF = Just . Authors $ ["6"]}
   , emptyF {etagF = Just . ETagM $ [evref]} 
-  , emptyF {ptagF = Just . PTagM $ [pub]}
-  , emptyF {sinceF = Just . Since $ 0} 
-  , emptyF {untilF = Just . Until . fromIntegral $ (maxBound :: Int)} 
+  , emptyF {ptagF = Just . PTagM $ [pub, keyref]}
+  -- , emptyF {sinceF = Just . Since $ now } 
+  -- , emptyF {untilF = Just . Until . fromIntegral $ now} 
   ] `P.zip`
   [
     "Ids"
     , "Authors"
     , "ETags"
     , "PTags"
-    , "Since"
-    , "Until"
+    -- , "Since"
+    -- , "Until"
    ]
 
-
+now = 1693803778

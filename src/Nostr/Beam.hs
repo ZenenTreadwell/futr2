@@ -65,6 +65,8 @@ insertPl conn e@(Event i _ (Content{..})) =
 insertEv :: Connection -> Event -> IO ()
 insertEv conn e@(Event i _ (Content{..})) =  
     catch runIns \(e :: SQLError)-> do 
+        print "help"
+        print e
         pure () 
     where
     runIns = 
