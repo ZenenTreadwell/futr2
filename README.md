@@ -26,14 +26,25 @@ dependencies
 - ...
 
 NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
-- [x] 1
-- [x] 10
+- [ ] 1
+- [ ] 42
+- [ ] 50
+- [ ] 30
+- [ ] 25
+- [ ] 7
 - [ ] 2
+- [ ] 3
+- [x] 10
 - [ ] 12
+- [ ] 13
+- [ ] 31
 - [ ] 33
 - [ ] 23
-- [ ] 57
 - [ ] 58
+- [ ] 57
+- [ ] 99
+- [ ] 15
+- [ ] 4
 - [ ] ?
 
 Run the tests!
