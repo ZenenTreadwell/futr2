@@ -114,6 +114,8 @@ main = do
             f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
             shouldBe (P.length f1) (P.length f2) 
 
+    describe "what is next?" do it "*" $ flip shouldBe True False 
+
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 
 ev = Content
@@ -137,7 +139,9 @@ evid = Hex32 $ Hex.decodeLenient "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 
 ff = 
-  [ emptyF {idsF = Just . Ids $ ["3"]} 
+  [ emptyF {idsF = Just . Ids $ [
+    "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65" ]} 
+  , emptyF {idsF = Just . Ids $ ["3"]} 
   , emptyF {authorsF = Just . Authors $ ["6"]}
   , emptyF {etagF = Just . ETagM $ [evref]} 
   , emptyF {ptagF = Just . PTagM $ [pub, keyref]}
@@ -145,7 +149,7 @@ ff =
   -- , emptyF {untilF = Just . Until . fromIntegral $ now} 
   ] `P.zip`
   [
-    "Ids"
+    "Ids1", "Ids2"
     , "Authors"
     , "ETags"
     , "PTags"

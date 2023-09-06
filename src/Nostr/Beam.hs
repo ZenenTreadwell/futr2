@@ -134,10 +134,25 @@ fetchBaseline db f@Filter{..} = do
     d = all_ (_events spec')
        
 
+isHex32 :: Text -> Bool 
+isHex32 h = case decode . encode $ h of  
+    (Just (Hex32 _)) -> True
+    _ -> False
+
+toHex32 :: Text -> Maybe Hex32
+toHex32 = decode . encode 
+
+
 fetch :: SQL.Connection -> Filter -> IO [Event]
+
+fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ )
+    = do 
+        print "in all hexdo"
+        -- join . catMaybes . 
+        hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx
+        pure . mapMaybe (qw . _con) . catMaybes $ hx
+        
 fetch db Filter{..} =  
-    -- 
-    -- nub . 
     mapMaybe (qw . _con) <$> runBeamSqlite db (s' d') 
     where 
     s' = case limitF of 
@@ -209,13 +224,19 @@ activityContest db = runBeamSqlite db $ s d
             (\p -> (group_ (_eidrr p), as_ @Int32 countAll_) ) 
             (all_ . _replies $ spec')            
 
-lookupEid :: SQL.Connection -> Text -> IO _ 
-lookupEid db t = P.map (content . con) <$> fetch db emptyF{idsF=Just aye}
-    where 
-    aye = Ids [t]   
-     -- XXX > ??? -- \"
 
 lookupPid :: SQL.Connection -> Text -> IO _ 
 lookupPid db t = P.map (content . con) <$> fetch db emptyF{authorsF=Just aye}
     where 
     aye = Authors [t]
+    
+lookupEid :: SQL.Connection -> Hex32 -> IO _ 
+lookupEid db t = 
+    let exi = wq t 
+    in 
+    runBeamSqlite db 
+    $ runSelectReturningOne 
+    $ lookup_ (_events spec') (EvId exi)
+
+     
+     -- XXX > ??? -- \"
