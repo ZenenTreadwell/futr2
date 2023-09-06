@@ -1,6 +1,8 @@
 # futr2
 
-nostr types, relay and harvester ... wip 
+"The name 'futr' was chosen from respect for the honorable Canadians." - [prolic of futr1](https://github.com/prolic/futr)
+
+nostr Library, relay and harvester ...  
 
 `stack build` -- build exec
 
@@ -23,8 +25,7 @@ dependencies
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - ...
 
-[nostr improvement proposals](https://github.com/nostr-protocol/nips) 
-- [x] 0
+NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
 - [x] 1
 - [x] 10
 - [ ] 2
@@ -32,13 +33,14 @@ dependencies
 - [ ] 33
 - [ ] 23
 - [ ] 57
+- [ ] 58
 - [ ] ?
 
 Run the tests!
 
 `stack test` 
 
-Donations? 
+Donate? 
 
 `bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9`
 
