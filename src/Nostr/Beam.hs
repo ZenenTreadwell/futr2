@@ -142,13 +142,10 @@ isHex32 h = case decode . encode $ h of
 toHex32 :: Text -> Maybe Hex32
 toHex32 = decode . encode 
 
-
 fetch :: SQL.Connection -> Filter -> IO [Event]
 
 fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ )
     = do 
-        print "in all hexdo"
-        -- join . catMaybes . 
         hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx
         pure . mapMaybe (qw . _con) . catMaybes $ hx
         
@@ -237,6 +234,3 @@ lookupEid db t =
     runBeamSqlite db 
     $ runSelectReturningOne 
     $ lookup_ (_events spec') (EvId exi)
-
-     
-     -- XXX > ??? -- \"

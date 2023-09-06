@@ -23,12 +23,23 @@ dependencies
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - ...
 
-nips (todo ?)
+[nostr improvement proposals](https://github.com/nostr-protocol/nips) 
+- [x] 0
 - [x] 1
-- [ ] ?
+- [x] 10
+- [ ] 2
+- [ ] 12
+- [ ] 33
+- [ ] 23
+- [ ] 57
 - [ ] ?
 
-there are some tests
+Run the tests!
 
 `stack test` 
+
+Donations? 
+
+`bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9`
+
 
