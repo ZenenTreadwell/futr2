@@ -100,8 +100,6 @@ instance Table MentionT where
       data PrimaryKey MentionT f = MentionId (C f Int32) deriving (Generic, Beamable)
       primaryKey = MentionId . _idxm
 
-
-
 instance HasDefaultSqlDataType Sqlite Marker where 
     -- defaultSqlDataType :: _ 
     defaultSqlDataType _ _ _ = sqliteTextType 

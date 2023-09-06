@@ -28,6 +28,7 @@ import Nostr.Filter
 import Data.Aeson
 import Data.Int
 import Nostr.Db
+import Data.Maybe
 import Control.Monad.State
 import Control.Monad.STM
 import Control.Exception
@@ -135,12 +136,14 @@ fetchBaseline db f@Filter{..} = do
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 fetch db Filter{..} =  
-    nub . catMaybes . P.map (qw . _con) <$> runBeamSqlite db (s' d') 
+    -- 
+    -- nub . 
+    mapMaybe (qw . _con) <$> runBeamSqlite db (s' d') 
     where 
     s' = case limitF of 
        Just (Limit (fromIntegral -> x)) 
-            -> runSelectReturningList . select . limit_ x  
-       _ -> runSelectReturningList . select . limit_ 10000000   
+            -> runSelectReturningList . select . nub_ . limit_ x  
+       _ -> runSelectReturningList . select . nub_ . limit_ 10000000   
         
     d' = do 
         e <- all_ (_events spec')
@@ -207,15 +210,12 @@ activityContest db = runBeamSqlite db $ s d
             (all_ . _replies $ spec')            
 
 lookupEid :: SQL.Connection -> Text -> IO _ 
-lookupEid db t = P.map (flip matchM aye) <$> fetch db emptyF{idsF=Just aye}
+lookupEid db t = P.map (content . con) <$> fetch db emptyF{idsF=Just aye}
     where 
-    aye = Ids [t]    -- XXX > ??? -- \"
-    -- (_con <$>) <$> runBeamSqlite db (s d) 
-    -- where 
-    -- s = runSelectReturningOne  
-    -- d = lookup_ (_events spec') (EvId t) 
+    aye = Ids [t]   
+     -- XXX > ??? -- \"
 
-
-isPP (PTag _ _) = True
-isPP _ = False 
-        
+lookupPid :: SQL.Connection -> Text -> IO _ 
+lookupPid db t = P.map (content . con) <$> fetch db emptyF{authorsF=Just aye}
+    where 
+    aye = Authors [t]

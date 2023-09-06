@@ -93,7 +93,6 @@ main = do
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
 
     describe "database queries" do 
-             
        it "uses limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 
@@ -114,9 +113,6 @@ main = do
             f1 <- P.map (toJSON . eid) <$> fetch o f'
             f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
             shouldBe (P.length f1) (P.length f2) 
-
-isPP (PTag _ _) = True
-isPP _ = False 
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 
