@@ -35,6 +35,7 @@ defaultRelay =
     , [QQ.uri|wss://relay.nostr.com.au|]
     , [QQ.uri|wss://nostrja-kari.heguro.com|]
     , [QQ.uri|wss://nostrja-kari-nip50.heguro.com|]
+    , [QQ.uri|wss://purplepag.es|]
     ]
 
 main :: IO ()

@@ -6,7 +6,7 @@ import Foreign
 import Foreign.C              
 import System.IO.Unsafe (unsafePerformIO)
 import Data.ByteString (ByteString)
-import Crypto.Random.DRBG
+import System.Entropy 
 
 data XOnlyPubKey64
 data Sig64
@@ -54,7 +54,5 @@ packPtr (p, l) = BU.unsafePackMallocCStringLen (castPtr p, fromIntegral l)
 
 genSalt :: IO (Ptr x, CSize)
 genSalt = do 
-    gen <- genBytes 32 <$> (newGenIO :: IO CtrDRBG) 
-    case gen of 
-        Right (bs, _) -> getPtr bs
-        _             -> genSalt 
+    x <- getEntropy 32
+    getPtr x

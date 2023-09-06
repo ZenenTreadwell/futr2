@@ -14,32 +14,28 @@ description: "Walled gardens became prisons, and nostr is the first step towards
 
 dependencies:
 - base >= 4.7 && < 5
+
+## control
 - time
+- entropy
+- stm 
 - mtl
+- async  
 
 ## data
 - text
 - vector 
 - bytestring
 - base16-bytestring
-- utf8-string
-- string-conversions
 - containers
 - aeson
 
-## concurrency 
-- async  
-- stm 
-
-## sockets 
+## socket 
 - wuss
 - websockets
 - modern-uri
-- connection
 
 ## crypto
-- DRBG
-- cipher-aes128
 - cryptohash-sha256
   
 ## database
@@ -47,7 +43,8 @@ dependencies:
 - beam-sqlite
 - beam-migrate
 - sqlite-simple
-  
+
+## test
 - hspec
 
 pkg-config-dependencies:
@@ -62,7 +59,6 @@ default-extensions:
 - OverloadedStrings
 - LambdaCase
 - QuasiQuotes
-- TemplateHaskell
 
 ghc-options:
 - -Wall

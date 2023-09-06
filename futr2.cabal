@@ -44,13 +44,11 @@ library
       OverloadedStrings
       LambdaCase
       QuasiQuotes
-      TemplateHaskell
   ghc-options: -Wall
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      DRBG
-    , aeson
+      aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring
@@ -58,19 +56,16 @@ library
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , cipher-aes128
-    , connection
     , containers
     , cryptohash-sha256
+    , entropy
     , hspec
     , modern-uri
     , mtl
     , sqlite-simple
     , stm
-    , string-conversions
     , text
     , time
-    , utf8-string
     , vector
     , websockets
     , wuss
@@ -90,13 +85,11 @@ executable futr
       OverloadedStrings
       LambdaCase
       QuasiQuotes
-      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      DRBG
-    , aeson
+      aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring
@@ -104,20 +97,17 @@ executable futr
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , cipher-aes128
-    , connection
     , containers
     , cryptohash-sha256
+    , entropy
     , futr2
     , hspec
     , modern-uri
     , mtl
     , sqlite-simple
     , stm
-    , string-conversions
     , text
     , time
-    , utf8-string
     , vector
     , websockets
     , wuss
@@ -137,13 +127,11 @@ test-suite futr2-test
       OverloadedStrings
       LambdaCase
       QuasiQuotes
-      TemplateHaskell
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      DRBG
-    , aeson
+      aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring
@@ -151,20 +139,17 @@ test-suite futr2-test
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , cipher-aes128
-    , connection
     , containers
     , cryptohash-sha256
+    , entropy
     , futr2
     , hspec
     , modern-uri
     , mtl
     , sqlite-simple
     , stm
-    , string-conversions
     , text
     , time
-    , utf8-string
     , vector
     , websockets
     , wuss

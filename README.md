@@ -1,19 +1,21 @@
 # futr2
 
-"The name 'futr' was chosen from respect for the honorable Canadians." - [prolic of futr1](https://github.com/prolic/futr)
+"The name 'futr' was chosen from respect for the honorable Canadians." - [prolic of futr](https://github.com/prolic/futr)
 
-nostr Library, relay and harvester ...  
+nostr Library, Relay and Harvester  
 
 `stack build` -- build exec
 
-`stack exec futr`  -- start relay on 9487 and start collecting events (see app/Main.hs)
+`stack exec futr` 
+- runs relay on 9487
+- collect events from default relays 
 
 Running over tor works: 
 
 `torify <path to futr>`
 
 
-to explore in ghci, need to link the signing library: 
+ghci needs flags: 
 ```
 $ pkg-config --cflags --libs libsecp256k1
 <FLAGS>
@@ -26,26 +28,15 @@ dependencies
 - ...
 
 NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
-- [ ] 1
-- [ ] 42
-- [ ] 50
-- [ ] 30
-- [ ] 25
-- [ ] 7
-- [ ] 2
-- [ ] 3
-- [x] 10
-- [ ] 12
-- [ ] 13
-- [ ] 31
-- [ ] 33
-- [ ] 23
-- [ ] 58
-- [ ] 57
-- [ ] 99
-- [ ] 15
-- [ ] 4
-- [ ] ?
+|wip |possible |avoiding |
+|- [ ] 1 - [ ] 25  - [ ] 42 - [x] 10 - [ ] 12 - [ ] 13 - [ ] 31 - [ ] 33 - [ ] 65
+    |  - [ ] 30 - [ ] 65 - [ ] 7 
+        |  - [ ] 4 - [ ] 57
+            |
+
+Desktop Application (monomer) 
+
+`futr.sqlite` is created in the local directory   
 
 Run the tests!
 

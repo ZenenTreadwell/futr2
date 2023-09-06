@@ -114,7 +114,7 @@ main = do
             f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
             shouldBe (P.length f1) (P.length f2) 
 
-    describe "what is next?" do it "*" $ flip shouldBe True False 
+    -- describe "what is next?" do it "*" $ flip shouldBe True False 
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 

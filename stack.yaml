@@ -1,6 +1,6 @@
 
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/8.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/9.yaml
 
 packages:
 - .
@@ -12,7 +12,3 @@ extra-deps:
     - beam-core
     - beam-sqlite
     - beam-migrate
-- git: https://github.com/TomMD/cipher-aes128.git
-  commit: 6f634f6c1ecb2b4173dbe4f46d269ee612c68840
-- DRBG-0.5.5
-- vector-sized-1.5.0  
