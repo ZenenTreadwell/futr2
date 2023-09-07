@@ -5,7 +5,7 @@
 
 packages:
 - completed:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     name: beam-core
     pantry-tree:
@@ -14,11 +14,11 @@ packages:
     subdir: beam-core
     version: 0.10.1.0
   original:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     subdir: beam-core
 - completed:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     name: beam-sqlite
     pantry-tree:
@@ -27,11 +27,11 @@ packages:
     subdir: beam-sqlite
     version: 0.5.3.0
   original:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     subdir: beam-sqlite
 - completed:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     name: beam-migrate
     pantry-tree:
@@ -40,7 +40,7 @@ packages:
     subdir: beam-migrate
     version: 0.5.2.1
   original:
-    commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+    commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
     git: https://github.com/AutonomousOrganization/beam
     subdir: beam-migrate
 snapshots:

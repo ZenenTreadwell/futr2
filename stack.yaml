@@ -7,7 +7,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/AutonomousOrganization/beam # -- https://github.com/AutonomousOrganization/beam
-  commit: a5eabfd0d6601135a18a334ffdea8ccc6ba68a11
+  commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
   subdirs: 
     - beam-core
     - beam-sqlite

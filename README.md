@@ -34,8 +34,6 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
         |  - [ ] 4 - [ ] 57
             |
 
-Desktop Application (monomer) 
-
 `futr.sqlite` is created in the local directory   
 
 Run the tests!

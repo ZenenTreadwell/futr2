@@ -63,7 +63,12 @@ extractURI uri = do
         Right a -> Just a 
         _       -> Nothing 
     let host = T.unpack . unRText $ authHost a
-    let port = maybe 443 id $ authPort a
+    
+    defaultport <- case unRText <$> uriScheme uri of
+        (Just "wss") -> Just 443
+        _ -> Just 80
+
+    let port = maybe defaultport id $ authPort a
     let path = T.unpack $ maybe "/" joinpath $ uriPath uri
     pure (host, port, path)
     where 

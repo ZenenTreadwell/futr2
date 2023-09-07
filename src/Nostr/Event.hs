@@ -13,11 +13,8 @@ import Data.Text (Text)
 import GHC.Generics 
 import Foreign.Marshal.Alloc
 import Foreign.Ptr
-import Secp256k1.Internal
-
-
-
 import qualified Crypto.Hash.SHA256 as SHA256
+import Secp256k1.Internal
 
 genKeyPair :: IO Hex96
 genKeyPair = do 

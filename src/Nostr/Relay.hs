@@ -26,6 +26,7 @@ type Subs = M.Map Text [Filter]
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
+    print "client connected, server threads starting"
     s <- newTVarIO M.empty
     race_ (listen' s) (broadcast' s) 
     where 
