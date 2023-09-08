@@ -24,4 +24,6 @@ defaultRelay =
     , [uri|wss://nostrja-kari.heguro.com|]
     , [uri|wss://nostrja-kari-nip50.heguro.com|]
     , [uri|wss://purplepag.es|]
+    , [uri|wss://nostr.lol|]
+    , [uri|wss://nostr.wine|]
     ]
