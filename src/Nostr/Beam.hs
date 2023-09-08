@@ -64,10 +64,9 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ runUpdate
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
-insertEv :: Connection -> Event -> IO ()
+insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) =  
-    catch runIns \(e :: SQLError)-> do 
-        pure () 
+    try runIns
     where
     runIns = 
         runBeamSqlite conn $ do
@@ -77,7 +76,6 @@ insertEv conn e@(Event i _ (Content{..})) =
                                       anyConflict
                                       onConflictDoNothing
        
-                                                                                               
         runInsert $ B.insert (_events spec') (insertValues [toEv e])
         
         let (mx, rx) = gather . catMaybes $ flip P.map tags \case

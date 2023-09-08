@@ -40,9 +40,7 @@ relay db chan ws = do
                     void $ WS.sendTextDatas ws 
                          $ P.map (encode . See s) ex   
                     atomically $ modifyTVar subs (M.insert s fx) 
-                Submit e -> do 
-                    trust <- verifyE e 
-                    when trust (mask_ $ insertEv db e)  
+                Submit e -> submit db ws e 
                 End s -> atomically $ modifyTVar subs (M.delete s)  
             Right Nothing -> print . (<> " - nothing") . show $ eo
             Left z -> print z >> myThreadId >>= killThread 
@@ -61,3 +59,21 @@ fetchx db fx = nub . mconcat <$> mapM (fetch db) fx
 findKeyByValue :: (a -> Bool) -> M.Map k a -> Maybe k
 findKeyByValue f = M.foldlWithKey' (\acc k v -> 
     if f v then Just k else acc) Nothing
+
+submit :: SQL.Connection -> WS.Connection -> Event -> IO () 
+submit db ws e = do 
+    trust <- verifyE e
+    if not trust 
+        then reply False (Invalid "signature failed")
+        else do  
+            insRes <- (mask_ $ insertEv db e)  
+            case insRes of 
+                Left (SQLError ErrorConstraint t _) -> 
+                    reply False (Duplicate t) 
+                Left (SQLError _ t _) -> 
+                    reply False (ServerErr t)
+                Right _ -> reply True None 
+    
+    where
+    reply :: Bool -> WhyNot -> IO () 
+    reply b = WS.sendTextData ws . encode . Ok (eid e) b  

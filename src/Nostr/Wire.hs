@@ -6,6 +6,7 @@ import Data.Text (Text)
 import GHC.Generics 
 import Nostr.Filter
 import Nostr.Event 
+import Nostr.Keys
 
 -- | client -> server 
 data Up
@@ -17,8 +18,27 @@ data Up
 -- | server -> client
 data Down
     = See Text Event
+    | Ok Hex32 Bool WhyNot
     | Live Text
     | Notice Text
+
+data WhyNot 
+    = None 
+    | ServerErr Text 
+    | Invalid Text 
+    | Pow Text 
+    | Duplicate Text 
+    | Block Text 
+    | RateLimit Text 
+
+instance ToJSON WhyNot where 
+    toJSON None          = String ""
+    toJSON (ServerErr t) = String $ "error: " <> t
+    toJSON (Invalid t)   = String $ "invalid: " <> t
+    toJSON (Pow t)       = String $ "pow: " <> t
+    toJSON (Duplicate t) = String $ "duplicate: " <> t
+    toJSON (Block t)     = String $ "blocked: " <> t
+    toJSON (RateLimit t) = String $ "rate-limited: " <> t
 
 instance FromJSON Up where 
     parseJSON = withArray "up" \a -> 
@@ -57,4 +77,8 @@ instance ToJSON Down where
         , toJSON e
         ]
     toJSON (Live s) = toJSON [String "EOSE", String s]
+    toJSON (Ok eid success reason) = toJSON 
+        [String "OK", toJSON eid, toJSON success, toJSON reason]
     toJSON (Notice n) = toJSON [String "NOTICE", String n]
+
+

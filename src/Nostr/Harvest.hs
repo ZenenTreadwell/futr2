@@ -82,12 +82,13 @@ harvest db ws = catch rec conerr
             See _ e@(Event _ _ (Content{kind})) -> case kind of 
                 1 -> do 
                     trust <- verifyE e 
-                    when trust (mask_ $ insertEv db e)  
+                    when trust (mask_ $ insertEv db e >> pure ())  
                 0 -> do 
                     trust <- verifyE e 
                     when trust (insertPl db e)
                 _ -> print "?"
             Live _ -> print "--------live"
+            Ok _ _ _  -> print "ok" 
             Notice note -> print $ "note:" <> note 
 
 
