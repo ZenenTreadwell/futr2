@@ -28,11 +28,26 @@ dependencies
 - ...
 
 NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
-|wip |possible |avoiding |
-|- [ ] 1 - [ ] 25  - [ ] 42 - [x] 10 - [ ] 12 - [ ] 13 - [ ] 31 - [ ] 33 - [ ] 65
-    |  - [ ] 30 - [ ] 65 - [ ] 7 
-        |  - [ ] 4 - [ ] 57
-            |
+- wip (relay focus)
+- [x] 1 
+- [x] 10 
+- [ ] 42 - auth
+- [ ] 13 - pow
+- [ ] 50 - search
+- [ ] 45 - count
+- [ ] 52 - calendar 
+- [ ] 11 - relay meta
+            
+- client?    
+- [ ] 4  
+- [ ] 15
+- [ ] 25  
+- [ ] 30
+
+- avoiding 
+- [ ] 57 - lightning interaction should not require dns setup?
+
+
 
 `futr.sqlite` is created in the local directory   
 

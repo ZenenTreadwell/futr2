@@ -58,6 +58,7 @@ harvestr db uri = do
     ws conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
+        
         harvest db conn     
 
 harvest :: SQL.Connection -> ClientApp () 
@@ -88,7 +89,7 @@ harvest db ws = catch rec conerr
                     when trust (insertPl db e)
                 _ -> print "?"
             Live _ -> print "--------live"
-            Ok _ _ _  -> print "ok" 
+            Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 
 
 
