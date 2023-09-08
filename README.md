@@ -7,28 +7,19 @@ nostr Library, Relay and Harvester
 `stack build` -- build exec
 
 `stack exec futr` 
-- runs relay on 9487
+- runs relay on 9481
 - collect events from default relays 
 
 Running over tor works: 
 
 `torify <path to futr>`
 
-
-ghci needs flags: 
-```
-$ pkg-config --cflags --libs libsecp256k1
-<FLAGS>
-$ stack ghci --ghc-options "<FLAGS>"
-\> 
-```
-
 dependencies 
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - ...
 
 NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
-- wip (relay focus)
+wip (relay focus)
 - [x] 1 
 - [x] 10 
 - [ ] 42 - auth
@@ -38,13 +29,13 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 - [ ] 52 - calendar 
 - [ ] 11 - relay meta
             
-- client?    
+client?    
 - [ ] 4  
 - [ ] 15
 - [ ] 25  
 - [ ] 30
 
-- avoiding 
+avoiding 
 - [ ] 57 - lightning interaction should not require dns setup?
 
 
@@ -54,6 +45,15 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 Run the tests!
 
 `stack test` 
+
+
+to explore in ghci needs flags: 
+```
+$ pkg-config --cflags --libs libsecp256k1
+<FLAGS>
+$ stack ghci --ghc-options "<FLAGS>"
+\> 
+```
 
 Donate? 
 
