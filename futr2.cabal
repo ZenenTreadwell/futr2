@@ -26,10 +26,12 @@ source-repository head
 library
   exposed-modules:
       Nostr.Beam
+      Nostr.Boots
       Nostr.Db
       Nostr.Event
       Nostr.Filter
       Nostr.Harvest
+      Nostr.Keys
       Nostr.Relay
       Nostr.Wire
       Secp256k1.Internal
@@ -43,7 +45,6 @@ library
       BlockArguments
       OverloadedStrings
       LambdaCase
-      QuasiQuotes
   ghc-options: -Wall
   pkgconfig-depends:
       libsecp256k1
@@ -56,6 +57,7 @@ library
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , connection
     , containers
     , cryptohash-sha256
     , entropy
@@ -66,6 +68,7 @@ library
     , stm
     , text
     , time
+    , tls
     , vector
     , websockets
     , wuss
@@ -84,7 +87,6 @@ executable futr
       BlockArguments
       OverloadedStrings
       LambdaCase
-      QuasiQuotes
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -97,6 +99,7 @@ executable futr
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , connection
     , containers
     , cryptohash-sha256
     , entropy
@@ -108,6 +111,7 @@ executable futr
     , stm
     , text
     , time
+    , tls
     , vector
     , websockets
     , wuss
@@ -126,7 +130,6 @@ test-suite futr2-test
       BlockArguments
       OverloadedStrings
       LambdaCase
-      QuasiQuotes
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -139,6 +142,7 @@ test-suite futr2-test
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , connection
     , containers
     , cryptohash-sha256
     , entropy
@@ -150,6 +154,7 @@ test-suite futr2-test
     , stm
     , text
     , time
+    , tls
     , vector
     , websockets
     , wuss

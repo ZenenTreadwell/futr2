@@ -24,6 +24,7 @@ import Nostr.Relay
 import Nostr.Beam
 import Nostr.Filter
 import Nostr.Wire 
+import Nostr.Keys
 
 main :: IO ()
 main = do

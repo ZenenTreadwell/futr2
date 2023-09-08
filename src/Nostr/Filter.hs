@@ -8,6 +8,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import GHC.Generics 
 import Nostr.Event 
+import Nostr.Keys
 
 unString :: Value -> Text
 unString (String t) = t 

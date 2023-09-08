@@ -25,6 +25,7 @@ import Data.Text.Encoding
 import qualified Data.ByteString as BS 
 import Nostr.Event
 import Nostr.Filter
+import Nostr.Keys
 import Data.Aeson
 import Data.Int
 import Nostr.Db

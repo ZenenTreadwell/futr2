@@ -3,9 +3,11 @@ module Nostr.Harvest where
 import Prelude as P
 import Control.Exception as E
 import Network.WebSockets as WS
+import Network.Connection as C 
+import Network.TLS as TLS
 import Wuss
 import Database.SQLite.Simple as SQL
-import Text.URI --(URI)
+import Text.URI as URI
 import Data.Text as T
 import Data.Time.Clock.POSIX
 import Data.Aeson
@@ -15,29 +17,61 @@ import Nostr.Wire
 import Nostr.Filter 
 import Nostr.Beam
 
+
+harvestm :: SQL.Connection -> IO () 
+harvestm o = do 
+    undefined 
+
 harvestr :: SQL.Connection -> URI -> Maybe (IO ()) 
 harvestr db uri = do 
     sch <- unRText <$> uriScheme uri 
     (host, port, path) <- extractURI uri
-    case sch of 
-        "wss" -> Just $ runSecureClient host (fromIntegral port) path ws 
-        "ws"  -> Just $ WS.runClient host (fromIntegral port) path ws
-        _ -> Nothing
+    -- handle errr 
+    handle conerr2 
+        . handle handerr 
+        . handle tlserr 
+        . handle urierr 
+        . handle cryerr 
+        . handle cryerr3
+        <$> 
+        case sch of 
+            "wss" -> Just $ runSecureClient host (fromIntegral port) path ws 
+            "ws"  -> Just $ WS.runClient host (fromIntegral port) path ws
+            _ -> Nothing
     where 
+    -- XXX XXX XXX XXX
+    caught :: Exception z => z -> IO () 
+    caught z = print . ("caught caught... " <>) . P.take 27 . show $ z
+    urierr :: URI.ParseException -> IO () 
+    urierr = caught 
+    tlserr :: TLS.TLSException -> IO () 
+    tlserr = caught
+    conerr2 :: C.HostCannotConnect -> IO () 
+    conerr2 = caught 
+    handerr :: WS.HandshakeException -> IO () 
+    handerr = caught 
+    cryerr :: WS.ConnectionException -> IO () 
+    cryerr = caught 
+    cryerr3 :: IOError -> IO () --Network.Socket
+    cryerr3 = caught 
+            
     ws conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
         harvest db conn     
 
 harvest :: SQL.Connection -> ClientApp () 
-harvest db ws = catch (forever rec) \z -> do 
-    print z 
-    case z :: ConnectionException of  
-        ConnectionClosed -> pure ()
-        WS.ParseException _ -> harvest db ws
-        UnicodeException _ -> harvest db ws
-        CloseRequest _ _ -> sendClose ws ("u said so" :: T.Text)
+harvest db ws = catch rec conerr 
     where 
+    conerr = \z -> do 
+        print $ "harvest catch " <> show z  
+        case z :: ConnectionException of  
+            ConnectionClosed -> pure ()
+            WS.ParseException _ -> harvest db ws
+            UnicodeException _ -> harvest db ws
+            CloseRequest _ _ -> do 
+                sendClose ws ("u said" :: T.Text)
+                -- harvest db ws
     rec = do 
         mdown <- receiveData ws 
         case decode mdown of 
