@@ -25,6 +25,7 @@ import Nostr.Beam
 import Nostr.Filter
 import Nostr.Wire 
 import Nostr.Keys
+import Nostr.Auth
 
 main :: IO ()
 main = do
@@ -115,7 +116,9 @@ main = do
             f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
             shouldBe (P.length f1) (P.length f2) 
 
-    -- describe "what is next?" do it "*" $ flip shouldBe True False 
+    describe "Proof of Work" do 
+        it "really counts the leading zeroes" $ shouldBe 36 (difficulty evmine)
+        it "REALLY counts the leading zeroes" $ shouldBe 10 (difficulty trickmine)
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 
@@ -130,6 +133,9 @@ ev = Content
     pub
 
 evref = Hex32 $ Hex.decodeLenient "3da979448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
+
+evmine = Hex32 $ Hex.decodeLenient "000000000e9d97a1ab09fc381030b346cdd7a142ad57e6df0b46dc9bef6c7e2d"
+trickmine = Hex32 $ Hex.decodeLenient "002f79448d9ba263864c4d6f14984c423a3838364ec255f03c7904b1ae77f206"
 
 keyref = Hex32 $ Hex.decodeLenient "bf2376e17ba4ec269d10fcc996a4746b451152be9031fa48e74553dde5526bce"
 

@@ -18,15 +18,8 @@ import Nostr.Wire
 import Nostr.Filter 
 import Nostr.Beam
 import Nostr.Keys
+import Nostr.Auth
 
-authenticate :: URI -> Text -> IO Event
-authenticate uri t = do 
-    kp <- genKeyPair
-    now <- round <$> getPOSIXTime 
-    let relayT = V.fromList [String "relay", String $ render uri]
-    let answerT = V.fromList [String "challenge", String t]
-    let keyless = Content 22242 [Tag relayT, Tag answerT] "" now  
-    signE kp keyless
     
 harvestm :: SQL.Connection -> IO () 
 harvestm o = do 
