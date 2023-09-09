@@ -95,7 +95,8 @@ harvest db uri ws = catch rec conerr
             Notice note -> print $ "note:" <> note 
             Challenge t -> do
                 print . ("docoded auth" <>) $ t
-                e <- authenticate uri t
+                kp <- genKeyPair
+                e <- authenticate kp uri t
                 WS.sendTextData ws . encode $ Auth e  
 
 

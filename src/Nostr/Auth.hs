@@ -11,9 +11,8 @@ import Data.Time.Clock.POSIX
 import Data.Vector as V
 import Data.ByteString as BS
 
-authenticate :: URI -> Text -> IO Event
-authenticate uri t = do 
-    kp <- genKeyPair
+authenticate :: Hex96 -> URI -> Text -> IO Event
+authenticate kp uri t = do 
     now <- round <$> getPOSIXTime 
     let relayT = V.fromList [String "relay", String $ render uri]
     let answerT = V.fromList [String "challenge", String t]
@@ -27,9 +26,8 @@ difficulty (Hex32 bs) = go 0 bs
         | BS.null bs      = count
         | BS.head bs == 0 = go (count + 8) (BS.tail bs)
         | otherwise = count + lead 7 0 (BS.head bs)
-    lead i count' b 
-        | i < 0       = count'
-        | testBit b i = count'   
-        | otherwise   = lead (i - 1) (count' + 1) b
+    lead i count b 
+        | testBit b i = count   
+        | otherwise   = lead (i - 1) (count + 1) b
 
                 
