@@ -9,6 +9,7 @@ import Wuss
 import Database.SQLite.Simple as SQL
 import Text.URI as URI
 import Data.Text as T
+import Data.Vector as V
 import Data.Time.Clock.POSIX
 import Data.Aeson
 import Control.Monad
@@ -16,8 +17,17 @@ import Nostr.Event
 import Nostr.Wire 
 import Nostr.Filter 
 import Nostr.Beam
+import Nostr.Keys
 
-
+authenticate :: URI -> Text -> IO Event
+authenticate uri t = do 
+    kp <- genKeyPair
+    now <- round <$> getPOSIXTime 
+    let relayT = V.fromList [String "relay", String $ render uri]
+    let answerT = V.fromList [String "challenge", String t]
+    let keyless = Content 22242 [Tag relayT, Tag answerT] "" now  
+    signE kp keyless
+    
 harvestm :: SQL.Connection -> IO () 
 harvestm o = do 
     undefined 
@@ -58,18 +68,17 @@ harvestr db uri = do
     ws conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
-        
-        harvest db conn     
+        harvest db uri conn     
 
-harvest :: SQL.Connection -> ClientApp () 
-harvest db ws = catch rec conerr 
+harvest :: SQL.Connection -> URI ->  ClientApp () 
+harvest db uri ws = catch rec conerr 
     where 
-    conerr = \z -> do 
+    conerr z = do 
         print $ "harvest catch " <> show z  
         case z :: ConnectionException of  
             ConnectionClosed -> pure ()
-            WS.ParseException _ -> harvest db ws
-            UnicodeException _ -> harvest db ws
+            WS.ParseException _ -> harvest db uri ws 
+            UnicodeException _ -> harvest db uri ws
             CloseRequest _ _ -> do 
                 sendClose ws ("u said" :: T.Text)
                 -- harvest db ws
@@ -79,7 +88,7 @@ harvest db ws = catch rec conerr
             Just town -> goDown town
             Nothing -> print mdown >> print "decode failed?" 
         where
-        goDown down = case down of 
+        goDown = \case  
             See _ e@(Event _ _ (Content{kind})) -> case kind of 
                 1 -> do 
                     trust <- verifyE e 
@@ -91,6 +100,10 @@ harvest db ws = catch rec conerr
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 
+            Challenge t -> do
+                print . ("docoded auth" <>) $ t
+                e <- authenticate uri t
+                WS.sendTextData ws . encode $ Auth e  
 
 
 extractURI :: URI -> Maybe (String, Word, String)

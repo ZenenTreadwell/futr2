@@ -12,12 +12,14 @@ import Nostr.Keys
 data Up
     = Submit Event
     | Subscribe Text [Filter]
+    | Auth Event
     | End Text
     deriving (Generic)
 
 -- | server -> client
 data Down
     = See Text Event
+    | Challenge Text
     | Ok Hex32 Bool WhyNot
     | Live Text
     | Notice Text
@@ -30,6 +32,7 @@ data WhyNot
     | Duplicate Text 
     | Block Text 
     | RateLimit Text 
+    | Restrict Text
 
 instance ToJSON WhyNot where 
     toJSON None          = String ""
@@ -39,6 +42,7 @@ instance ToJSON WhyNot where
     toJSON (Duplicate t) = String $ "duplicate: " <> t
     toJSON (Block t)     = String $ "blocked: " <> t
     toJSON (RateLimit t) = String $ "rate-limited: " <> t
+    toJSON (Restrict t)  = String $ "restricted: " <> t 
 
 instance FromJSON Up where 
     parseJSON = withArray "up" \a -> 
@@ -48,6 +52,7 @@ instance FromJSON Up where
                                <*> sequenceA  
                                    (V.foldr ((:) . parseJSON) [] (V.drop 2 a)) 
             "CLOSE" -> End <$> parseJSON (V.last a)
+            "AUTH" -> Auth <$> parseJSON (V.last a)
             _ -> fail "unimpl parseJSON"
             
 instance ToJSON Up where 
@@ -60,6 +65,7 @@ instance ToJSON Up where
         , String s 
         ] <> map toJSON fx
     toJSON (End s) = toJSON [String "CLOSE", String s]
+    toJSON (Auth e) = toJSON [String "AUTH", toJSON e]
 
 instance FromJSON Down where 
     parseJSON = withArray "down" \a -> 
@@ -67,9 +73,9 @@ instance FromJSON Down where
             ("EVENT", String s) -> See s <$> parseJSON (V.last a)        
             ("EOSE", String s) -> pure $ Live s
             ("NOTICE", String n) -> pure $ Notice n
+            ("AUTH", String t) -> pure $ Challenge t
             _ -> fail . show $ a
             
-
 instance ToJSON Down where 
     toJSON (See s e) = toJSON [
           String "EVENT"
@@ -79,6 +85,8 @@ instance ToJSON Down where
     toJSON (Live s) = toJSON [String "EOSE", String s]
     toJSON (Ok eid success reason) = toJSON 
         [String "OK", toJSON eid, toJSON success, toJSON reason]
+    toJSON (Challenge t) = toJSON [String "AUTH", toJSON t]
     toJSON (Notice n) = toJSON [String "NOTICE", String n]
 
 
+    
