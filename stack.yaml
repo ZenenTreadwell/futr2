@@ -1,13 +1,13 @@
 
 resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/9.yaml
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/11.yaml
 
 packages:
 - .
 
 extra-deps:
 - git: https://github.com/AutonomousOrganization/beam # -- https://github.com/AutonomousOrganization/beam
-  commit: 2e83ecf2388e3ed8047ad531706afe011c29c51c
+  commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
   subdirs: 
     - beam-core
     - beam-sqlite

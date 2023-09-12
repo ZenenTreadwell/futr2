@@ -1,7 +1,10 @@
 
 import Test.Hspec 
+import Test.QuickCheck
 
 import Prelude as P 
+import Data.Text as T
+import Data.Vector as V
 import Data.Time.Clock.POSIX
 import Data.Int
 import Data.Aeson
@@ -15,7 +18,7 @@ import Secp256k1.Internal
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Base16 as Hex
-import Control.Monad
+import Control.Monad as M
 import Control.Monad.IO.Class
 import Control.Concurrent.Async
 import Database.SQLite.Simple
@@ -26,6 +29,102 @@ import Nostr.Filter
 import Nostr.Wire 
 import Nostr.Keys
 import Nostr.Auth
+import System.Entropy
+
+
+instance Arbitrary Event where 
+    arbitrary = Event 
+          <$> arbitrary
+          <*> arbitrary
+          <*> arbitrary
+
+instance Arbitrary Hex32 where 
+  arbitrary = Hex32 . BS.pack <$> vectorOf 32 arbitrary 
+      -- Hex32 <$> arbitrary  
+
+instance Arbitrary Hex64 where 
+  arbitrary = Hex64 . BS.pack <$> vectorOf 64 arbitrary 
+  
+instance Arbitrary Content where 
+  arbitrary = Content <$> arbitrary 
+                      <*> arbitrary
+                      <*> arbitrary
+                      <*> arbitrary
+                      <*> arbitrary
+  
+instance Arbitrary Tag where 
+  arbitrary = PTag <$> arbitrary <*> arbitrary 
+ 
+instance Arbitrary Text where 
+  arbitrary = T.pack <$> arbitrary
+
+instance Arbitrary Up where 
+  arbitrary = oneof 
+      [ Submit <$> arbitrary
+      , Subscribe <$> arbitrary <*> (pure [])
+      , Auth <$> arbitrary 
+      , End <$> arbitrary  
+      ]
+
+instance Arbitrary Down where 
+  arbitrary = oneof
+        [ See <$> arbitrary <*> arbitrary
+        , Challenge <$> arbitrary
+        , Ok <$> arbitrary <*> arbitrary <*> arbitrary
+        , Live <$> arbitrary
+        , Notice <$> arbitrary
+        ]
+
+instance Arbitrary WhyNot where
+  arbitrary = oneof 
+      [ pure None
+      , ServerErr <$> arbitrary
+      , Invalid <$> arbitrary
+      , Pow <$> arbitrary
+      , Duplicate <$> arbitrary
+      , Block <$> arbitrary
+      , RateLimit <$> arbitrary
+      , Restrict <$> arbitrary
+      ] 
+
+instance Arbitrary Filter where 
+  arbitrary = Filter <$> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+                     <*> arbitrary
+
+instance Arbitrary Ids where 
+  arbitrary = Ids <$> arbitrary
+  
+instance Arbitrary Authors where 
+  arbitrary = Authors <$> arbitrary
+  
+instance Arbitrary Kinds where 
+  arbitrary = Kinds <$> arbitrary 
+
+instance Arbitrary ETagM where 
+  arbitrary = ETagM <$> arbitrary 
+  
+instance Arbitrary PTagM where 
+  arbitrary = PTagM <$> arbitrary 
+  
+instance Arbitrary Since where 
+  arbitrary = Since <$> arbitrary 
+  
+instance Arbitrary Until where 
+  arbitrary = Until <$> arbitrary 
+  
+instance Arbitrary Limit where 
+  arbitrary = Limit <$> arbitrary 
+
+loops :: (ToJSON j, FromJSON j, Eq j) => j -> Bool
+loops x = case decode . encode $ x of 
+    Just x' -> x == x' 
+    Nothing -> False
 
 main :: IO ()
 main = do
@@ -41,6 +140,11 @@ main = do
   o <- open "./futr.sqlite"
   createDb o
   insertEv o wev
+  quickCheck (loops :: Event -> Bool) 
+  quickCheck (loops :: Down -> Bool)
+  quickCheck (loops :: Up -> Bool)
+  -- quckCheck (loops :: Up -> Bool)
+  -- quickCheck (loops :: Filter -> Bool)
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
@@ -98,7 +202,7 @@ main = do
        it "uses limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 
-       void $ flip mapM ff \(f', t') -> do
+       void $ flip M.mapM ff \(f', t') -> do
           it ("faster than baseline " <> t') $ do   
               baseWin <- race (fetch o f') (fetchBaseline o f')
               shouldBe False (isRight baseWin) 

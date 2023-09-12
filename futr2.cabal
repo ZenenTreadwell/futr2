@@ -50,7 +50,8 @@ library
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring
@@ -92,7 +93,8 @@ executable futr
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring
@@ -135,7 +137,8 @@ test-suite futr2-test
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , async
     , base >=4.7 && <5
     , base16-bytestring

@@ -48,6 +48,8 @@ dependencies:
 
 ## test
 - hspec
+- QuickCheck
+
 
 pkg-config-dependencies:
 - libsecp256k1

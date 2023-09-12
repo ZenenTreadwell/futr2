@@ -1,5 +1,7 @@
 module Nostr.Wire where 
 
+import Prelude as P 
+import Data.Text as T 
 import Data.Aeson as J
 import qualified Data.Vector as V
 import Data.Text (Text)
@@ -14,7 +16,7 @@ data Up
     | Subscribe Text [Filter]
     | Auth Event
     | End Text
-    deriving (Generic)
+    deriving (Show, Eq, Generic)
 
 -- | server -> client
 data Down
@@ -23,6 +25,7 @@ data Down
     | Ok Hex32 Bool WhyNot
     | Live Text
     | Notice Text
+    deriving (Eq, Show)
 
 data WhyNot 
     = None 
@@ -33,17 +36,40 @@ data WhyNot
     | Block Text 
     | RateLimit Text 
     | Restrict Text
+    deriving (Eq, Show)
 
 instance ToJSON WhyNot where 
     toJSON None          = String ""
-    toJSON (ServerErr t) = String $ "error: " <> t
-    toJSON (Invalid t)   = String $ "invalid: " <> t
-    toJSON (Pow t)       = String $ "pow: " <> t
-    toJSON (Duplicate t) = String $ "duplicate: " <> t
-    toJSON (Block t)     = String $ "blocked: " <> t
-    toJSON (RateLimit t) = String $ "rate-limited: " <> t
-    toJSON (Restrict t)  = String $ "restricted: " <> t 
+    toJSON (ServerErr t) = String $ "error:" <> t
+    toJSON (Invalid t)   = String $ "invalid:" <> t
+    toJSON (Pow t)       = String $ "pow:" <> t
+    toJSON (Duplicate t) = String $ "duplicate:" <> t
+    toJSON (Block t)     = String $ "blocked:" <> t
+    toJSON (RateLimit t) = String $ "rate-limited:" <> t
+    toJSON (Restrict t)  = String $ "restricted:" <> t 
 
+instance FromJSON WhyNot where 
+    parseJSON = withText "why not?" $ \t -> 
+        case parseWhyNot t of 
+            Just wm -> pure wm 
+            Nothing -> fail "probably bad idea"
+
+parseWhyNot :: Text -> Maybe WhyNot
+parseWhyNot (t)
+    | t == "" = Just None
+    | "error:" `T.isPrefixOf` t = Just (ServerErr t')
+    | "invalid:" `T.isPrefixOf` t = Just (Invalid t' )
+    | "pow:" `T.isPrefixOf` t = Just (Pow t' )
+    | "duplicate:" `T.isPrefixOf` t = Just (Duplicate t')
+    | "blocked:" `T.isPrefixOf` t = Just (Block t')
+    | "rate-limited:" `T.isPrefixOf` t = Just (RateLimit t')
+    | "restricted:" `T.isPrefixOf` t = Just (Restrict t')
+    | otherwise = Nothing
+
+    where 
+    f : fx = T.split (== ':') t
+    t' = T.intercalate ":" fx
+        
 instance FromJSON Up where 
     parseJSON = withArray "up" \a -> 
         case V.head a of 
@@ -63,7 +89,7 @@ instance ToJSON Up where
     toJSON (Subscribe s fx) = toJSON $ [
           String "REQ"
         , String s 
-        ] <> map toJSON fx
+        ] <> P.map toJSON fx
     toJSON (End s) = toJSON [String "CLOSE", String s]
     toJSON (Auth e) = toJSON [String "AUTH", toJSON e]
 
@@ -74,6 +100,9 @@ instance FromJSON Down where
             ("EOSE", String s) -> pure $ Live s
             ("NOTICE", String n) -> pure $ Notice n
             ("AUTH", String t) -> pure $ Challenge t
+            ("OK", _ ) -> Ok <$> parseJSON (a V.! 1)
+                             <*> parseJSON (a V.! 2)
+                             <*> parseJSON (a V.! 3)
             _ -> fail . show $ a
             
 instance ToJSON Down where 

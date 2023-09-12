@@ -17,5 +17,6 @@ main = do
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
     void . mapM forkIO . mapMaybe (harvestr o) $ defaultRelay 
+    
     (runServer "127.0.0.1" 9481 $ acceptRequest >=> relay o f)
     

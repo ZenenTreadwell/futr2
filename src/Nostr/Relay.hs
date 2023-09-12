@@ -24,12 +24,22 @@ import Nostr.Filter
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 
+
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
     print "client connected, server threads starting"
     s <- newTVarIO M.empty
     race_ (listen' s) (broadcast' s) 
     where 
+
+    broadcast' :: TVar Subs -> IO () 
+    broadcast' subs = forever do 
+        e <- atomically $ readTChan chan
+        m <- readTVarIO subs
+        case findKeyByValue (P.any (matchF e)) m of
+            Just s' -> WS.sendTextData ws . encode $ See s' e
+            _ -> pure () 
+
     listen' :: TVar Subs -> IO ()
     listen' subs = forever do 
         eo <- E.try . WS.receiveData $ ws :: Listen
@@ -41,17 +51,9 @@ relay db chan ws = do
                          $ P.map (encode . See s) ex   
                     atomically $ modifyTVar subs (M.insert s fx) 
                 Submit e -> submit db ws e 
-                End s -> atomically $ modifyTVar subs (M.delete s)  
+                End s -> atomically $ modifyTVar subs (M.delete s)
             Right Nothing -> print . (<> " - nothing") . show $ eo
             Left z -> print z >> myThreadId >>= killThread 
-    
-    broadcast' :: TVar Subs -> IO () 
-    broadcast' subs = forever do 
-        e <- atomically $ readTChan chan
-        m <- readTVarIO subs
-        case findKeyByValue (P.any (matchF e)) m of
-            Just s' -> WS.sendTextData ws . encode $ See s' e
-            _ -> pure () 
 
 fetchx :: SQL.Connection -> [Filter] -> IO [Event]
 fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 
