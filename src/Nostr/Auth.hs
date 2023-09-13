@@ -1,5 +1,6 @@
 module Nostr.Auth where 
-
+import Data.Maybe
+import Prelude as P 
 import Nostr.Event 
 import Nostr.Keys 
 import Text.URI
@@ -10,6 +11,7 @@ import Data.Aeson
 import Data.Time.Clock.POSIX
 import Data.Vector as V
 import Data.ByteString as BS
+import Control.Monad.State
 
 authenticate :: Hex96 -> URI -> Text -> IO Event
 authenticate kp uri t = do 
@@ -30,4 +32,24 @@ difficulty (Hex32 bs) = go 0 bs
         | testBit b i = count   
         | otherwise   = lead (i - 1) (count + 1) b
 
-                
+mine :: Int -> Content -> (Keyless, Int)  
+mine target c@(Content{tags}) = evalState miner 0 
+    where 
+    miner :: State Int (Keyless, Int) 
+    miner = do 
+        nonce <- state (\n -> (n,n+1)) 
+        let c' = c { tags = setNonce nonce tags} 
+        let diff' = difficulty . idE $ c'
+        if diff' >= target
+            then pure (\_ -> c', diff')
+            else miner 
+    setNonce :: Int -> [Tag] -> [Tag]
+    setNonce n tx = (:) (Nonce n target) (P.filter (not . isNonce)  tx) 
+    isNonce :: Tag -> Bool
+    isNonce (Nonce _ _) = True
+    isNonce _ = False
+
+judge :: Int -> Event -> Bool 
+judge target = (>= target) . difficulty . eid  
+    
+

@@ -5,6 +5,7 @@ import Test.QuickCheck
 import Prelude as P 
 import Data.Text as T
 import Data.Vector as V
+import Control.Concurrent 
 import Data.Time.Clock.POSIX
 import Data.Int
 import Data.Aeson
@@ -30,7 +31,6 @@ import Nostr.Wire
 import Nostr.Keys
 import Nostr.Auth
 import System.Entropy
-
 
 instance Arbitrary Event where 
     arbitrary = Event 
@@ -128,22 +128,25 @@ loops x = case decode . encode $ x of
 
 main :: IO ()
 main = do
+  quickCheck . label "loop event" $ (loops :: Event -> Bool) 
+  quickCheck . label "loop filter" $ (loops :: Filter -> Bool) 
+  quickCheck $ withMaxSuccess 999 . label "loop down" $ (loops :: Down -> Bool)
+  quickCheck . withMaxSuccess 999 . label "loop up" $ (loops :: Up -> Bool)
   kp <- genKeyPair 
   sec :: Integer <- round <$> getPOSIXTime
   let keyless = Content 1 
                     [ETag evid Nothing (Just Root')] 
                     "garden golgun goodoo"
                     sec
-  mE <- signE kp keyless 
+  gems <- signE kp keyless
+  let gcont = keyless (pubkey . con $ gems)
+  let (kl, d) = mine 9 gcont
+  mE <- signE kp kl 
   vEE <- verifyE wev
   mEE <- verifyE mE 
   o <- open "./futr.sqlite"
   createDb o
   insertEv o wev
-  quickCheck (loops :: Event -> Bool) 
-  quickCheck (loops :: Down -> Bool)
-  quickCheck (loops :: Up -> Bool)
-  -- quckCheck (loops :: Up -> Bool)
   -- quickCheck (loops :: Filter -> Bool)
   hspec do 
     describe "correctly hashes event" do
@@ -223,6 +226,9 @@ main = do
     describe "Proof of Work" do 
         it "really counts the leading zeroes" $ shouldBe 36 (difficulty evmine)
         it "REALLY counts the leading zeroes" $ shouldBe 10 (difficulty trickmine)
+        it "mine deeply" $ shouldBe ((>= 5) . snd $ mine 5 ev) True
+        it "mine deeply" $ shouldBe ((>= 9) . difficulty $ idE . con $ mE) True
+        it "show zeros" $ shouldBe (True) (T.isPrefixOf "\"00"  . decodeUtf8 . BS.toStrict . encode $ eid mE)
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 

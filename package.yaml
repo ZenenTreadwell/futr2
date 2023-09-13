@@ -65,6 +65,7 @@ default-extensions:
 
 ghc-options:
 - -Wall
+- -fno-warn-orphans
 
 library:
   source-dirs: src

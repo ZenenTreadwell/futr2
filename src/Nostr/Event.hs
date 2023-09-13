@@ -37,7 +37,8 @@ signE kp keyless = do
             let newE = Event eid sig' content
             trust <- verifyE newE
             if trust then pure newE
-                     else signE kp keyless 
+                     else  -- error "created invalid ? " 
+                        signE kp keyless -- signE kp keyless 
         _ -> free sig >> error "schnorrSign error"
              
 idE :: Content -> Hex32
@@ -98,6 +99,7 @@ instance FromJSON Event where
 data Tag = 
       ETag Hex32 (Maybe Text) (Maybe Marker)
     | PTag Hex32 (Maybe Text)
+    | Nonce Int Int
     | Tag  Array
     deriving (Eq, Show, Generic)
 data Marker = Reply' | Root' | Mention'
@@ -125,6 +127,7 @@ instance ToJSON Tag where
         Just r -> [String "p", toJSON i, toJSON r]
         Nothing -> [String "p", toJSON i]
     toJSON (Tag a) = toJSON a                       
+    toJSON (Nonce a i) = toJSON [String "nonce", toJSON a, toJSON i ]
   
 instance FromJSON Marker where 
     parseJSON = withText "marker" \case 

@@ -22,21 +22,21 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 wip (relay focus)
 - [x] 1 
 - [x] 10 
-- [ ] 42 - auth
+- [x] 42 - auth
 - [ ] 13 - pow
-- [ ] 50 - search
+- [ ] 4 - aes 
 - [ ] 45 - count
-- [ ] 52 - calendar 
-- [ ] 11 - relay meta
+- [ ] 11 - relay-meta
             
 client?    
-- [ ] 4  
+- [ ] 52 - calendar 
 - [ ] 15
 - [ ] 25  
 - [ ] 30
 
 avoiding 
 - [ ] 57 - lightning interaction should not require dns setup?
+- [ ] 50 - search
 
 
 
