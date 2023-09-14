@@ -140,7 +140,8 @@ main = do
                     sec
   gems <- signE kp keyless
   let gcont = keyless (pubkey . con $ gems)
-  let (kl, d) = mine 9 gcont
+  let (kl, d) = mine 11 gcont
+  
   mE <- signE kp kl 
   vEE <- verifyE wev
   mEE <- verifyE mE 

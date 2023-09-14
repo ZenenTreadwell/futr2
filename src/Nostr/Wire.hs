@@ -4,7 +4,6 @@ import Prelude as P
 import Data.Text as T 
 import Data.Aeson as J
 import qualified Data.Vector as V
-import Data.Text (Text)
 import GHC.Generics 
 import Nostr.Filter
 import Nostr.Event 
@@ -50,24 +49,25 @@ instance ToJSON WhyNot where
 
 instance FromJSON WhyNot where 
     parseJSON = withText "why not?" $ \t -> 
-        case parseWhyNot t of 
-            Just wm -> pure wm 
-            Nothing -> fail "probably bad idea"
+        pure . parseWhyNot $ t
 
-parseWhyNot :: Text -> Maybe WhyNot
-parseWhyNot (t)
-    | t == "" = Just None
-    | "error:" `T.isPrefixOf` t = Just (ServerErr t')
-    | "invalid:" `T.isPrefixOf` t = Just (Invalid t' )
-    | "pow:" `T.isPrefixOf` t = Just (Pow t' )
-    | "duplicate:" `T.isPrefixOf` t = Just (Duplicate t')
-    | "blocked:" `T.isPrefixOf` t = Just (Block t')
-    | "rate-limited:" `T.isPrefixOf` t = Just (RateLimit t')
-    | "restricted:" `T.isPrefixOf` t = Just (Restrict t')
-    | otherwise = Nothing
-
+parseWhyNot :: Text -> WhyNot
+parseWhyNot (t) = 
+    case f of 
+        "" -> None
+        "error" -> (ServerErr t')
+        "invalid" -> (Invalid t' )
+        "pow" -> (Pow t' )
+        "duplicate" -> (Duplicate t')
+        "blocked" -> (Block t')
+        "rate-limited" -> (RateLimit t')
+        "restricted" -> (Restrict t')
+        _ -> undefined 
     where 
-    f : fx = T.split (== ':') t
+    (f , fx) = case T.split (== ':') t of 
+        [] -> ("~", [])
+        f' : fx' -> (f', fx')
+        
     t' = T.intercalate ":" fx
         
 instance FromJSON Up where 

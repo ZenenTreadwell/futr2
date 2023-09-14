@@ -9,7 +9,6 @@ import Wuss
 import Database.SQLite.Simple as SQL
 import Text.URI as URI
 import Data.Text as T
-import Data.Vector as V
 import Data.Time.Clock.POSIX
 import Data.Aeson
 import Control.Monad
@@ -19,11 +18,6 @@ import Nostr.Filter
 import Nostr.Beam
 import Nostr.Keys
 import Nostr.Auth
-
-    
-harvestm :: SQL.Connection -> IO () 
-harvestm o = do 
-    undefined 
 
 harvestr :: SQL.Connection -> URI -> Maybe (IO ()) 
 harvestr db uri = do 
@@ -42,9 +36,8 @@ harvestr db uri = do
             "ws"  -> Just $ WS.runClient host (fromIntegral port) path ws
             _ -> Nothing
     where 
-    -- XXX XXX XXX XXX
     caught :: Exception z => z -> IO () 
-    caught z = print . ("caught caught... " <>) . P.take 27 . show $ z
+    caught z = print . ("caught caught... " <>) . P.take 127 . show $ z
     urierr :: URI.ParseException -> IO () 
     urierr = caught 
     tlserr :: TLS.TLSException -> IO () 
@@ -55,7 +48,7 @@ harvestr db uri = do
     handerr = caught 
     cryerr :: WS.ConnectionException -> IO () 
     cryerr = caught 
-    cryerr3 :: IOError -> IO () --Network.Socket
+    cryerr3 :: IOError -> IO ()
     cryerr3 = caught 
             
     ws conn = do
@@ -69,7 +62,7 @@ harvest db uri ws = catch rec conerr
     conerr z = do 
         print $ "harvest catch " <> show z  
         case z :: ConnectionException of  
-            ConnectionClosed -> pure ()
+            ConnectionClosed -> print "h close?" >> pure ()
             WS.ParseException _ -> harvest db uri ws 
             UnicodeException _ -> harvest db uri ws
             CloseRequest _ _ -> do 
@@ -93,8 +86,7 @@ harvest db uri ws = catch rec conerr
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 
-            Challenge t -> do
-                print . ("docoded auth" <>) $ t
+            Challenge (qw -> Just t) -> do
                 kp <- genKeyPair
                 e <- authenticate kp uri t
                 WS.sendTextData ws . encode $ Auth e  

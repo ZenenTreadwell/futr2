@@ -20,6 +20,7 @@ dependencies:
 - entropy
 - stm 
 - mtl
+- transformers
 - async  
 
 ## data

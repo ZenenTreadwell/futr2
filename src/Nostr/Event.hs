@@ -11,6 +11,7 @@ import Foreign.Marshal.Alloc
 import qualified Crypto.Hash.SHA256 as SHA256
 import Secp256k1.Internal
 import Nostr.Keys
+import Data.Text.Encoding
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -100,6 +101,7 @@ data Tag =
       ETag Hex32 (Maybe Text) (Maybe Marker)
     | PTag Hex32 (Maybe Text)
     | Nonce Int Int
+    | Chal Hex32
     | Tag  Array
     deriving (Eq, Show, Generic)
 data Marker = Reply' | Root' | Mention'
@@ -114,6 +116,7 @@ instance FromJSON Tag where
         case tag of 
             String "e" -> ETag <$> evId <*> rel <*> mar 
             String "p" -> PTag <$> evId <*> rel
+            String "challenge" -> Chal <$> evId
             _ -> pure $ Tag a
 instance ToJSON Tag where 
     toJSON (ETag i mr mm) = toJSON $ case (mr, mm) of 
@@ -128,6 +131,7 @@ instance ToJSON Tag where
         Nothing -> [String "p", toJSON i]
     toJSON (Tag a) = toJSON a                       
     toJSON (Nonce a i) = toJSON [String "nonce", toJSON a, toJSON i ]
+    toJSON (Chal t) = toJSON [String "challenge", toJSON t]
   
 instance FromJSON Marker where 
     parseJSON = withText "marker" \case 

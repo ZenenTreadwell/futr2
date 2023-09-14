@@ -1,7 +1,7 @@
 module Nostr.Relay where 
 
--- import Nostr.Db
 import Prelude as P
+import qualified Data.Text as T
 import Control.Exception as E
 import Control.Concurrent.Async
 import Control.Concurrent.STM.TChan
@@ -20,28 +20,36 @@ import Nostr.Wire
 import Nostr.Beam
 import Nostr.Event 
 import Nostr.Filter 
+import Nostr.Auth
+import Nostr.Keys
+import System.Entropy
+import Control.Monad.Trans.Maybe
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
-
+-- type Auth = M.Map Hex32 
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
-    print "client connected, server threads starting"
+    print "client connected"
     s <- newTVarIO M.empty
-    race_ (listen' s) (broadcast' s) 
+    r <- Hex32 <$> getEntropy 32
+    
+    WS.sendTextData ws . encode $ Challenge (wq r)
+    race_ (listen' r s) (broadcast' s) 
     where 
 
     broadcast' :: TVar Subs -> IO () 
     broadcast' subs = forever do 
         e <- atomically $ readTChan chan
         m <- readTVarIO subs
+        print "broadcasting!"
         case findKeyByValue (P.any (matchF e)) m of
             Just s' -> WS.sendTextData ws . encode $ See s' e
             _ -> pure () 
 
-    listen' :: TVar Subs -> IO ()
-    listen' subs = forever do 
+    listen' :: Hex32 -> TVar Subs -> IO ()
+    listen' c subs = forever do 
         eo <- E.try . WS.receiveData $ ws :: Listen
         case decode <$> eo of 
             Right (Just d) -> case d of 
@@ -52,8 +60,15 @@ relay db chan ws = do
                     atomically $ modifyTVar subs (M.insert s fx) 
                 Submit e -> submit db ws e 
                 End s -> atomically $ modifyTVar subs (M.delete s)
-            Right Nothing -> print . (<> " - nothing") . show $ eo
-            Left z -> print z >> myThreadId >>= killThread 
+                Auth t -> do 
+                    print "going to check"  
+                    v <- runMaybeT $ validate t c
+                    case v of 
+                        Just p -> print "validated ---------------- " 
+                        Nothing -> print "failed ---------------------- " 
+
+            Right Nothing -> print . (<> " - right nothing") . show $ eo
+            Left z -> print "try listen caught" >> print z >> myThreadId >>= killThread 
 
 fetchx :: SQL.Connection -> [Filter] -> IO [Event]
 fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 

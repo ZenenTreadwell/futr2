@@ -71,6 +71,7 @@ library
     , text
     , time
     , tls
+    , transformers
     , vector
     , websockets
     , wuss
@@ -79,7 +80,6 @@ library
 executable futr
   main-is: Main.hs
   other-modules:
-      Relay
       Paths_futr2
   hs-source-dirs:
       app
@@ -115,6 +115,7 @@ executable futr
     , text
     , time
     , tls
+    , transformers
     , vector
     , websockets
     , wuss
@@ -159,6 +160,7 @@ test-suite futr2-test
     , text
     , time
     , tls
+    , transformers
     , vector
     , websockets
     , wuss

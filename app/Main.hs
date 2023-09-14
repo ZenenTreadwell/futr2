@@ -2,21 +2,29 @@
 module Main (main) where
 
 import Network.WebSockets 
-import Data.Maybe 
 import Control.Monad
-import Control.Concurrent
-import Control.Concurrent.Async
 import Database.SQLite.Simple as SQL
 import Nostr.Beam
-import Nostr.Harvest
 import Nostr.Relay
+import Nostr.Harvest
 import Nostr.Boots
+import Control.Concurrent
 
 main :: IO ()
 main = do 
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    void . mapM forkIO . mapMaybe (harvestr o) $ defaultRelay 
+    print "starting server on 9481"
+    void . forkIO . runServer "127.0.0.1" 9481 
+        $ acceptRequest >=> relay o f
+
+    threadDelay 100000
+    -- runH $ harvestr o (head defaultRelay)
+
+    void $ mapM (forkIO . runH . (\d -> harvestr o d)) defaultRelay
     
-    (runServer "127.0.0.1" 9481 $ acceptRequest >=> relay o f)
+    threadDelay maxBound
     
+runH = \case 
+    Just m -> m
+    _ -> pure () 
