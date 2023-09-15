@@ -54,20 +54,18 @@ harvestr db uri = do
     ws conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
-        harvest db uri conn     
+        forever $ harvest db uri conn     
 
-harvest :: SQL.Connection -> URI ->  ClientApp () 
-harvest db uri ws = catch rec conerr 
+harvest :: SQL.Connection -> URI ->  ClientApp ()
+harvest db uri ws = catch rec conerr
     where 
     conerr z = do 
         print $ "harvest catch " <> show z  
         case z :: ConnectionException of  
             ConnectionClosed -> print "h close?" >> pure ()
-            WS.ParseException _ -> harvest db uri ws 
-            UnicodeException _ -> harvest db uri ws
-            CloseRequest _ _ -> do 
-                sendClose ws ("u said" :: T.Text)
-                -- harvest db ws
+            WS.ParseException _ -> pure () -- harvest db uri ws 
+            UnicodeException _ -> pure () -- harvest db uri ws
+            CloseRequest _ _ -> sendClose ws ("u said" :: T.Text)
     rec = do 
         mdown <- receiveData ws 
         case decode mdown of 
@@ -86,10 +84,11 @@ harvest db uri ws = catch rec conerr
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 
-            Challenge (qw -> Just t) -> do
+            Challenge t -> do
                 kp <- genKeyPair
                 e <- authenticate kp uri t
                 WS.sendTextData ws . encode $ Auth e  
+                print "sent challenge"
 
 
 extractURI :: URI -> Maybe (String, Word, String)

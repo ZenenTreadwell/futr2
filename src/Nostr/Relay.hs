@@ -24,6 +24,8 @@ import Nostr.Auth
 import Nostr.Keys
 import System.Entropy
 import Control.Monad.Trans.Maybe
+import Data.Text.Encoding
+import qualified Data.ByteString.Base16 as Hex
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
@@ -33,9 +35,9 @@ relay :: SQL.Connection -> TChan Event -> ClientApp ()
 relay db chan ws = do
     print "client connected"
     s <- newTVarIO M.empty
-    r <- Hex32 <$> getEntropy 32
-    
-    WS.sendTextData ws . encode $ Challenge (wq r)
+    r <- decodeUtf8 . Hex.encode <$> getEntropy 32
+    -- WS.sendTextData ws . encode $ Notice r 
+    WS.sendTextData ws . encode $ Challenge r
     race_ (listen' r s) (broadcast' s) 
     where 
 
@@ -48,8 +50,8 @@ relay db chan ws = do
             Just s' -> WS.sendTextData ws . encode $ See s' e
             _ -> pure () 
 
-    listen' :: Hex32 -> TVar Subs -> IO ()
-    listen' c subs = forever do 
+    listen' :: Text -> TVar Subs -> IO ()
+    listen' c subs = forever do
         eo <- E.try . WS.receiveData $ ws :: Listen
         case decode <$> eo of 
             Right (Just d) -> case d of 
@@ -63,12 +65,15 @@ relay db chan ws = do
                 Auth t -> do 
                     print "going to check"  
                     v <- runMaybeT $ validate t c
+                    pure () 
                     case v of 
-                        Just p -> print "validated ---------------- " 
-                        Nothing -> print "failed ---------------------- " 
-
+                        Just p -> print p
+                        Nothing -> print "failly"
             Right Nothing -> print . (<> " - right nothing") . show $ eo
-            Left z -> print "try listen caught" >> print z >> myThreadId >>= killThread 
+            Left z -> do
+                print z 
+                print "client killed_"  
+                myThreadId >>= killThread 
 
 fetchx :: SQL.Connection -> [Filter] -> IO [Event]
 fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 

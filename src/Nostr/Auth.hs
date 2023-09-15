@@ -14,7 +14,7 @@ import Data.ByteString as BS
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 
-authenticate :: Hex96 -> URI -> Hex32 -> IO Event
+authenticate :: Hex96 -> URI -> Text -> IO Event
 authenticate kp uri t = do 
     now <- round <$> getPOSIXTime 
     let relayT = V.fromList [String "relay", String $ render uri]
@@ -22,15 +22,16 @@ authenticate kp uri t = do
     let keyless = Content 22242 [Tag relayT, answerT] "" now  
     signE kp keyless
 
-validate :: Event -> Hex32 -> MaybeT IO Hex32 
-validate e@(Event i s (Content{..})) challenge = do 
+validate :: Event -> Text -> MaybeT IO Hex32 
+validate e@(Event _ _ (Content{..})) challenge = do 
+    22242 <- pure kind
     Just (Chal c) <- pure $ L.find isChal tags
-    v <- liftIO $ verifyE e
-    liftIO $ print "checkiddy" >> print (c == challenge) >> print v
-    if v && c == challenge 
-        then pure pubkey    
-        else mzero
-    where 
+    liftIO $ print c
+    liftIO $ print challenge
+    True <- pure $ c == challenge
+    True <- lift $ verifyE e
+    pure pubkey
+    where
     isChal :: Tag -> Bool
     isChal (Chal _) = True
     isChal _ = False 

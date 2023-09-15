@@ -55,14 +55,14 @@ parseWhyNot :: Text -> WhyNot
 parseWhyNot (t) = 
     case f of 
         "" -> None
-        "error" -> (ServerErr t')
-        "invalid" -> (Invalid t' )
-        "pow" -> (Pow t' )
-        "duplicate" -> (Duplicate t')
-        "blocked" -> (Block t')
-        "rate-limited" -> (RateLimit t')
-        "restricted" -> (Restrict t')
-        _ -> undefined 
+        "error" -> ServerErr t'
+        "invalid" -> Invalid t'
+        "pow" -> Pow t'
+        "duplicate" -> Duplicate t'
+        "blocked" -> Block t'
+        "rate-limited" -> RateLimit t'
+        "restricted" -> Restrict t'
+        _ -> error "not sure" 
     where 
     (f , fx) = case T.split (== ':') t of 
         [] -> ("~", [])

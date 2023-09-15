@@ -101,7 +101,7 @@ data Tag =
       ETag Hex32 (Maybe Text) (Maybe Marker)
     | PTag Hex32 (Maybe Text)
     | Nonce Int Int
-    | Chal Hex32
+    | Chal Text
     | Tag  Array
     deriving (Eq, Show, Generic)
 data Marker = Reply' | Root' | Mention'
@@ -111,13 +111,16 @@ instance FromJSON Tag where
     parseJSON = J.withArray "tag" \a -> do 
         let tag = a V.! 0
             evId = parseJSON (a V.! 1)
+            t = parseJSON (a V.! 1)
             rel = traverse parseJSON $ a V.!? 2
             mar = traverse parseJSON $ a V.!? 3
+            
         case tag of 
             String "e" -> ETag <$> evId <*> rel <*> mar 
             String "p" -> PTag <$> evId <*> rel
-            String "challenge" -> Chal <$> evId
+            String "challenge" -> Chal <$> t
             _ -> pure $ Tag a
+            
 instance ToJSON Tag where 
     toJSON (ETag i mr mm) = toJSON $ case (mr, mm) of 
         (Just r, Just m) -> ee <> [toJSON r, toJSON m]
