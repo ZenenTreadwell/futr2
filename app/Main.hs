@@ -21,7 +21,8 @@ main = do
     threadDelay 100000
     -- runH $ harvestr o (head defaultRelay)
 
-    void $ mapM (forkIO . runH . (\d -> harvestr o d)) defaultRelay
+    mapM_ (forkIO . runH . (\d -> harvestr o d)) 
+        $ defaultRelay
     
     threadDelay maxBound
     

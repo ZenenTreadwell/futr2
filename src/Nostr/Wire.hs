@@ -35,6 +35,7 @@ data WhyNot
     | Block Text 
     | RateLimit Text 
     | Restrict Text
+    | WhyNot Text
     deriving (Eq, Show)
 
 instance ToJSON WhyNot where 
@@ -46,13 +47,13 @@ instance ToJSON WhyNot where
     toJSON (Block t)     = String $ "blocked:" <> t
     toJSON (RateLimit t) = String $ "rate-limited:" <> t
     toJSON (Restrict t)  = String $ "restricted:" <> t 
+    toJSON (WhyNot t) = String t
 
 instance FromJSON WhyNot where 
-    parseJSON = withText "why not?" $ \t -> 
-        pure . parseWhyNot $ t
+    parseJSON = withText "why not?" $ pure . parseWhyNot 
 
 parseWhyNot :: Text -> WhyNot
-parseWhyNot (t) = 
+parseWhyNot t = 
     case f of 
         "" -> None
         "error" -> ServerErr t'
@@ -62,12 +63,11 @@ parseWhyNot (t) =
         "blocked" -> Block t'
         "rate-limited" -> RateLimit t'
         "restricted" -> Restrict t'
-        _ -> error "not sure" 
+        _ -> WhyNot t
     where 
     (f , fx) = case T.split (== ':') t of 
         [] -> ("~", [])
         f' : fx' -> (f', fx')
-        
     t' = T.intercalate ":" fx
         
 instance FromJSON Up where 

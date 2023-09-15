@@ -2,6 +2,7 @@ module Nostr.Harvest where
 
 import Prelude as P
 import Control.Exception as E
+import Control.Concurrent
 import Network.WebSockets as WS
 import Network.Connection as C 
 import Network.TLS as TLS
@@ -32,12 +33,12 @@ harvestr db uri = do
         . handle cryerr3
         <$> 
         case sch of 
-            "wss" -> Just $ runSecureClient host (fromIntegral port) path ws 
-            "ws"  -> Just $ WS.runClient host (fromIntegral port) path ws
+            "wss" -> Just $ runSecureClient host (fromIntegral port) path cli 
+            "ws"  -> Just $ WS.runClient host (fromIntegral port) path cli
             _ -> Nothing
     where 
     caught :: Exception z => z -> IO () 
-    caught z = print . ("caught caught... " <>) . P.take 127 . show $ z
+    caught z = print . ("caught caught... " <>) . P.take 227 . show $ z
     urierr :: URI.ParseException -> IO () 
     urierr = caught 
     tlserr :: TLS.TLSException -> IO () 
@@ -51,21 +52,28 @@ harvestr db uri = do
     cryerr3 :: IOError -> IO ()
     cryerr3 = caught 
             
-    ws conn = do
+    cli :: ClientApp ()
+    cli conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
-        forever $ harvest db uri conn     
+        forever $ 
+            harvest db uri conn     
 
 harvest :: SQL.Connection -> URI ->  ClientApp ()
 harvest db uri ws = catch rec conerr
     where 
+    conerr :: ConnectionException -> IO () 
     conerr z = do 
         print $ "harvest catch " <> show z  
-        case z :: ConnectionException of  
-            ConnectionClosed -> print "h close?" >> pure ()
-            WS.ParseException _ -> pure () -- harvest db uri ws 
-            UnicodeException _ -> pure () -- harvest db uri ws
-            CloseRequest _ _ -> sendClose ws ("u said" :: T.Text)
+        myThreadId >>= killThread
+        
+        -- case z :: ConnectionException of  
+        --     ConnectionClosed -> print "h close?" >> myThreadId >>= killThread
+        --     CloseRequest _ _ -> sendClose ws ("u said" :: T.Text)
+        --     -- XXX
+        --     WS.ParseException _ -> pure () -- harvest db uri ws 
+        --     UnicodeException _ -> pure () -- harvest db uri ws
+            
     rec = do 
         mdown <- receiveData ws 
         case decode mdown of 

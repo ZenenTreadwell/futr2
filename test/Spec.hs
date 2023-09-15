@@ -40,7 +40,6 @@ instance Arbitrary Event where
 
 instance Arbitrary Hex32 where 
   arbitrary = Hex32 . BS.pack <$> vectorOf 32 arbitrary 
-      -- Hex32 <$> arbitrary  
 
 instance Arbitrary Hex64 where 
   arbitrary = Hex64 . BS.pack <$> vectorOf 64 arbitrary 
@@ -85,6 +84,7 @@ instance Arbitrary WhyNot where
       , Block <$> arbitrary
       , RateLimit <$> arbitrary
       , Restrict <$> arbitrary
+      , WhyNot <$> arbitrary
       ] 
 
 instance Arbitrary Filter where 
@@ -141,7 +141,6 @@ main = do
   gems <- signE kp keyless
   let gcont = keyless (pubkey . con $ gems)
   let (kl, d) = mine 11 gcont
-  
   mE <- signE kp kl 
   vEE <- verifyE wev
   mEE <- verifyE mE 

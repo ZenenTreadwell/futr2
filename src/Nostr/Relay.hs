@@ -63,9 +63,7 @@ relay db chan ws = do
                 Submit e -> submit db ws e 
                 End s -> atomically $ modifyTVar subs (M.delete s)
                 Auth t -> do 
-                    print "going to check"  
                     v <- runMaybeT $ validate t c
-                    pure () 
                     case v of 
                         Just p -> print p
                         Nothing -> print "failly"
