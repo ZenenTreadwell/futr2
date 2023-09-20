@@ -31,12 +31,18 @@ type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 -- type Auth = M.Map Hex32 
 
+data Nctx = Nctx {
+      database :: SQL.Connection
+    , eventfeed :: TChan Event
+    , subs :: [TVar Subs]
+    -- , 
+    }
+
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
     print "client connected"
     s <- newTVarIO M.empty
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
-    -- WS.sendTextData ws . encode $ Notice r 
     WS.sendTextData ws . encode $ Challenge r
     race_ (listen' r s) (broadcast' s) 
     where 

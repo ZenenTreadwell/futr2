@@ -6,7 +6,7 @@ cabal-version: 1.12
 
 name:           futr2
 version:        0.1.0.0
-description:    Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls.
+description:    Types for interacting with the nostr network, relay and client..
 homepage:       https://github.com/autonomousorganization/futr2#readme
 bug-reports:    https://github.com/autonomousorganization/futr2/issues
 author:         Author name here
@@ -29,6 +29,7 @@ library
       Nostr.Beam
       Nostr.Boots
       Nostr.Db
+      Nostr.Direct
       Nostr.Event
       Nostr.Filter
       Nostr.Harvest
@@ -55,6 +56,7 @@ library
     , async
     , base >=4.7 && <5
     , base16-bytestring
+    , base64
     , beam-core
     , beam-migrate
     , beam-sqlite
@@ -62,8 +64,10 @@ library
     , connection
     , containers
     , cryptohash-sha256
+    , cryptonite
     , entropy
     , hspec
+    , memory
     , modern-uri
     , mtl
     , sqlite-simple
@@ -98,6 +102,7 @@ executable futr
     , async
     , base >=4.7 && <5
     , base16-bytestring
+    , base64
     , beam-core
     , beam-migrate
     , beam-sqlite
@@ -105,9 +110,11 @@ executable futr
     , connection
     , containers
     , cryptohash-sha256
+    , cryptonite
     , entropy
     , futr2
     , hspec
+    , memory
     , modern-uri
     , mtl
     , sqlite-simple
@@ -143,6 +150,7 @@ test-suite futr2-test
     , async
     , base >=4.7 && <5
     , base16-bytestring
+    , base64
     , beam-core
     , beam-migrate
     , beam-sqlite
@@ -150,9 +158,11 @@ test-suite futr2-test
     , connection
     , containers
     , cryptohash-sha256
+    , cryptonite
     , entropy
     , futr2
     , hspec
+    , memory
     , modern-uri
     , mtl
     , sqlite-simple

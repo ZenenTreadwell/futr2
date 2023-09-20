@@ -66,7 +66,7 @@ parseWhyNot t =
         _ -> WhyNot t
     where 
     (f , fx) = case T.split (== ':') t of 
-        [] -> ("~", [])
+        [] -> ("", [])
         f' : fx' -> (f', fx')
     t' = T.intercalate ":" fx
         

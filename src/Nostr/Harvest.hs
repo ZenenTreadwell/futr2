@@ -24,7 +24,6 @@ harvestr :: SQL.Connection -> URI -> Maybe (IO ())
 harvestr db uri = do 
     sch <- unRText <$> uriScheme uri 
     (host, port, path) <- extractURI uri
-    -- handle errr 
     handle conerr2 
         . handle handerr 
         . handle tlserr 
@@ -56,23 +55,15 @@ harvestr db uri = do
     cli conn = do
         sec :: Integer <- round <$> getPOSIXTime
         subscribe "a" conn [liveF sec]             
-        forever $ 
-            harvest db uri conn     
+        forever $  harvest db uri conn     
 
 harvest :: SQL.Connection -> URI ->  ClientApp ()
 harvest db uri ws = catch rec conerr
     where 
     conerr :: ConnectionException -> IO () 
     conerr z = do 
-        print $ "harvest catch " <> show z  
+        print $ "harvestr catch n kill " <> show z  
         myThreadId >>= killThread
-        
-        -- case z :: ConnectionException of  
-        --     ConnectionClosed -> print "h close?" >> myThreadId >>= killThread
-        --     CloseRequest _ _ -> sendClose ws ("u said" :: T.Text)
-        --     -- XXX
-        --     WS.ParseException _ -> pure () -- harvest db uri ws 
-        --     UnicodeException _ -> pure () -- harvest db uri ws
             
     rec = do 
         mdown <- receiveData ws 
@@ -98,23 +89,17 @@ harvest db uri ws = catch rec conerr
                 WS.sendTextData ws . encode $ Auth e  
                 print "sent challenge"
 
-
 extractURI :: URI -> Maybe (String, Word, String)
 extractURI uri = do 
-    a <- case auth of
-        Right a -> Just a 
-        _       -> Nothing 
+    Right a <- pure $ uriAuthority uri 
     let host = T.unpack . unRText $ authHost a
-    
     defaultport <- case unRText <$> uriScheme uri of
         (Just "wss") -> Just 443
         _ -> Just 80
-
     let port = maybe defaultport id $ authPort a
-    let path = T.unpack $ maybe "/" joinpath $ uriPath uri
+    let path = T.unpack . maybe "/" joinpath $ uriPath uri
     pure (host, port, path)
     where 
-    auth = uriAuthority uri
     joinpath (trailingSlash, rx) = if not trailingSlash 
         then joined `T.append` "/"
         else joined 

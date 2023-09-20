@@ -10,7 +10,7 @@ extra-source-files:
 - README.md
 - CHANGELOG.md
 
-description: "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."      
+description: "Types for interacting with the nostr network, relay and client.."      
 
 dependencies:
 - base >= 4.7 && < 5
@@ -22,12 +22,14 @@ dependencies:
 - mtl
 - transformers
 - async  
+- memory 
 
 ## data
 - text
 - vector 
 - bytestring
 - base16-bytestring
+- base64
 - containers
 - aeson
 
@@ -39,6 +41,7 @@ dependencies:
 - tls 
 
 ## crypto
+- cryptonite
 - cryptohash-sha256
   
 ## database
@@ -50,7 +53,6 @@ dependencies:
 ## test
 - hspec
 - QuickCheck
-
 
 pkg-config-dependencies:
 - libsecp256k1

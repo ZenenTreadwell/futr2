@@ -11,7 +11,9 @@ import Foreign.Marshal.Alloc
 import qualified Crypto.Hash.SHA256 as SHA256
 import Secp256k1.Internal
 import Nostr.Keys
-import Data.Text.Encoding
+
+-- broadcastE :: Event -> IO (TChan Event)
+broadcastE _ = undefined 
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  

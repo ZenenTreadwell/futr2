@@ -7,6 +7,7 @@ import Nostr.Keys
 import Text.URI
 import Data.Bits
 import Data.Text (Text)
+import Data.Word
 import Data.Aeson
 import Data.Time.Clock.POSIX
 import Data.Vector as V
@@ -57,15 +58,19 @@ judge :: Int -> Event -> Bool
 judge target = (>= target) . difficulty . eid  
 
 difficulty :: Hex32 -> Int 
-difficulty (Hex32 bs) = go 0 bs 
+difficulty (Hex32 b) = go 0 b 
     where 
-    go count bs 
-        | BS.null bs      = count
-        | BS.head bs == 0 = go (count + 8) (BS.tail bs)
-        | otherwise = count + lead 7 0 (BS.head bs)
-    lead i count b 
-        | testBit b i = count   
-        | otherwise   = lead (i - 1) (count + 1) b
+
+    go i bs 
+        | BS.null bs      = i
+        | BS.head bs == 0 = go (i + 8) (BS.tail bs)
+        | otherwise = i + lead (BS.head bs)
+
+    lead = lo 0 7 
+
+    lo x o y   
+        | testBit y o = x   
+        | otherwise   = lo (x + 1) (o - 1) y
 
     
 

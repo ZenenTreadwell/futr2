@@ -9,7 +9,7 @@ import Data.Aeson as J
 import Data.Aeson.Types
 import Foreign.Marshal.Alloc
 import Foreign.Ptr
-import Secp256k1.Internal
+import Secp256k1.Internal 
     
 newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show)
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)

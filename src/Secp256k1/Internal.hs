@@ -26,6 +26,8 @@ foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
 foreign import ccall unsafe "secp256k1.h secp256k1_keypair_create" keyPairCreate
   :: Ctx -> Ptr KeyPair96 -> Ptr SecKey32 -> IO Ret
 
+-- foreign import ccall safe "secp256.h se"
+
 foreign import ccall safe "secp256k1.h secp256k1_keypair_xonly_pub" keyPairXOnlyPubKey
   :: Ctx -> Ptr PubKey64 -> Ptr Msg32 -> Ptr KeyPair96 -> IO Ret
 
@@ -41,6 +43,10 @@ foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_verify" schnorrSigna
 foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
   :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr KeyPair96 -> Ptr Salt32 -> IO Ret
 
+foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
+  ::  Ctx -> Ptr CUChar -> Ptr PubKey64 -> Ptr SecKey32 -> 
+      Ptr q -> Ptr w -> IO Ret
+
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate 0x0301
 {-# NOINLINE ctx #-}
@@ -53,6 +59,4 @@ packPtr :: (Ptr x, CSize) -> IO ByteString
 packPtr (p, l) = BU.unsafePackMallocCStringLen (castPtr p, fromIntegral l) 
 
 genSalt :: IO (Ptr x, CSize)
-genSalt = do 
-    x <- getEntropy 32
-    getPtr x
+genSalt = getEntropy 32 >>= getPtr 
