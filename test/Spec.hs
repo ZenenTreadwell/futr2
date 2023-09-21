@@ -272,11 +272,13 @@ main = do
         it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
         it "extract iv" $ shouldBe iv iviv'
         it "extract msg" $ shouldBe "sigh" (jazzhands $ mmm''')
+
+        it "shared secret ? " $ shouldBe (toJSON sh1) (toJSON sh2) 
+        
         -- it "extracts iv 3" $ shouldBe 16 (BS.length iv''''''')
         -- it "consistent encode" $ shouldBe iv''' iv'''''
         -- it "con check" $ shouldBe " " (content . con $ e1)
         -- it "farts" $ shouldBe "farts" foo 
-        -- it "shared secret ? " $ shouldBe (toJSON sh1) (toJSON sh2) 
         
 
 

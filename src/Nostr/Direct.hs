@@ -43,10 +43,10 @@ dmE kp s t = do
     signE kp c   
     
 getShared :: Hex96 -> Hex32 -> IO Hex32 
-getShared kp sec = do 
+getShared kp pu = do 
     sh <- mallocBytes 32 
-    (sec', 32) <- getPtr . BS.take 32 $ un96 kp 
-    (pub', 32) <- getPtr $ un32 sec 
+    (sec', 96) <- getPtr $ un96 kp 
+    (pub', 64) <- un64 <$> parsePub pu >>= getPtr 
     r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
