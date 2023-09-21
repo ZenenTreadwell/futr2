@@ -40,8 +40,7 @@ signE kp keyless = do
             let newE = Event eid sig' content
             trust <- verifyE newE
             if trust then pure newE
-                     else  -- error "created invalid ? " 
-                        signE kp keyless -- signE kp keyless 
+                     else signE kp keyless -- signE kp keyless 
         _ -> free sig >> error "schnorrSign error"
              
 idE :: Content -> Hex32

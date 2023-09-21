@@ -29,9 +29,11 @@ dependencies:
 - vector 
 - bytestring
 - base16-bytestring
-- base64
 - containers
 - aeson
+
+# - base64 
+- base64-bytestring
 
 ## socket 
 - wuss

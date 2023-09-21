@@ -1,33 +1,110 @@
 module Nostr.Direct where 
 
+-- | https://github.com/nostr-protocol/nips/blob/master/04.md
+
+import Prelude as P 
 import Crypto.Cipher.Types
+import Data.Text as T
 import Crypto.Cipher.AES (AES256)
--- import Crypto.Error (CryptoFailable(..))
--- import Crypto.PubKey.ECC.Generate (KeyPair(..), KeyPairGenerationParameters(..), generate)
-import Data.Bits (xor)
 import Data.ByteArray
--- import Data.ByteArray (convert)
+import Data.Time.Clock.POSIX
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.ByteString.Base64 as B64
-import Data.Text (Text)
-import qualified Data.Text as T
+import qualified Data.ByteString.Base64 as B64
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Crypto.Error
 import System.Entropy 
 import Foreign.Marshal.Alloc
 import Foreign.Ptr
 import Secp256k1.Internal
-
 import Nostr.Keys
--- Generate a random AES initialization vector (IV)
-generateIV :: IO ByteString
-generateIV = undefined --  getRandomBytes 16
+import Nostr.Event
+import Data.Aeson
+import Data.ByteArray.Encoding
+
+encodeBase64' :: ByteString -> ByteString 
+encodeBase64' = B64.encode 
+
+encodeBase64 :: ByteString -> ByteString 
+encodeBase64 = convertToBase Base64 
+
+decodeBase64 :: ByteString -> ByteString  
+decodeBase64 t = case convertFromBase Base64 t of 
+    Right a -> a
+    _ -> error "cc"
 
 
-cbc :: ByteArray b => AES256 -> IV AES256 -> b -> b
-cbc = cbcEncrypt 
+dmE :: Hex96 -> Hex32 -> Text -> IO Event
+dmE kp s t = do 
+    iv <- getEntropy 16
+    m <- dm s iv (encodeUtf8 t)
+    n <- round <$> getPOSIXTime
+    let c = Content 4 [PTag s Nothing] m n 
+    signE kp c   
+    
+getShared :: Hex96 -> Hex32 -> IO Hex32 
+getShared kp sec = do 
+    sh <- mallocBytes 32 
+    (sec', 32) <- getPtr . BS.take 32 $ un96 kp 
+    (pub', 32) <- getPtr $ un32 sec 
+    r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
+    if r == 1 
+        then Hex32 <$> packPtr (sh, 32)
+        else error "qq"
+   
+prepare :: Hex32 -> ByteString -> IO (AES256, IV AES256)
+prepare sh iv = do
+    let xo :: AES256
+        xo = case cipherInit . un32 $ sh :: CryptoFailable AES256 of 
+            CryptoPassed a -> a 
+            _ -> error "ff"
+    let ox :: IV AES256
+        ox = case makeIV iv of 
+            Just a -> a
+            _ -> error "gg" 
+    pure (xo, ox)
 
+
+jazzhands = BS.reverse . BS.dropWhile (==0) . BS.reverse
+
+
+dm :: Hex32 -> ByteString -> ByteString -> IO Text
+dm sh iv msg = do
+    let len = BS.length msg
+        msg' = msg <> BS.replicate (16 - mod len 16) 0
+
+    print . toJSON $ sh
+    
+    (xo, ox) <- prepare sh iv
+    
+    let t = encodeBase64 $ cbcEncrypt xo ox msg'
+    
+    let fin = t <> "?iv=" <> (encodeBase64 iv)
+    
+    pure . decodeUtf8 $ fin 
+
+
+extract :: Text -> (ByteString, ByteString) 
+extract t = case T.splitOn "?iv=" t of 
+    m : iv : [] -> (dd m, dd iv)
+    _ -> error "pp" 
+    where dd = decodeBase64 . encodeUtf8 
+
+md :: Hex32 -> ByteString -> ByteString -> IO ByteString 
+md sh iv b = do 
+    (xo, ox) <- prepare sh iv 
+    let 
+        cbc :: ByteString -> ByteString 
+        cbc = cbcDecrypt xo ox 
+    pure $ cbc b
+
+decryptE :: Hex32 -> Event -> IO Text 
+decryptE sh (Event _ _ c) = do 
+    let (msg', iv) = extract . content $ c
+    si <- md sh iv msg'
+    print "about to explode"
+    pure . decodeUtf8 . encodeBase64 $ si 
+    
 defundCbc :: Hex96 -> Hex32 -> ByteString -> IO Text
 defundCbc (Hex96 q) (Hex32 w) msg = do
     -- pub <- parsePub q 
@@ -40,6 +117,7 @@ defundCbc (Hex96 q) (Hex32 w) msg = do
     print $ BS.length msg'     
     
     sh <- mallocBytes 32 
+
 
     (sec', 32) <- getPtr . BS.take 32 $ q 
 
@@ -62,15 +140,13 @@ defundCbc (Hex96 q) (Hex32 w) msg = do
             Just a -> a
             _ -> error "gg" 
     
-    let t = encodeBase64' $ cbc xo ox msg'
-    
+    let t = encodeBase64 $ cbcEncrypt xo ox msg'
+     
     let fin = (decodeUtf8 t)
-               <> "iv?=" <> 
-              (decodeUtf8 . encodeBase64' $ iv)
+               <> "?iv=" <> 
+              (decodeUtf8 . encodeBase64 $ iv)
     print fin 
     pure fin 
-
-    
 
 -- try2 :: _ 
 -- try2 =  

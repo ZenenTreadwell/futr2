@@ -26,8 +26,6 @@ foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
 foreign import ccall unsafe "secp256k1.h secp256k1_keypair_create" keyPairCreate
   :: Ctx -> Ptr KeyPair96 -> Ptr SecKey32 -> IO Ret
 
--- foreign import ccall safe "secp256.h se"
-
 foreign import ccall safe "secp256k1.h secp256k1_keypair_xonly_pub" keyPairXOnlyPubKey
   :: Ctx -> Ptr PubKey64 -> Ptr Msg32 -> Ptr KeyPair96 -> IO Ret
 
