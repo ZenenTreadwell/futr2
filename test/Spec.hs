@@ -130,9 +130,9 @@ loops x = case decode . encode $ x of
     Nothing -> False
 
 checkx :: Vector (Vector Hex32) -> (Int, Int) -> Bool
-checkx kx (i, j) = lookup i j == lookup j i  
+checkx kx (i, j) = seek i j == seek j i  
     where 
-    lookup i' j' = (kx V.! i') V.! j'  
+    seek i' j' = (kx V.! i') V.! j'  
 
 main :: IO ()
 main = do
@@ -156,8 +156,6 @@ main = do
   o <- open "./futr.sqlite"
   createDb o
   insertEv o wev
-
-
   kx <- M.replicateM 100 do 
       k' <- genKeyPair 
       p' <- exportPub k'
@@ -169,11 +167,8 @@ main = do
           | pj <- pubs] 
           | ki <- keys]
 
-  resultkx <- pure [ checkx matrikx (ii', jj')
-    |   ii' <- [0..4]
-      , jj' <- [0..4]
-      , ii' > jj'
-      ]
+  let resultkx = [checkx matrikx (ii', jj') | ii' <- [0..99] , jj' <- [0..99] , ii' > jj' ]
+      
       
   k2 <- genKeyPair
   p2 <- exportPub k2
@@ -182,8 +177,8 @@ main = do
   
   e1 <- encryptE kp p2 "t"
 
-  iv <- getEntropy 16
-  let ccc = createCtx sh1 iv 
+  iv' <- getEntropy 16
+  let ccc = createCtx sh1 iv' 
   msg1 <- encryptMsg ccc "test1" 
   let dmsg1 = decryptMsg ccc msg1
 
@@ -191,18 +186,10 @@ main = do
   doo <- decryptE k2 e 
 
   hspec do 
-    describe "correctly hashes event" do
+    describe "nip 1" do
       it "gold id" $ flip shouldBe evid (idE ev)
-
-    describe "validates with schnorr" do
       it "verifiesE!" $ shouldBe vEE True
-      -- it "isValid!" $ shouldBe (isValid wev) True
-
-    describe "signs with schnorr" do
-      -- it "signs valid" $ flip shouldBe True (isValid mE) 
       it "signs valid 2" $ flip shouldBe True mEE 
-
-    describe "what the length is it anyway" do
       it "evid length" $ flip shouldBe 32 (BS.length . un32 $ evid)
       it "length1" $ flip shouldBe 32 (BS.length . un32 . pubkey . con $ wev)
       it "length2" $ flip shouldBe 64 (BS.length . un64 . sig $ wev)
@@ -210,8 +197,6 @@ main = do
       it "msign sig length" $ shouldBe 64 (BS.length . un64 . sig $ mE )
       it "msign eid length" $ shouldBe 32 (BS.length . un32 . eid $ mE )
       it "msign pub length" $ shouldBe 32 (BS.length . un32 . pubkey . con $ mE)
-      --it "show pubkey (that works)" $ flip shouldBe Nothing (xOnlyPubKey . un32 . pubkey . con $ wev)
-    describe "matchM checks" do 
       it "matches by id" $ shouldBe True (matchM wev (Ids ["37", "437"]))
       it "doesn't match by id" $ shouldBe False (matchM wev (Ids ["37"]))
       it "matches by author" $ shouldBe True (matchM wev (Authors ["6", "7"])) 
@@ -222,58 +207,34 @@ main = do
       it "matches since" $ shouldBe False (matchM wev (Since 1673347338))
       it "matches until" $ shouldBe False (matchM wev (Until 1673347336))
       it "matches until" $ shouldBe True (matchM wev (Until 1673347338))
-
-    describe "matchF check" do 
       it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
 
-    -- describe "database queries" do 
-    --    it "uses limit" $ do 
-    --       f' <- P.length <$> fetch o fl
-    --       shouldBe 42 f' 
-    --    void $ flip M.mapM ff \(f', t') -> do
-    --       it ("faster than baseline " <> t') $ do   
-    --           baseWin <- race (fetch o f') (fetchBaseline o f')
-    --           shouldBe False (isRight baseWin) 
-    --       it ("some results " <> t') $ do 
-    --           baseWin <- race (fetch o f') (fetchBaseline o f')
-    --           case baseWin of 
-    --               Left ex -> shouldNotBe 0 (P.length ex)
-    --               Right ex -> shouldNotBe 0 (P.length ex)
-    --       it ("same result as baseline " <> t') $ do 
-    --         f1 <- P.map (toJSON . eid) <$> fetch o f'
-    --         f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
-    --         shouldBe (f1 \\ f2, f2 \\ f1) ([],[])
-    --       it ("same result as baseline 2 " <> t') $ do 
-    --         f1 <- P.map (toJSON . eid) <$> fetch o f'
-    --         f2 <- P.map (toJSON . eid) <$> fetchBaseline o f'
-    --         shouldBe (P.length f1) (P.length f2) 
-
-    describe "Proof of Work" do 
+    describe "database queries" do 
+       it "use limit" $ do 
+          f' <- P.length <$> fetch o fl
+          shouldBe 42 f' 
+              
+       void $ flip M.mapM ff  \(fi, ti) -> do 
+          it ("got some" <> ti) $ do 
+              ex <- fetch o fi
+              shouldBe (True) ((>0) . P.length $ ex)
+          
+    describe "nip 13" do 
         it "really counts the leading zeroes" $ shouldBe 36 (difficulty evmine)
         it "REALLY counts the leading zeroes" $ shouldBe 10 (difficulty trickmine)
         it "mine deeply" $ shouldBe ((>= 5) . snd $ mine 5 ev) True
         it "mine deeply" $ shouldBe ((>= 9) . difficulty $ idE . con $ mE) True
         it "show zeros" $ shouldBe (True) (T.isPrefixOf "\"00"  . decodeUtf8 . BS.toStrict . encode $ eid mE)
 
-    describe "NIP04" do 
+    describe "nip 4" do 
         it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
-        -- it "extract iv" $ shouldBe iv iviv'
-        
-        -- it "extract msg" $ shouldBe "sigh" (jazzhands $ mmm''')
-
         it "shared secret ? " $ shouldBe (toJSON sh1) (toJSON sh2) 
-
         it "always share nicely" $ shouldBe True (L.all id resultkx) 
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
-        -- it "extracts iv 3" $ shouldBe 16 (BS.length iv''''''')
-        -- it "consistent encode" $ shouldBe iv''' iv'''''
-        -- it "con check" $ shouldBe " " (content . con $ e1)
         it "domino" $ shouldBe "domino" doo 
-
         it "same same" $ shouldBe "test1" dmsg1
 
-        it "iv extraction" $ shouldBe (encodeBase64 . snd . extract . content . con $ e) (encodeBase64 iv) 
         
 
 

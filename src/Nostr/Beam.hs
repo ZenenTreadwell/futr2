@@ -123,16 +123,6 @@ insertRelay db uri = runBeamSqlite db $ do
               $ insertExpressions 
               [ Relay default_  (val_ uri) (val_ False) ]
 
-
-fetchBaseline :: SQL.Connection -> Filter -> IO [Event]
-fetchBaseline db f@Filter{..} = do 
-    P.filter (flip matchF f) . catMaybes . P.map (qw . _con)  
-        <$> runBeamSqlite db (s d) 
-    where 
-    s = runSelectReturningList . select 
-    d = all_ (_events spec')
-       
-
 isHex32 :: Text -> Bool 
 isHex32 h = case decode . encode $ h of  
     (Just (Hex32 _)) -> True
