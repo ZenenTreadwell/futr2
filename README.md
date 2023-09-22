@@ -1,22 +1,19 @@
 # futr2
 
 "The name 'futr' was chosen from respect for the honorable Canadians."  
-    - [prolic of futr](https://github.com/prolic/futr)
+  
+~ [prolic of futr](https://github.com/prolic/futr)
 
+types for interacting with nostr relays and relay implementation 
 
-nostr Library, Relay and Harvester  
+run relay     
 
-`stack build` -- build exec
-
-`stack exec futr` 
-- runs relay on 9481
-- collect events from default relays 
-
-run over tor: 
-
-`torify <path to futr>`
+- `stack build` 
+- `stack exec futr` 
+- `torify <path to futr>`
 
 dependencies 
+
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - ...
 
@@ -24,37 +21,21 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 wip (relay focus)
 - [x] 1 
 - [x] 10 
+- [x] 4 - aes 
 - [x] 42 - auth
 - [x] 13 - pow
 - [ ] 45 - count
+- [ ] 11 - relay-meta
 
----            
+--- likely 
+            
 - [ ] 52 
 - [ ] 15
 - [ ] 25  
 - [ ] 30
+- [ ] 57 
 
-avoiding 
-- [ ] 57 - lightning interaction should not require dns setup?
-- [ ] 50 - search
-- [ ] 11 - relay-meta
-- [ ] 4 - aes 
-
-
-`futr.sqlite` is created in the local directory   
-
-Run the tests!
-
-`stack test` 
-
-
-to explore in ghci needs flags: 
-```
-$ pkg-config --cflags --libs libsecp256k1
-<FLAGS>
-$ stack ghci --ghc-options "<FLAGS>"
-\> 
-```
+database file futr.sqlite is created in the local directory   
 
 `bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9`
 
