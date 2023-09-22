@@ -1,6 +1,7 @@
 module Nostr.Direct where 
 
 -- | https://github.com/nostr-protocol/nips/blob/master/04.md
+-- 
 
 import Prelude as P 
 import Crypto.Cipher.Types
@@ -33,19 +34,11 @@ decodeBase64 t = case convertFromBase Base64 t of
     Right a -> a
     _ -> error "cc"
 
-decryptE :: Hex96 -> Event -> IO Text 
-decryptE kp (Event _ _ c) = do 
-    let (msg, iv) = extract . content $ c
-    sh <- getShared kp (pubkey c)
-    T.pack . show  <$> md sh iv msg
+type Msg = ByteString 
+type Iv = ByteString 
+type Shared = Hex32
 
-dmE :: Hex96 -> Hex32 -> Text -> IO Event
-dmE kp s t = do 
-    iv <- getEntropy 16
-    m <- dm s iv (encodeUtf8 t)
-    n <- round <$> getPOSIXTime
-    let c = Content 4 [PTag s Nothing] m n 
-    signE kp c   
+data AesCtx = AesCtx AES256 (IV AES256) Iv
     
 getShared :: Hex96 -> Hex32 -> IO Hex32 
 getShared kp pu = do 
@@ -57,51 +50,93 @@ getShared kp pu = do
         then Hex32 <$> packPtr (sh, 32)
         else getShared kp pu 
    
-prepare :: Hex32 -> ByteString -> IO (AES256, IV AES256)
-prepare sh iv = do
-    let xo :: AES256
+encryptE :: Hex96 -> Hex32 -> Text -> IO Event
+encryptE kp re msg = do  
+    iv <- getEntropy 16
+    sh <- getShared kp re
+    let xx = createCtx sh iv
+    m <- encryptMsg xx (encodeUtf8 msg)
+    n <- round <$> getPOSIXTime
+    let c = Content 4 [PTag re Nothing] m n 
+    signE kp c
+
+decryptE :: Hex96 -> Event -> IO Text 
+decryptE kp (Event _ _ c) = do 
+    let (_ , iv) = extract . content $ c
+    sh <- getShared kp (pubkey c)
+    let ccc = createCtx sh iv
+    pure $ decryptMsg ccc (content c)
+
+createCtx :: Shared -> Iv -> AesCtx
+createCtx sh iv = AesCtx xo ox iv
+    where 
+        xo :: AES256
         xo = case cipherInit . un32 $ sh :: CryptoFailable AES256 of 
             CryptoPassed a -> a 
             _ -> error "ff"
-    let ox :: IV AES256
+        ox :: IV AES256
         ox = case makeIV iv of 
             Just a -> a
             _ -> error "gg" 
-    pure (xo, ox)
 
+encryptMsg :: AesCtx -> Msg -> IO Text 
+encryptMsg (AesCtx xo ox iv) (pad -> m) = pure . decodeUtf8 $ fin 
+    where     
+        msg = encodeBase64 $ cbcEncrypt xo ox m
+        fin = msg <> "?iv=" <> encodeBase64 iv
 
-jazzhands = BS.reverse . BS.dropWhile (==0) . BS.reverse
-
-
-dm :: Hex32 -> ByteString -> ByteString -> IO Text
-dm sh iv msg = do
-    let len = BS.length msg
-        msg' = msg <> BS.replicate (16 - mod len 16) 0
-
-    print . toJSON $ sh
+-- decryptMsg :: AesCtx -> Text -> Text
+decryptMsg :: AesCtx -> Text -> Text  
+decryptMsg (AesCtx xo ox _) t = decodeUtf8 . unpad $ cbcDecrypt xo ox (fst . extract $ t) 
     
-    (xo, ox) <- prepare sh iv
-    
-    let t = encodeBase64 $ cbcEncrypt xo ox msg'
-    
-    let fin = t <> "?iv=" <> (encodeBase64 iv)
-    
-    pure . decodeUtf8 $ fin 
-
-
 extract :: Text -> (ByteString, ByteString) 
 extract t = case T.splitOn "?iv=" t of 
     m : iv : [] -> (dd m, dd iv)
     _ -> error "pp" 
     where dd = decodeBase64 . encodeUtf8 
 
-md :: Hex32 -> ByteString -> ByteString -> IO ByteString 
-md sh iv b = do 
-    (xo, ox) <- prepare sh iv 
-    let 
-        cbc :: ByteString -> ByteString 
-        cbc = cbcDecrypt xo ox 
-    pure $ cbc b
+-- md :: Hex32 -> ByteString -> ByteString -> IO ByteString 
+-- md sh iv b = do 
+--     AesCtx xo ox iv <- prepare sh iv 
+--     let 
+--         cbc :: ByteString -> ByteString 
+--         cbc = cbcDecrypt xo ox 
+--     pure $ cbc b
+-- encryptE 
+
+pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 0
+unpad = BS.reverse . BS.dropWhile (==0) . BS.reverse
+
+
+-- data 
+
+prepare :: Hex32 -> ByteString -> IO AesCtx
+prepare sh iv = pure . AesCtx xo ox $ iv
+    where 
+        xo :: AES256
+        xo = case cipherInit . un32 $ sh :: CryptoFailable AES256 of 
+            CryptoPassed a -> a 
+            _ -> error "ff"
+        ox :: IV AES256
+        ox = case makeIV iv of 
+            Just a -> a
+            _ -> error "gg" 
+
+
+
+
+
+
+
+
+
+    
+
+
+
+jazzhands = BS.reverse . BS.dropWhile (==0) . BS.reverse
+
+
 
     
 defundCbc :: Hex96 -> Hex32 -> ByteString -> IO Text

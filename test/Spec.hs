@@ -180,54 +180,19 @@ main = do
   sh2 <- getShared k2 p1 
   sh1 <- getShared kp p2 
   
-  e1 <- dmE kp sh2 "ttttttttttttttttttttttttttt"
+  e1 <- encryptE kp p2 "t"
 
   iv <- getEntropy 16
-  
-  msg1 <- dm sh2 iv "test1" 
+  let ccc = createCtx sh1 iv 
+  msg1 <- encryptMsg ccc "test1" 
+  let dmsg1 = decryptMsg ccc msg1
 
-  ah <- dm sh1 iv "sigh"
-
-  (mmm', iviv') <- pure $ extract ah
-
-  mmm''' <- md sh1 iv mmm'
-    
-  iv''' <- pure . encodeBase64 $ iv
-
-  iv''''' <- pure . encodeBase64' $ iv 
-
-  iv''''''' <- pure . decodeBase64 $ iv'''''
-
-  iv'<- pure . decodeUtf8  $ encodeBase64 iv 
-
-  iv'' <- pure $ encodeUtf8 iv'
-  (xo, ox) <- prepare sh2 iv 
-  let cbc :: ByteString -> ByteString 
-      cbc = cbcDecrypt xo ox
-
-  e <- dmE kp p2 "farts" 
-
-  foo <- decryptE k2 e 
+  e <- encryptE kp p2 "domino"
+  doo <- decryptE k2 e 
 
   hspec do 
     describe "correctly hashes event" do
       it "gold id" $ flip shouldBe evid (idE ev)
-
-    -- describe "json encoding and decoding" do
-    --   it "loops ev" $ shouldBe (decode . encode $ ev) (Just ev) 
-    --   it "loops event" $ shouldBe (decode . encode $ wev) (Just wev) 
-    --   it "loops up" $ flip shouldBe wev $
-    --       case decode . encode $ Submit wev of 
-    --         Just (Submit e) -> e 
-    --         _ -> undefined
-    --   it "loops down" $ flip shouldBe wev $ 
-    --       case decode . encode $ See "1" wev of 
-    --         Just (See _ e) -> e
-    --         _ -> undefined 
-    --   it "loops filter" $ flip shouldBe ff $
-    --       case decode . encode $ ff of 
-    --         Just fff -> fff
-    --         _ -> undefined 
 
     describe "validates with schnorr" do
       it "verifiesE!" $ shouldBe vEE True
@@ -293,9 +258,9 @@ main = do
 
     describe "NIP04" do 
         it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
-        it "extract iv" $ shouldBe iv iviv'
+        -- it "extract iv" $ shouldBe iv iviv'
         
-        it "extract msg" $ shouldBe "sigh" (jazzhands $ mmm''')
+        -- it "extract msg" $ shouldBe "sigh" (jazzhands $ mmm''')
 
         it "shared secret ? " $ shouldBe (toJSON sh1) (toJSON sh2) 
 
@@ -304,7 +269,11 @@ main = do
         -- it "extracts iv 3" $ shouldBe 16 (BS.length iv''''''')
         -- it "consistent encode" $ shouldBe iv''' iv'''''
         -- it "con check" $ shouldBe " " (content . con $ e1)
-        it "farts" $ shouldBe "farts" foo 
+        it "domino" $ shouldBe "domino" doo 
+
+        it "same same" $ shouldBe "test1" dmsg1
+
+        it "iv extraction" $ shouldBe (encodeBase64 . snd . extract . content . con $ e) (encodeBase64 iv) 
         
 
 
