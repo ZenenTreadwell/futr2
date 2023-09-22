@@ -124,15 +124,37 @@ instance Arbitrary Until where
 instance Arbitrary Limit where 
   arbitrary = Limit <$> arbitrary 
 
-loops :: (ToJSON j, FromJSON j, Eq j) => j -> Bool
-loops x = case decode . encode $ x of 
-    Just x' -> x == x' 
-    Nothing -> False
+boolToChar :: Bool -> Char
+boolToChar True = 'X'
+boolToChar False = 'O'
+
+type Kx = Vector (Vector Hex32)
+
+makeKx :: [Hex96] -> [Hex32] -> IO Kx
+makeKx keys pubs = V.fromList . P.map V.fromList <$> sequenceA [ sequenceA [getShared ki pj 
+          | pj <- pubs] 
+          | ki <- keys]
+
+boolKx :: Kx -> [[Bool]]
+boolKx kx = [[checkx kx (i', j') | i' <- [0..11] ]
+            | j' <- [0..11]]
+
+printKx kx = M.mapM print $ P.map (P.map boolToChar) $ boolKx kx  
+  
 
 checkx :: Vector (Vector Hex32) -> (Int, Int) -> Bool
 checkx kx (i, j) = seek i j == seek j i  
     where 
     seek i' j' = (kx V.! i') V.! j'  
+          
+-- printKx (V.head -> kx) = print . V.map boolToChar . $ kx     
+
+
+loops :: (ToJSON j, FromJSON j, Eq j) => j -> Bool
+loops x = case decode . encode $ x of 
+    Just x' -> x == x' 
+    Nothing -> False
+
 
 main :: IO ()
 main = do
@@ -163,12 +185,12 @@ main = do
   let keys = P.map fst kx 
   let pubs = P.map snd kx
 
-  matrikx <-  V.fromList . P.map V.fromList <$> sequenceA [ sequenceA [getShared ki pj 
-          | pj <- pubs] 
-          | ki <- keys]
+  matrikx <- makeKx keys pubs
 
-  let resultkx = [checkx matrikx (ii', jj') | ii' <- [0..99] , jj' <- [0..99] , ii' > jj' ]
-      
+  printKx matrikx
+  
+  let resultkx :: [Bool]  
+      resultkx = [checkx matrikx (ii', jj') | ii' <- [0..99] , jj' <- [0..99] , ii' > jj' ]
       
   k2 <- genKeyPair
   p2 <- exportPub k2
@@ -214,7 +236,6 @@ main = do
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 
-              
        void $ flip M.mapM ff  \(fi, ti) -> do 
           it ("got some" <> ti) $ do 
               ex <- fetch o fi
@@ -234,9 +255,6 @@ main = do
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         it "domino" $ shouldBe "domino" doo 
         it "same same" $ shouldBe "test1" dmsg1
-
-        
-
 
 esig = Hex64 $ Hex.decodeLenient "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
 wev = Event evid esig ev 
