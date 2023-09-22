@@ -12,7 +12,7 @@ import Data.Aeson
 import Data.Either
 import Data.Function 
 import Data.Maybe
-import Data.List
+import Data.List as L 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 as C8
@@ -129,6 +129,11 @@ loops x = case decode . encode $ x of
     Just x' -> x == x' 
     Nothing -> False
 
+checkx :: Vector (Vector Hex32) -> (Int, Int) -> Bool
+checkx kx (i, j) = lookup i j == lookup j i  
+    where 
+    lookup i' j' = (kx V.! i') V.! j'  
+
 main :: IO ()
 main = do
   quickCheck . label "loop event" $ (loops :: Event -> Bool) 
@@ -152,6 +157,24 @@ main = do
   createDb o
   insertEv o wev
 
+
+  kx <- M.replicateM 100 do 
+      k' <- genKeyPair 
+      p' <- exportPub k'
+      pure (k', p')
+  let keys = P.map fst kx 
+  let pubs = P.map snd kx
+
+  matrikx <-  V.fromList . P.map V.fromList <$> sequenceA [ sequenceA [getShared ki pj 
+          | pj <- pubs] 
+          | ki <- keys]
+
+  resultkx <- pure [ checkx matrikx (ii', jj')
+    |   ii' <- [0..4]
+      , jj' <- [0..4]
+      , ii' > jj'
+      ]
+      
   k2 <- genKeyPair
   p2 <- exportPub k2
   sh2 <- getShared k2 p1 
@@ -182,9 +205,9 @@ main = do
   let cbc :: ByteString -> ByteString 
       cbc = cbcDecrypt xo ox
 
-  e <- dmE kp sh1 "farts" 
+  e <- dmE kp p2 "farts" 
 
-  foo <- decryptE sh1 e 
+  foo <- decryptE k2 e 
 
   hspec do 
     describe "correctly hashes event" do
@@ -271,14 +294,17 @@ main = do
     describe "NIP04" do 
         it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
         it "extract iv" $ shouldBe iv iviv'
+        
         it "extract msg" $ shouldBe "sigh" (jazzhands $ mmm''')
 
         it "shared secret ? " $ shouldBe (toJSON sh1) (toJSON sh2) 
-        
+
+        it "always share nicely" $ shouldBe True (L.all id resultkx) 
+        it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         -- it "extracts iv 3" $ shouldBe 16 (BS.length iv''''''')
         -- it "consistent encode" $ shouldBe iv''' iv'''''
         -- it "con check" $ shouldBe " " (content . con $ e1)
-        -- it "farts" $ shouldBe "farts" foo 
+        it "farts" $ shouldBe "farts" foo 
         
 
 

@@ -33,6 +33,11 @@ decodeBase64 t = case convertFromBase Base64 t of
     Right a -> a
     _ -> error "cc"
 
+decryptE :: Hex96 -> Event -> IO Text 
+decryptE kp (Event _ _ c) = do 
+    let (msg, iv) = extract . content $ c
+    sh <- getShared kp (pubkey c)
+    T.pack . show  <$> md sh iv msg
 
 dmE :: Hex96 -> Hex32 -> Text -> IO Event
 dmE kp s t = do 
@@ -50,7 +55,7 @@ getShared kp pu = do
     r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
-        else error "qq"
+        else getShared kp pu 
    
 prepare :: Hex32 -> ByteString -> IO (AES256, IV AES256)
 prepare sh iv = do
@@ -98,12 +103,6 @@ md sh iv b = do
         cbc = cbcDecrypt xo ox 
     pure $ cbc b
 
-decryptE :: Hex32 -> Event -> IO Text 
-decryptE sh (Event _ _ c) = do 
-    let (msg', iv) = extract . content $ c
-    si <- md sh iv msg'
-    print "about to explode"
-    pure . decodeUtf8 . encodeBase64 $ si 
     
 defundCbc :: Hex96 -> Hex32 -> ByteString -> IO Text
 defundCbc (Hex96 q) (Hex32 w) msg = do
