@@ -35,6 +35,8 @@ import Nostr.Direct
 import System.Entropy
 import Crypto.Cipher.Types
 import Crypto.Hash.SHA256 as SHA256
+import Foreign.Marshal.Alloc
+import Foreign.Ptr
 
 instance Arbitrary Event where 
     arbitrary = Event 
@@ -196,22 +198,25 @@ main = do
   p2 <- exportPub k2
   sh2 <- getShared k2 p1 
   sh1 <- getShared kp p2 
+
+  
+  
   
   e1 <- encryptE kp p2 "t"
 
   (bu, 32) <- getPtr . un32 $ lnpub
   (su, 64) <- getPtr . un64 $ sigTest1 
   (mu, 32) <- getPtr . un32 $ test1
-
-  -- print $ BS.length . un32 $ lnpub 
-  -- print $ BS.length . un64 sigTest1
-  -- print $ BS.length test1
-
   reeecda <- ecdsaVerify ctx su mu bu 
+  n64 <- mallocBytes 64
+  (pppp, 96) <- getPtr . un96 $ kp
+  reeeee <- ecdsaSign ctx n64 mu pppp nullPtr nullPtr 
+  nos64 <- Hex64 <$> packPtr (n64, 64) 
 
-  
-  
-  
+  sigpu <- parsePub p1
+  (ppp, 64) <- getPtr . un64 $ sigpu
+  (pp32, 32) <- getPtr . un32 $ p1
+  rree <- ecdsaVerify ctx n64 mu ppp 
 
   iv' <- getEntropy 16
   let ccc = createCtx sh1 iv' 
@@ -269,9 +274,9 @@ main = do
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         it "domino" $ shouldBe "domino" doo 
         it "same same" $ shouldBe "test1" dmsg1
-
-    describe "ln signmessage" do 
-        it "verified" $ shouldBe 1 reeecda -- True False 
+        it "verified ln signmessage" $ shouldBe 1 reeecda -- True False 
+        it "says signs" $ flip shouldBe 1 reeeee 
+        it "verify created" $ shouldBe 1 rree
 
 esig = Hex64 $ Hex.decodeLenient 
     "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
@@ -327,8 +332,6 @@ ff =
    ]
 
 now = 1693803778
-
-
 
 lnpub = Hex32 . BS.drop 1 . Hex.decodeLenient $ 
     "0337694505123a12a8fadd95523dcc235898ad3b80a06e4a63ca26fed68dd0d17c"

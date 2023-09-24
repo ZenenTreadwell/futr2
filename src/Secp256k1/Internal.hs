@@ -48,13 +48,9 @@ foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
 foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify 
     :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr PubKey64 -> IO Ret
 
--- foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
---     :: Ptr Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
---         FunPtr (NonceFun a) ->
---     -- | nonce data
---         Ptr a ->
---         IO Ret
-
+foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
+    :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
+       Ptr o -> Ptr a -> IO Ret
 
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate 0x0301
