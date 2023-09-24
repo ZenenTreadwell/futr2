@@ -11,6 +11,9 @@ import Database.SQLite.Simple as SQL
 import Text.URI as URI
 import Data.Text as T
 import Data.Time.Clock.POSIX
+import Control.Concurrent.STM.TChan
+import Control.Concurrent.Async
+import GHC.Conc
 import Data.Aeson
 import Control.Monad
 import Nostr.Event
@@ -19,6 +22,15 @@ import Nostr.Filter
 import Nostr.Beam
 import Nostr.Keys
 import Nostr.Auth
+
+
+data Nlient = Nlient {
+      eventfeed :: TChan Event
+    , filters :: TVar [Filter]
+    
+    
+    } 
+
 
 harvestr :: SQL.Connection -> URI -> Maybe (IO ()) 
 harvestr db uri = do 
@@ -50,7 +62,6 @@ harvestr db uri = do
     cryerr = caught 
     cryerr3 :: IOError -> IO ()
     cryerr3 = caught 
-            
     cli :: ClientApp ()
     cli conn = do
         sec :: Integer <- round <$> getPOSIXTime
@@ -79,6 +90,7 @@ harvest db uri ws = catch rec conerr
                 0 -> do 
                     trust <- verifyE e 
                     when trust (insertPl db e)
+                4 -> undefined
                 _ -> print "?"
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
@@ -114,4 +126,10 @@ liveF sec = emptyF {
       sinceF = Just $ Since $ sec 
     , kindsF = Just $ Kinds [0, 1] 
     , limitF = Just $ Limit 0 
+    } 
+
+directF :: Hex32 -> Filter 
+directF p = emptyF {
+      ptagF = Just $ PTagM [p]
+    , kindsF = Just $ Kinds [4] 
     } 

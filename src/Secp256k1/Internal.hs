@@ -23,7 +23,7 @@ type Ctx = Ptr LCtx
 foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
   :: CtxFlags -> IO Ctx
 
-foreign import ccall unsafe "secp256k1.h secp256k1_keypair_create" keyPairCreate
+foreign import ccall safe "secp256k1.h secp256k1_keypair_create" keyPairCreate
   :: Ctx -> Ptr KeyPair96 -> Ptr SecKey32 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_keypair_xonly_pub" keyPairXOnlyPubKey
@@ -42,8 +42,19 @@ foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
   :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr KeyPair96 -> Ptr Salt32 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
-  ::  Ctx -> Ptr CUChar -> Ptr PubKey64 -> Ptr SecKey32 -> 
+  ::  Ctx -> Ptr CUChar -> Ptr PubKey64 -> Ptr KeyPair96 -> 
       Ptr q -> Ptr w -> IO Ret
+
+foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify 
+    :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr PubKey64 -> IO Ret
+
+-- foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
+--     :: Ptr Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
+--         FunPtr (NonceFun a) ->
+--     -- | nonce data
+--         Ptr a ->
+--         IO Ret
+
 
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate 0x0301

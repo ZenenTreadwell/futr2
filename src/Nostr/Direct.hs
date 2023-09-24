@@ -35,7 +35,6 @@ decodeBase64 t = case convertFromBase Base64 t of
 type Msg = ByteString 
 type Iv = ByteString 
 type Shared = Hex32
-
 data AesCtx = AesCtx AES256 (IV AES256) Iv
     
 getShared :: Hex96 -> Hex32 -> IO Hex32 
@@ -46,7 +45,8 @@ getShared kp pu = do
     r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
-        else getShared kp pu 
+        else error "hh" -- getShared kp pu 
+        
    
 encryptE :: Hex96 -> Hex32 -> Text -> IO Event
 encryptE kp re msg = do  
