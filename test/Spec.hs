@@ -198,16 +198,19 @@ main = do
   p2 <- exportPub k2
   sh2 <- getShared k2 p1 
   sh1 <- getShared kp p2 
-
-  
-  
   
   e1 <- encryptE kp p2 "t"
+
+  attest1 <- attest "test2" kp 
+  ourattest <- verify "test2" attest1 p1
 
   (bu, 32) <- getPtr . un32 $ lnpub
   (su, 64) <- getPtr . un64 $ sigTest1 
   (mu, 32) <- getPtr . un32 $ test1
   reeecda <- ecdsaVerify ctx su mu bu 
+
+  verclnsign <- verify "test1" sigTest1 lnpub
+
   n64 <- mallocBytes 64
   (pppp, 96) <- getPtr . un96 $ kp
   reeeee <- ecdsaSign ctx n64 mu pppp nullPtr nullPtr 
@@ -275,8 +278,10 @@ main = do
         it "domino" $ shouldBe "domino" doo 
         it "same same" $ shouldBe "test1" dmsg1
         it "verified ln signmessage" $ shouldBe 1 reeecda -- True False 
+        it "verified ln sign" $ shouldBe True verclnsign
         it "says signs" $ flip shouldBe 1 reeeee 
         it "verify created" $ shouldBe 1 rree
+        it "verify our attest" $ shouldBe True ourattest
 
 esig = Hex64 $ Hex.decodeLenient 
     "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
@@ -312,7 +317,7 @@ evid = Hex32 $ Hex.decodeLenient
 
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 
-ff = 
+ff = P.zip 
   [ emptyF {idsF = Just . Ids $ [
     "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65" ]} 
   , emptyF {idsF = Just . Ids $ ["3"]} 
@@ -321,8 +326,7 @@ ff =
   , emptyF {ptagF = Just . PTagM $ [pub, keyref]}
   -- , emptyF {sinceF = Just . Since $ now } 
   -- , emptyF {untilF = Just . Until . fromIntegral $ now} 
-  ] `P.zip`
-  [
+  ] [
     "Ids1", "Ids2"
     , "Authors"
     , "ETags"
@@ -337,4 +341,4 @@ lnpub = Hex32 . BS.drop 1 . Hex.decodeLenient $
     "0337694505123a12a8fadd95523dcc235898ad3b80a06e4a63ca26fed68dd0d17c"
 sigTest1 = Hex64 $ Hex.decodeLenient 
     "4485de307707702f173ffbbedbc3def61b246fd93a4be8d68d096d2bb8d6acef681cfa352ea6e03d1659eb3c00376ca85d53f7f0e2cf0db7bc4f3bfecfa43341"
-test1 = Hex32 . Hex.decodeLenient . Hex.encode $ SHA256.hash "test1"
+test1 = Hex32 . Hex.decodeLenient . Hex.encode $ SHA256.hash . encodeUtf8 $ "test1"
