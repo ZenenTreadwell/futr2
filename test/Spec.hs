@@ -140,13 +140,12 @@ makeKx keys pubs = V.fromList . P.map V.fromList <$> sequenceA [ sequenceA [getS
 
 boolKx :: Kx -> [[Bool]]
 boolKx kx = [[checkx kx (i', j') 
-                | i' <- [0..3] ]
-                | j' <- [0..3] ]
+                | i' <- [0..9] ]
+                | j' <- [0..9] ]
 
 printKx :: Kx -> IO [()] 
 printKx = M.mapM (print . P.map boolToChar) . boolKx  
   
-
 checkx :: Vector (Vector Hex32) -> (Int, Int) -> Bool
 checkx kx (i, j) = seek i j == seek j i  
     where 
@@ -202,6 +201,8 @@ main = do
   e1 <- encryptE kp p2 "t"
 
   attest1 <- attest "test2" kp 
+  print . toJSON $ attest1
+
   ourattest <- verify "test2" attest1 p1
 
   (bu, 32) <- getPtr . un32 $ lnpub
@@ -209,17 +210,17 @@ main = do
   (mu, 32) <- getPtr . un32 $ test1
   reeecda <- ecdsaVerify ctx su mu bu 
 
-  verclnsign <- verify "test1" sigTest1 lnpub
+  verclnsign <- verify32 "test1" sigTest1 lnpub
 
   n64 <- mallocBytes 64
   (pppp, 96) <- getPtr . un96 $ kp
   reeeee <- ecdsaSign ctx n64 mu pppp nullPtr nullPtr 
   nos64 <- Hex64 <$> packPtr (n64, 64) 
 
-  sigpu <- parsePub p1
-  (ppp, 64) <- getPtr . un64 $ sigpu
-  (pp32, 32) <- getPtr . un32 $ p1
-  rree <- ecdsaVerify ctx n64 mu ppp 
+  (pp64, 64) <- parsePub p1 >>= getPtr . un64
+  -- (pp32, 32) <- getPtr . un32 $ p1
+  
+  rree <- ecdsaVerify ctx n64 mu pp64
 
   iv' <- getEntropy 16
   let ccc = createCtx sh1 iv' 
@@ -277,6 +278,8 @@ main = do
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         it "domino" $ shouldBe "domino" doo 
         it "same same" $ shouldBe "test1" dmsg1
+    
+    describe "message signatures" do 
         it "verified ln signmessage" $ shouldBe 1 reeecda -- True False 
         it "verified ln sign" $ shouldBe True verclnsign
         it "says signs" $ flip shouldBe 1 reeeee 
