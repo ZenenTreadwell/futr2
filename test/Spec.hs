@@ -203,7 +203,8 @@ main = do
   attest1 <- attest "test2" kp 
   print . toJSON $ attest1
 
-  ourattest <- verify "test2" attest1 p1
+  ourattest <- verify32 "test2" attest1 p1
+  ourattest64 <- verify "test2" attest1 p1
 
   (bu, 32) <- getPtr . un32 $ lnpub
   (su, 64) <- getPtr . un64 $ sigTest1 
@@ -211,6 +212,7 @@ main = do
   reeecda <- ecdsaVerify ctx su mu bu 
 
   verclnsign <- verify32 "test1" sigTest1 lnpub
+  verclnsign64 <- verify "test1" sigTest1 lnpub
 
   n64 <- mallocBytes 64
   (pppp, 96) <- getPtr . un96 $ kp
@@ -220,7 +222,8 @@ main = do
   (pp64, 64) <- parsePub p1 >>= getPtr . un64
   -- (pp32, 32) <- getPtr . un32 $ p1
   
-  rree <- ecdsaVerify ctx n64 mu pp64
+  
+  rree64 <- ecdsaVerify ctx n64 mu pp64
 
   iv' <- getEntropy 16
   let ccc = createCtx sh1 iv' 
@@ -280,11 +283,13 @@ main = do
         it "same same" $ shouldBe "test1" dmsg1
     
     describe "message signatures" do 
-        it "verified ln signmessage" $ shouldBe 1 reeecda -- True False 
-        it "verified ln sign" $ shouldBe True verclnsign
-        it "says signs" $ flip shouldBe 1 reeeee 
-        it "verify created" $ shouldBe 1 rree
-        it "verify our attest" $ shouldBe True ourattest
+        it "verify copleted 32" $ shouldBe 1 reeecda -- True False 
+        it "verify completed 64" $ shouldBe 1 rree64
+        it "verified ln sign 32" $ shouldBe True verclnsign
+        it "verified ln sign 64" $ shouldBe True verclnsign64
+        it "verify our attest 32" $ shouldBe True ourattest
+        it "verify our attest64" $ shouldBe True ourattest64
+        -- it "says signs" $ flip shouldBe 1 reeeee 
 
 esig = Hex64 $ Hex.decodeLenient 
     "908a15e46fb4d8675bab026fc230a0e3542bfade63da02d542fb78b2a8513fcd0092619a2c8c1221e581946e0191f2af505dfdf8657a414dbca329186f009262"
