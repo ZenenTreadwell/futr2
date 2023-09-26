@@ -132,6 +132,12 @@ test-suite futr2-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Ecda
+      Golden
+      JsonLoop
+      Nip1
+      Nip13
+      Nip4
       Paths_futr2
   hs-source-dirs:
       test
