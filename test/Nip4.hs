@@ -64,4 +64,4 @@ getNip4Test = do
         it "always share nicely" $ shouldBe True (L.all id resultkx) 
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         it "domino" $ shouldBe "domino" doo 
-        it "same same" $ shouldBe "domina" dmsg1
+        it "domina" $ shouldBe "domina" dmsg1

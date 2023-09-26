@@ -41,12 +41,11 @@ getShared :: Hex96 -> Hex32 -> IO Hex32
 getShared kp pu = do 
     sh <- mallocBytes 32 
     (sec', 96) <- getPtr $ un96 kp 
-    (pub', 64) <- un64 <$> parsePub pu >>= getPtr 
+    (pub', 64) <- parsePub pu >>= getPtr . un64 
     r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
         else error "hh" -- getShared kp pu 
-        
    
 encryptE :: Hex96 -> Hex32 -> Text -> IO Event
 encryptE kp re msg = do  
