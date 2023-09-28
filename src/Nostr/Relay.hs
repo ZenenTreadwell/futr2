@@ -41,14 +41,15 @@ data Nctx = Nctx {
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
     print "client connected"
+    chan' <- atomically $ dupTChan chan
     s <- newTVarIO M.empty
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
     WS.sendTextData ws . encode $ Challenge r
-    race_ (listen' r s) (broadcast' s) 
+    race_ (listen' r s) (broadcast' s chan') 
     where 
 
-    broadcast' :: TVar Subs -> IO () 
-    broadcast' subs = forever do 
+    broadcast' :: TVar Subs -> TChan Event -> IO () 
+    broadcast' subs chan = forever do 
         e <- atomically $ readTChan chan
         m <- readTVarIO subs
         case findKeyByValue (P.any (matchF e)) m of

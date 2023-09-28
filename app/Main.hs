@@ -22,13 +22,14 @@ main = do
         $ acceptRequest >=> relay o f
 
     threadDelay 100000
-    -- runH $ harvestr o (head defaultRelay)
 
     mapM_ (forkIO . runH . (\d -> harvestr o d)) 
         $ defaultRelay
-    
-    forever $ atomically (readTChan f) >>= 
+
+    chan' <- atomically . dupTChan $ f
+    forever $ atomically (readTChan chan') >>= 
         (print . ("e: " <>) . content . con)
+    
     threadDelay maxBound
     
 runH = \case 

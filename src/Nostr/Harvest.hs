@@ -27,8 +27,6 @@ import Nostr.Auth
 data Nlient = Nlient {
       eventfeed :: TChan Event
     , filters :: TVar [Filter]
-    
-    
     } 
 
 
@@ -97,7 +95,7 @@ harvest db uri ws = catch rec conerr
                 kp <- genKeyPair
                 e <- authenticate kp uri t
                 WS.sendTextData ws . encode $ Auth e  
-                print "sent challenge"
+                print "sent auth (rec challenge)"
 
 extractURI :: URI -> Maybe (String, Word, String)
 extractURI uri = do 

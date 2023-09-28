@@ -7,7 +7,7 @@ import Text.URI.QQ (uri)
 defaultRelay :: [URI] 
 defaultRelay =  
     [ 
-      -- [uri|ws://127.0.0.1:9481/|]
+      -- [uri|ws://127.0.0.1:9481/|],
       [uri|ws://cvpcawhvxk27qvu5xrcblx7ingfxfivukesdpj7rwg63mflaly3tbuid.onion|]
     , [uri|wss://relay.nostr.info|]
     , [uri|wss://relay.snort.social|]
