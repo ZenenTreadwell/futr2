@@ -21,7 +21,7 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 wip (relay focus)
 - [x] 1 
 - [x] 10 
-- [x] 4 - aes 
+- [ ] 4 - aes 
 - [x] 42 - auth
 - [x] 13 - pow
 - [ ] 45 - count
