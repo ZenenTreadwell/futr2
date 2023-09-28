@@ -48,6 +48,7 @@ main :: IO ()
 main = do
   o <- open "./futr.sqlite" 
   _ <- createDb o
+  insertEv o wev
   runLoops
   nip1 <- nip1GetTest
   nip4 <- getNip4Test
@@ -79,11 +80,13 @@ ff = P.zip
   , emptyF {authorsF = Just . Authors $ ["6"]}
   , emptyF {etagF = Just . ETagM $ [evref]} 
   , emptyF {ptagF = Just . PTagM $ [pub, keyref]}
+  , emptyF {kindsF = Just . Kinds $ [0]}
   ] [
     "Ids1", "Ids2"
     , "Authors"
     , "ETags"
     , "PTags"
+    , "Kind 0"
     -- , "Since"
     -- , "Until"
    ]

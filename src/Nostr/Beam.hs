@@ -104,6 +104,7 @@ toEv e = Ev
       (wq $ eid e) 
       (PlebId . wq . pubkey . con $ e) 
       (fromInteger . created_at . con $ e) 
+      (fromIntegral . kind . con $ e)
       (wq e)
 
 wq :: ToJSON a => a -> Text 
@@ -162,7 +163,8 @@ fetch db Filter{..} =
             _ -> pure () 
         
         case kindsF of 
-            Just (Kinds (P.elem 1 -> False)) -> guard_ (val_ False) 
+            Just (Kinds (P.map fromIntegral -> kx)) -> 
+                guard_ (in_ (_kind e) kx)
             _ -> pure () 
         
         case etagF of 

@@ -84,14 +84,14 @@ harvest db uri ws = catch rec conerr
         where
         goDown = \case  
             See _ e@(Event _ _ (Content{kind})) -> case kind of 
-                1 -> do 
+                _ -> do 
                     trust <- verifyE e 
                     when trust (mask_ $ insertEv db e >> pure ())  
-                0 -> do 
-                    trust <- verifyE e 
-                    when trust (insertPl db e)
-                4 -> undefined
-                _ -> print "?"
+                -- 0 -> do 
+                --     trust <- verifyE e 
+                --     when trust (insertPl db e)
+                -- 4 -> undefined
+                -- _ -> print "?"
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 

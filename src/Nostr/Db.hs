@@ -38,6 +38,7 @@ data EvT f = Ev {
         _eid :: C f Text 
       , _pub :: PrimaryKey PlebT f
       , _time :: C f Int64
+      , _kind :: C f Int32 
       , _con :: C f Text 
       } deriving (Generic, Beamable)
 type Ev = EvT 
@@ -59,7 +60,6 @@ data RelayT f = Relay {
         _rid :: C f Int32
       , _uri :: C f Text
       , _actr :: C f Bool
-      
       } deriving (Generic, Beamable)
 type Relay = RelayT
 type RelayId = PrimaryKey RelayT Identity 
