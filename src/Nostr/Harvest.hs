@@ -83,15 +83,13 @@ harvest db uri ws = catch rec conerr
             Nothing -> print mdown >> print "decode failed?" 
         where
         goDown = \case  
-            See _ e@(Event _ _ (Content{kind})) -> case kind of 
-                _ -> do 
-                    trust <- verifyE e 
-                    when trust (mask_ $ insertEv db e >> pure ())  
-                -- 0 -> do 
-                --     trust <- verifyE e 
-                --     when trust (insertPl db e)
-                -- 4 -> undefined
-                -- _ -> print "?"
+            See _ e@(Event _ _ (Content{kind})) -> do  
+                trust <- verifyE e 
+                when trust do
+                    scs <- insertEv db e
+                    case scs of 
+                        Left l -> pure () 
+                        Right r -> print "-- --" 
             Live _ -> print "--------live"
             Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
             Notice note -> print $ "note:" <> note 

@@ -52,9 +52,7 @@ createDb o = do
 eventfeed :: TChan Event -> Text -> IO Text  
 eventfeed chan t = do 
     case qw t of 
-        Just e -> do 
-            print . content . con $ e
-            atomically $ writeTChan chan e
+        Just e -> atomically $ writeTChan chan e
         _ -> pure () 
     pure "1" 
 

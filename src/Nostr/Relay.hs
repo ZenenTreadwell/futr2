@@ -51,7 +51,6 @@ relay db chan ws = do
     broadcast' subs = forever do 
         e <- atomically $ readTChan chan
         m <- readTVarIO subs
-        print "broadcasting!"
         case findKeyByValue (P.any (matchF e)) m of
             Just s' -> WS.sendTextData ws . encode $ See s' e
             _ -> pure () 

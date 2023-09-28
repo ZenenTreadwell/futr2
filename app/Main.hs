@@ -7,8 +7,11 @@ import Database.SQLite.Simple as SQL
 import Nostr.Beam
 import Nostr.Relay
 import Nostr.Harvest
+import Nostr.Event
 import Nostr.Boots
 import Control.Concurrent
+import Control.Concurrent.STM.TChan
+import Control.Monad.STM
 
 main :: IO ()
 main = do 
@@ -24,6 +27,8 @@ main = do
     mapM_ (forkIO . runH . (\d -> harvestr o d)) 
         $ defaultRelay
     
+    forever $ atomically (readTChan f) >>= 
+        (print . ("e: " <>) . content . con)
     threadDelay maxBound
     
 runH = \case 

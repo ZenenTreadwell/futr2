@@ -132,6 +132,7 @@ test-suite futr2-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      DbT
       Ecda
       Golden
       JsonLoop
