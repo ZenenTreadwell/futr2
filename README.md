@@ -24,7 +24,7 @@ wip (relay focus)
 - [ ] 4 - aes 
 - [x] 42 - auth
 - [x] 13 - pow
-- [ ] 45 - count
+- [x] 45 - count
 - [ ] 11 - relay-meta
 
 --- likely 

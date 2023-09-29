@@ -137,15 +137,20 @@ fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ )
         hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx
         pure . mapMaybe (qw . _con) . catMaybes $ hx
         
-fetch db Filter{..} =  
+fetch db ff@Filter{..} =  
     mapMaybe (qw . _con) <$> runBeamSqlite db (s' d') 
     where 
+    -- s' :: _ -- Q Sqlite db x y 
     s' = case limitF of 
        Just (Limit (fromIntegral -> x)) 
             -> runSelectReturningList . select . nub_ . limit_ x  
        _ -> runSelectReturningList . select . nub_ . limit_ 10000000   
         
-    d' = do 
+    d' = getQf ff  
+  
+getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
+getQf Filter{..} = 
+    do 
         e <- all_ (_events spec')
 
         case idsF of 
@@ -190,11 +195,21 @@ fetch db Filter{..} =
             _ -> pure () 
             
         pure e
-  
+
+countFx :: SQL.Connection -> Filter -> IO [Int32]
+countFx db ff = runBeamSqlite db 
+    $ runSelectReturningList . select 
+    $ aggregate_ (\_ -> as_ @Int32 countAll_) 
+    $ nub_ 
+    $ getQf ff
+
+
 popularityContest :: SQL.Connection -> IO _
 popularityContest db = runBeamSqlite db (s d) 
     where 
+    -- s :: _
     s = runSelectReturningList . select . limit_ 5 . orderBy_ (desc_ . snd) 
+    -- d :: _
     d = do 
         aggregate_ 
             (\p -> (group_ (_pidm p), as_ @Int32 countAll_) ) 

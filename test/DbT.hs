@@ -20,6 +20,10 @@ getDbTest = do
           it ("got some" <> ti) $ do 
               ex <- fetch o fi
               shouldBe (True) ((>0) . P.length $ ex)
+          it "got expected count" $ do 
+              ex <- fetch o fi
+              c : _ <- countFx o fi 
+              shouldBe (fromIntegral c) (P.length ex)
           
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 

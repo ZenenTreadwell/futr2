@@ -14,6 +14,7 @@ data Up
     = Submit Event
     | Subscribe Text [Filter]
     | Auth Event
+    | CountU Text [Filter]
     | End Text
     deriving (Show, Eq, Generic)
 
@@ -23,6 +24,7 @@ data Down
     | Challenge Text
     | Ok Hex32 Bool WhyNot
     | Live Text
+    | CountD Text Int
     | Notice Text
     deriving (Eq, Show)
 
@@ -79,6 +81,9 @@ instance FromJSON Up where
                                    (V.foldr ((:) . parseJSON) [] (V.drop 2 a)) 
             "CLOSE" -> End <$> parseJSON (V.last a)
             "AUTH" -> Auth <$> parseJSON (V.last a)
+            "COUNT" -> CountU <$> parseJSON (a V.! 1) 
+                              <*> sequenceA  
+                                   (V.foldr ((:) . parseJSON) [] (V.drop 2 a)) 
             _ -> fail "unimpl parseJSON"
             
 instance ToJSON Up where 
@@ -92,6 +97,10 @@ instance ToJSON Up where
         ] <> P.map toJSON fx
     toJSON (End s) = toJSON [String "CLOSE", String s]
     toJSON (Auth e) = toJSON [String "AUTH", toJSON e]
+    toJSON (CountU s fx) = toJSON $ [
+          String "COUNT"
+        , String s
+        ] <> P.map toJSON fx
 
 instance FromJSON Down where 
     parseJSON = withArray "down" \a -> 
@@ -103,6 +112,8 @@ instance FromJSON Down where
             ("OK", _ ) -> Ok <$> parseJSON (a V.! 1)
                              <*> parseJSON (a V.! 2)
                              <*> parseJSON (a V.! 3)
+            ("COUNT", String s) -> CountD s <$> 
+                withObject "" (.: "count") (a V.! 2)  
             _ -> fail . show $ a
             
 instance ToJSON Down where 
@@ -116,6 +127,8 @@ instance ToJSON Down where
         [String "OK", toJSON eid, toJSON success, toJSON reason]
     toJSON (Challenge t) = toJSON [String "AUTH", toJSON t]
     toJSON (Notice n) = toJSON [String "NOTICE", String n]
+    toJSON (CountD s n) = toJSON [String "COUNT", String s, 
+        object ["count" .= n]]
 
 
     

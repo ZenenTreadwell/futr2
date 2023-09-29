@@ -53,6 +53,7 @@ instance Arbitrary Up where
       , Subscribe <$> arbitrary <*> (pure [])
       , Auth <$> arbitrary 
       , End <$> arbitrary  
+      , CountU <$> arbitrary <*> arbitrary 
       ]
 
 instance Arbitrary Down where 
@@ -62,6 +63,7 @@ instance Arbitrary Down where
         , Ok <$> arbitrary <*> arbitrary <*> arbitrary
         , Live <$> arbitrary
         , Notice <$> arbitrary
+        , CountD <$> arbitrary <*> arbitrary 
         ]
 
 instance Arbitrary WhyNot where

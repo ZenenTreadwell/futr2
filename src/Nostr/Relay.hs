@@ -9,7 +9,7 @@ import Network.WebSockets as WS
 import Database.SQLite.Simple as SQL
 import Data.Aeson as J
 import Data.ByteString.Lazy as LB
-import Data.List 
+import Data.List as L
 import Data.Text (Text)
 import Data.Map.Strict as M 
 import Control.Monad 
@@ -73,6 +73,11 @@ relay db chan ws = do
                     case v of 
                         Just p -> print p
                         Nothing -> print "failly"
+                CountU s fx -> do 
+                    n <- sum . L.concatMap (P.map fromIntegral) -- sum . L.concat . P.map fromInteger 
+                        <$> mapM (countFx db) fx 
+                    void $ WS.sendTextData ws . encode 
+                         $ CountD s n 
             Right Nothing -> print . (<> " - right nothing") . show $ eo
             Left z -> do
                 print z 
