@@ -26,6 +26,18 @@ foreign import ccall safe "secp256k1.h secp256k1_context_create" contextCreate
 foreign import ccall safe "secp256k1.h secp256k1_keypair_create" keyPairCreate
   :: Ctx -> Ptr KeyPair96 -> Ptr SecKey32 -> IO Ret
 
+foreign import ccall safe "secp256k1.h secp256k1_keypair_sec" keyPairSec 
+  :: Ctx -> Ptr SecKey32 -> Ptr KeyPair96 -> IO Ret
+  
+foreign import ccall safe "secp256k1.h secp256k1_keypair_pub" keyPairPub 
+  :: Ctx -> Ptr PubKey64 -> Ptr KeyPair96 -> IO Ret
+
+foreign import ccall safe "secp256k1.h secp256k1_ec_pubkey_serialize" ecSerialize 
+  :: Ctx -> Ptr p -> Ptr s -> Ptr q -> CUInt -> IO Ret
+
+foreign import ccall safe "secp256k1.h secp256k1_ec_pubkey_parse" ecParse 
+  :: Ctx -> Ptr pp -> Ptr ppp -> CSize -> IO Ret
+
 foreign import ccall safe "secp256k1.h secp256k1_keypair_xonly_pub" keyPairXOnlyPubKey
   :: Ctx -> Ptr PubKey64 -> Ptr Msg32 -> Ptr KeyPair96 -> IO Ret
 
@@ -42,7 +54,7 @@ foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
   :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr KeyPair96 -> Ptr Salt32 -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
-  ::  Ctx -> Ptr CUChar -> Ptr PubKey64 -> Ptr KeyPair96 -> 
+  ::  Ctx -> Ptr CUChar -> Ptr p -> Ptr s -> 
       Ptr q -> Ptr w -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify 
@@ -52,6 +64,7 @@ foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
     :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
        Ptr o -> Ptr a -> IO Ret
 
+-- XXX randomize for each sign/verify
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate 0x0301
 {-# NOINLINE ctx #-}

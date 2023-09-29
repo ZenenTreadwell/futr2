@@ -20,6 +20,9 @@ import Secp256k1.Internal
 import Nostr.Keys
 import Nostr.Event
 import Data.ByteArray.Encoding
+import Data.ByteString.Base16 as Hex
+import Foreign.C
+import Foreign
 
 encodeBase64' :: ByteString -> ByteString 
 encodeBase64' = B64.encode 
@@ -40,9 +43,23 @@ data AesCtx = AesCtx AES256 (IV AES256) Iv
 getShared :: Hex96 -> Hex32 -> IO Hex32 
 getShared kp pu = do 
     sh <- mallocBytes 32 
-    (sec', 96) <- getPtr $ un96 kp 
-    (pub', 64) <- parsePub pu >>= getPtr . un64 
-    r <- ecdh ctx sh pub' sec' nullPtr nullPtr  
+    -- (se, 32) <- getPtr . BS.take 32 . un96 $ kp
+    se <- mallocBytes 32 
+    (kp', 96) <- getPtr $ un96 kp 
+    keyPairSec ctx se kp' 
+     
+    let value :: CSize
+        value = 33 
+    ptr <- mallocBytes 32 
+    poke ptr value
+    (pu', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ pu
+    nbe <- mallocBytes 65 ---XXX big enough ?
+    
+    ecParse ctx nbe pu' 33
+    nbc <- mallocBytes 33 
+    ecSerialize ctx nbc ptr nbe 258  
+    
+    r <- ecdh ctx sh nbc se nullPtr nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
         else error "hh" -- getShared kp pu 
