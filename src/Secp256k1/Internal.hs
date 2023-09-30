@@ -7,6 +7,7 @@ import Foreign.C
 import System.IO.Unsafe (unsafePerformIO)
 import Data.ByteString (ByteString)
 import System.Entropy 
+import GHC.IO.Handle.Text
 
 data XOnlyPubKey64
 data Sig64
@@ -55,7 +56,7 @@ foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
 
 foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
   ::  Ctx -> Ptr CUChar -> Ptr p -> Ptr s -> 
-      Ptr q -> Ptr w -> IO Ret
+      FunPtr q -> Ptr w -> IO Ret
 
 foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify 
     :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr PubKey64 -> IO Ret
@@ -63,6 +64,16 @@ foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify
 foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
     :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
        Ptr o -> Ptr a -> IO Ret
+
+foreign import ccall "wrapper"
+  hashPtr 
+    :: (Ptr a -> Ptr a -> Ptr a -> Ptr () -> IO CInt) 
+    -> IO (FunPtr (Ptr a -> Ptr a -> Ptr a -> Ptr () -> IO CInt))
+
+copyX :: Ptr CUChar -> Ptr CUChar -> Ptr CUChar -> Ptr () -> IO CInt
+copyX h x _ _ = do 
+    memcpy h x 32
+    return 1     
 
 -- XXX randomize for each sign/verify
 ctx :: Ctx

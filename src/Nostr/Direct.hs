@@ -42,24 +42,13 @@ data AesCtx = AesCtx AES256 (IV AES256) Iv
     
 getShared :: Hex96 -> Hex32 -> IO Hex32 
 getShared kp pu = do 
-    sh <- mallocBytes 32 
-    -- (se, 32) <- getPtr . BS.take 32 . un96 $ kp
     se <- mallocBytes 32 
     (kp', 96) <- getPtr $ un96 kp 
     keyPairSec ctx se kp' 
-     
-    let value :: CSize
-        value = 33 
-    ptr <- mallocBytes 32 
-    poke ptr value
     (pu', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ pu
-    nbe <- mallocBytes 65 ---XXX big enough ?
-    
-    ecParse ctx nbe pu' 33
-    nbc <- mallocBytes 33 
-    ecSerialize ctx nbc ptr nbe 258  
-    
-    r <- ecdh ctx sh nbc se nullPtr nullPtr  
+    sh <- mallocBytes 32 
+    ha <- hashPtr copyX
+    r <- ecdh ctx sh pu' se ha nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
         else error "hh" -- getShared kp pu 

@@ -18,10 +18,20 @@ getEcdaTest = do
     p1 <- exportPub kp
     -- p2 <- parsePub p1
     -- (p2', 64) <- getPtr . un64 $ p2 
+    (salt, 32) <- genSalt
+    keypair <- mallocBytes 96
+    keyPairCreate ctx keypair salt
+    salt' <- mallocBytes 32
+    keyPairSec ctx salt' keypair 
 
+    keysalt <- packPtr (salt', 32)
+    keysalt2 <- packPtr (salt, 32)
+    
     kp2 <- genKeyPair
     p2 <- exportPub kp2
     (p2', 33) <-  getPtr . (Hex.decodeLenient "02" <>) . un32 $ p2
+
+    
     
     (kp', 96) <- getPtr . un96 $ kp
     (p1', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ p1 
@@ -44,17 +54,21 @@ getEcdaTest = do
     -- keyPairPub ctx nbe kp'
     -- parse1 <- ecParse ctx nbe p1' 32
     parse2 <- ecParse ctx nbe p1' 33
-    
     ecs <- ecSerialize ctx nbc ptr nbe 258  
 
+    compres <- packPtr (nbc, 33)
+    compres' <- packPtr (p1', 33)
+
     sh <- mallocBytes 32 
-    r <- ecdh ctx sh nbc se nullPtr nullPtr  
+    r <- ecdh ctx sh nbc se nullFunPtr nullPtr  
     
     return $ describe "ec" do 
         -- it "ones" $ shouldBe 1 parse1
         it "ones ecParse" $ shouldBe 1 parse2
         it "ones ecdh" $ shouldBe 1 r
         it "ones ecs" $ shouldBe 1 ecs
+        it "salt is key" $ shouldBe keysalt keysalt2
+        it "compressed is this" $ shouldBe compres compres'
 
     
 

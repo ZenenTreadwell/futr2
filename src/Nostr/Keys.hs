@@ -86,9 +86,6 @@ attest t kp = do
         1 -> Hex64 <$> packPtr (asign, 64) 
         _ -> free asign >> error "attest error"
 
-
-
-
 verify :: Text -> Hex64 -> Hex32 -> IO Bool 
 verify t sig pub = do 
     (hash32, 32) <- getPtr . un32 . hasht $ t
