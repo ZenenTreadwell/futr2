@@ -51,7 +51,7 @@ getShared kp pu = do
     r <- ecdh ctx sh pu' se ha nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)
-        else error "hh" -- getShared kp pu 
+        else error "hh"
    
 encryptE :: Hex96 -> Hex32 -> Text -> IO Event
 encryptE kp re msg = do  
@@ -88,7 +88,6 @@ encryptMsg (AesCtx xo ox iv) (pad -> m) = pure . decodeUtf8 $ fin
         msg = encodeBase64 $ cbcEncrypt xo ox m
         fin = msg <> "?iv=" <> encodeBase64 iv
 
--- decryptMsg :: AesCtx -> Text -> Text
 decryptMsg :: AesCtx -> Text -> Text  
 decryptMsg (AesCtx xo ox _) t = decodeUtf8 . unpad $ cbcDecrypt xo ox (fst . extract $ t) 
     

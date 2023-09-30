@@ -58,13 +58,6 @@ foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
   ::  Ctx -> Ptr CUChar -> Ptr p -> Ptr s -> 
       FunPtr q -> Ptr w -> IO Ret
 
-foreign import ccall safe "secp256k1.h secp256k1_ecdsa_verify" ecdsaVerify 
-    :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr PubKey64 -> IO Ret
-
-foreign import ccall safe "secp256k1.h secp256k1_ecdsa_sign" ecdsaSign
-    :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr SecKey32 ->
-       Ptr o -> Ptr a -> IO Ret
-
 foreign import ccall "wrapper"
   hashPtr 
     :: (Ptr a -> Ptr a -> Ptr a -> Ptr () -> IO CInt) 

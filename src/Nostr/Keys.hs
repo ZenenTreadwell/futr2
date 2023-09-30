@@ -76,32 +76,3 @@ parsePub (Hex32 bs) = do
         1 -> Hex64 <$> packPtr (pub64, 64) 
         _ -> free pub64 >> error "parsePub error"
 
-attest :: Text -> Hex96 -> IO Hex64
-attest t kp = do 
-    (hash32, 32) <- getPtr . un32 . hasht $ t
-    (key96, 96) <- getPtr . un96 $ kp
-    asign <- mallocBytes 64
-    ret <- ecdsaSign ctx asign hash32 key96 nullPtr nullPtr    
-    case ret of
-        1 -> Hex64 <$> packPtr (asign, 64) 
-        _ -> free asign >> error "attest error"
-
-verify :: Text -> Hex64 -> Hex32 -> IO Bool 
-verify t sig pub = do 
-    (hash32, 32) <- getPtr . un32 . hasht $ t
-    -- (puu, 32) <- getPtr . un32 $ pub -- arsePub pub >>= (getPtr . un64)
-    (p64, 64) <- parsePub pub >>= getPtr . un64
-    (sig64, 64) <- getPtr . un64 $ sig
-    (== 1) <$> ecdsaVerify ctx sig64 hash32 p64
-
-      
-verify32 :: Text -> Hex64 -> Hex32 -> IO Bool 
-verify32 t sig pub = do 
-    (hash32, 32) <- getPtr . un32 . hasht $ t
-    -- (puu, 32) <- getPtr . un32 $ pub -- arsePub pub >>= (getPtr . un64)
-    (p64, 32) <- getPtr . un32 $ pub
-    (sig64, 64) <- getPtr . un64 $ sig
-    (== 1) <$> ecdsaVerify ctx sig64 hash32 p64
-
-hasht :: Text -> Hex32 
-hasht = Hex32 . Hex.decodeLenient . Hex.encode . SHA256.hash . encodeUtf8
