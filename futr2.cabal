@@ -81,6 +81,7 @@ library
     , transformers
     , vector
     , wai
+    , wai-websockets
     , warp
     , websockets
     , wuss
@@ -133,6 +134,7 @@ executable futr
     , transformers
     , vector
     , wai
+    , wai-websockets
     , warp
     , websockets
     , wuss
@@ -193,6 +195,7 @@ test-suite futr2-test
     , transformers
     , vector
     , wai
+    , wai-websockets
     , warp
     , websockets
     , wuss

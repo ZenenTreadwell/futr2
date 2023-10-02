@@ -36,6 +36,7 @@ dependencies:
 ## network 
 - warp 
 - wai
+- wai-websockets
 - wuss
 - websockets
 - servant 

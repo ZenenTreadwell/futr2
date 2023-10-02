@@ -5,6 +5,7 @@
 
 module Main (main) where
 
+import Prelude as P 
 import Network.WebSockets as WS
 import Control.Monad
 import Database.SQLite.Simple as SQL
@@ -24,22 +25,20 @@ import Data.Text
 import Data.Text.Encoding
 import Data.Aeson
 import Data.ByteString as BS
+import Network.Wai.Handler.WebSockets
+
 
 main :: IO ()
 main = do 
-    forkIO . run 9481 $ serve x s 
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    print "starting server on 9481"
-    void . forkIO . WS.runServer "127.0.0.1" 9481 
-        $ acceptRequest >=> relay o f
+    forkIO . run 9481 
+        $ websocketsOr co (acceptRequest >=> relay o f) (serve x s) 
     threadDelay 100000
-    mapM_ (forkIO . runH . (\d -> harvestr o d)) 
-        $ defaultRelay
+    mapM_ (forkIO . runH . (\d -> harvestr o d)) $ defaultRelay
     chan' <- atomically . dupTChan $ f
     forever $ atomically (readTChan chan') >>= 
-        (mapM print . tags . con)
-    
+        (print . ("e :"<>) . content . con)
     threadDelay maxBound
     
 runH = \case 
@@ -60,4 +59,4 @@ x :: Proxy Nip45
 x = Proxy
     
 
-    
+co = defaultConnectionOptions
