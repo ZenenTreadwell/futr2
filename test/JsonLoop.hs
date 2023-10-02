@@ -3,6 +3,7 @@ module JsonLoop where
 import Test.QuickCheck
 import Data.ByteString as BS
 import Data.Text as T
+import Data.Char
 import Data.Aeson
 import Nostr.Event
 import Nostr.Filter
@@ -12,9 +13,9 @@ import Nostr.Wire
 runLoops :: IO () 
 runLoops = do 
     quickCheck . label "loop event" $ (loops :: Event -> Bool) 
-    quickCheck . label "loop filter" $ (loops :: Filter -> Bool) 
-    quickCheck $ withMaxSuccess 999 . label "loop down" $ (loops :: Down -> Bool)
-    quickCheck . withMaxSuccess 999 . label "loop up" $ (loops :: Up -> Bool)
+    quickCheck $ label "loop filter" $ (loops :: Filter -> Bool) 
+    quickCheck . label "loop down" $ (loops :: Down -> Bool)
+    quickCheck $ label "loop up" $ (loops :: Up -> Bool)
 
 
 loops :: (ToJSON j, FromJSON j, Eq j) => j -> Bool
@@ -42,10 +43,18 @@ instance Arbitrary Content where
                       <*> arbitrary
   
 instance Arbitrary Tag where 
-  arbitrary = PTag <$> arbitrary <*> arbitrary 
- 
+  arbitrary = oneof [ PTag <$> arbitrary <*> arbitrary
+                    , Nonce <$> arbitrary <*> arbitrary
+
+                    -- , AZTag <$> arbitrary <*> arbitrary 
+                    ] 
+
+
+genUnicodeChar :: Gen Char
+genUnicodeChar = toEnum <$> choose (0, fromEnum (maxBound :: Char))
+
 instance Arbitrary Text where 
-  arbitrary = T.pack <$> arbitrary
+  arbitrary = T.pack <$> listOf genUnicodeChar
 
 instance Arbitrary Up where 
   arbitrary = oneof 
