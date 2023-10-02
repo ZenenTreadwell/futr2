@@ -85,17 +85,19 @@ createCtx sh iv = AesCtx xo ox iv
 encryptMsg :: AesCtx -> Msg -> IO Text 
 encryptMsg (AesCtx xo ox iv) (pad -> m) = pure . decodeUtf8 $ fin 
     where     
-        msg = encodeBase64 $ cbcEncrypt xo ox m
-        fin = msg <> "?iv=" <> encodeBase64 iv
+    msg = encodeBase64 $ cbcEncrypt xo ox m
+    fin = msg <> "?iv=" <> encodeBase64 iv
 
 decryptMsg :: AesCtx -> Text -> Text  
-decryptMsg (AesCtx xo ox _) t = decodeUtf8 . unpad $ cbcDecrypt xo ox (fst . extract $ t) 
-    
+decryptMsg (AesCtx xo ox _) = 
+    decodeUtf8 . unpad  . cbcDecrypt xo ox . fst . extract
+        
+
 extract :: Text -> (ByteString, ByteString) 
 extract t = case T.splitOn "?iv=" t of 
-    m : iv : [] -> (dd m, dd iv)
-    _ -> error "pp" 
-    where dd = decodeBase64 . encodeUtf8 
+    [ m, iv ] -> (d m, d iv)
+    _ -> error "invalid content" 
+    where d = decodeBase64 . encodeUtf8 
 
 pad :: ByteString -> ByteString
 pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 0
