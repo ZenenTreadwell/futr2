@@ -6,6 +6,7 @@ packages:
 - .
 
 extra-deps:
+- clplug-0.4.0.0
 - git: https://github.com/AutonomousOrganization/beam # -- https://github.com/AutonomousOrganization/beam
   commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
   subdirs: 

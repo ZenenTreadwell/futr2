@@ -5,6 +5,13 @@
 
 packages:
 - completed:
+    hackage: clplug-0.4.0.0@sha256:9343bd3c8610a1566509db4373d3f31b771c62a4a032c9c526f2f60e28029e17,2234
+    pantry-tree:
+      sha256: aaac7aa88f55f5b8ce5275c5898b7f56767d12fc6e1dca42e56d54dff0f738ed
+      size: 909
+  original:
+    hackage: clplug-0.4.0.0
+- completed:
     commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
     git: https://github.com/AutonomousOrganization/beam
     name: beam-core

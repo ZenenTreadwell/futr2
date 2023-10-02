@@ -29,15 +29,17 @@ dependencies:
 - vector 
 - bytestring
 - base16-bytestring
+- base64-bytestring
 - containers
 - aeson
 
-# - base64 
-- base64-bytestring
-
-## socket 
+## network 
+- warp 
+- wai
 - wuss
 - websockets
+- servant 
+- servant-server
 - modern-uri
 - connection
 - tls 
@@ -45,6 +47,9 @@ dependencies:
 ## crypto
 - cryptonite
 - cryptohash-sha256
+
+## 
+- clplug 
   
 ## database
 - beam-core

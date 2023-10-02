@@ -61,6 +61,7 @@ library
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , clplug
     , connection
     , containers
     , cryptohash-sha256
@@ -70,6 +71,8 @@ library
     , memory
     , modern-uri
     , mtl
+    , servant
+    , servant-server
     , sqlite-simple
     , stm
     , text
@@ -77,6 +80,8 @@ library
     , tls
     , transformers
     , vector
+    , wai
+    , warp
     , websockets
     , wuss
   default-language: GHC2021
@@ -107,6 +112,7 @@ executable futr
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , clplug
     , connection
     , containers
     , cryptohash-sha256
@@ -117,6 +123,8 @@ executable futr
     , memory
     , modern-uri
     , mtl
+    , servant
+    , servant-server
     , sqlite-simple
     , stm
     , text
@@ -124,6 +132,8 @@ executable futr
     , tls
     , transformers
     , vector
+    , wai
+    , warp
     , websockets
     , wuss
   default-language: GHC2021
@@ -162,6 +172,7 @@ test-suite futr2-test
     , beam-migrate
     , beam-sqlite
     , bytestring
+    , clplug
     , connection
     , containers
     , cryptohash-sha256
@@ -172,6 +183,8 @@ test-suite futr2-test
     , memory
     , modern-uri
     , mtl
+    , servant
+    , servant-server
     , sqlite-simple
     , stm
     , text
@@ -179,6 +192,8 @@ test-suite futr2-test
     , tls
     , transformers
     , vector
+    , wai
+    , warp
     , websockets
     , wuss
   default-language: GHC2021
