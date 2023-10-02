@@ -5,7 +5,8 @@ import qualified Data.ByteString as BS
 import Data.ByteString.Base16 as Hex
 import Data.Aeson as J
 import qualified Data.Vector as V
-import Data.Text (Text)
+import Data.Text as T
+import Data.Char
 import GHC.Generics 
 import Foreign.Marshal.Alloc
 import qualified Crypto.Hash.SHA256 as SHA256
@@ -103,6 +104,7 @@ data Tag =
     | PTag Hex32 (Maybe Text)
     | Nonce Int Int
     | Chal Text
+    | AZTag Char Text 
     | Tag  Array
     deriving (Eq, Show, Generic)
 data Marker = Reply' | Root' | Mention'
@@ -110,17 +112,23 @@ data Marker = Reply' | Root' | Mention'
     
 instance FromJSON Tag where 
     parseJSON = J.withArray "tag" \a -> do 
-        let tag = a V.! 0
-            evId = parseJSON (a V.! 1)
-            t = parseJSON (a V.! 1)
-            rel = traverse parseJSON $ a V.!? 2
-            mar = traverse parseJSON $ a V.!? 3
-            
-        case tag of 
-            String "e" -> ETag <$> evId <*> rel <*> mar 
-            String "p" -> PTag <$> evId <*> rel
-            String "challenge" -> Chal <$> t
+        case a V.! 0 of 
+            String "e" -> ETag <$> parseJSON (a V.! 1)
+                               <*> traverse parseJSON (a V.!? 2)
+                               <*> traverse parseJSON (a V.!? 3)
+            String "p" -> PTag <$> parseJSON (a V.! 1) 
+                               <*> traverse parseJSON (a V.!? 2) 
+            String "nonce" -> Nonce <$> parseJSON (a V.! 1) 
+                                    <*> parseJSON (a V.! 2) 
+            String "challenge" -> Chal <$> parseJSON (a V.! 1)
+            String (isAZ -> True) -> AZTag <$> parseJSON (a V.! 0)
+                                           <*> parseJSON (a V.! 1)
             _ -> pure $ Tag a
+            
+isAZ :: Text -> Bool 
+isAZ t 
+    | T.length t == 1 && (isAlpha . T.head $ t) = True 
+    | otherwise = False 
             
 instance ToJSON Tag where 
     toJSON (ETag i mr mm) = toJSON $ case (mr, mm) of 
@@ -136,6 +144,7 @@ instance ToJSON Tag where
     toJSON (Tag a) = toJSON a                       
     toJSON (Nonce a i) = toJSON [String "nonce", toJSON a, toJSON i ]
     toJSON (Chal t) = toJSON [String "challenge", toJSON t]
+    toJSON (AZTag az val) = toJSON [String . singleton $ az, String val]
   
 instance FromJSON Marker where 
     parseJSON = withText "marker" \case 

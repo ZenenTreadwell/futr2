@@ -91,7 +91,6 @@ encryptMsg (AesCtx xo ox iv) (pad -> m) = pure . decodeUtf8 $ fin
 decryptMsg :: AesCtx -> Text -> Text  
 decryptMsg (AesCtx xo ox _) = 
     decodeUtf8 . unpad  . cbcDecrypt xo ox . fst . extract
-        
 
 extract :: Text -> (ByteString, ByteString) 
 extract t = case T.splitOn "?iv=" t of 
