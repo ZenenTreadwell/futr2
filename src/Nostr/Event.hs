@@ -121,7 +121,7 @@ instance FromJSON Tag where
             String "nonce" -> Nonce <$> parseJSON (a V.! 1) 
                                     <*> parseJSON (a V.! 2) 
             String "challenge" -> Chal <$> parseJSON (a V.! 1)
-            String (isAZ -> True) -> AZTag <$> parseJSON (a V.! 0)
+            String (isAZ -> True) -> AZTag  <$> parseJSON (a V.! 0)
                                            <*> parseJSON (a V.! 1)
             _ -> pure $ Tag a
             
@@ -157,3 +157,20 @@ instance ToJSON Marker where
     toJSON Root' = String "root"
     toJSON Mention' = String "mention"
 
+-- "[\"EVENT\",\"a\",
+-- c{\"id\":\"000cc40d5beed48746ca67a9fada6c4878e9172a3404af008b1ce8f8492e32cd\",
+-- \"pubkey\"
+-- :\"f33207c9e96df017186a1cf4245c8ad679d8d1be4b037a72e82188f4deade523\",i
+-- \"created_at\":1696219797,\"kind\":1,\"tags\":
+
+
+-- tags = [
+--     ["t","Presse"],
+--     [\"t\",\"lematin\"],
+    
+--     [\"t\",\"Suisse\"],
+    
+--     [\"proxy\",\"https://www.lematin.ch/story/egypte-enorme-incendie-a-ismailiya-sur-le-canal-de-suez-341070967425\",\"rss\"],
+    
+--     [\"nonce\",\"1204\",\"10
+-- ,\"content\":\"Le Matin (Suisse)\\n\\n\195\137norme incendie \195\160 Isma\195\175liya sur le canal de Suez\\n\\nUn immense feu s\226\128\153est d\195\169clench\195\169 au si\195\168ge de la Direction de la S\195\187ret\195\169 avant l\226\128\153aube lundi. Aucun bilan n\226\128\153a \195\169t\195\169 communiqu\195\169 pour le moment.\\n\\nhttps://www.lematin.ch/341070967425\\n\\n#Presse #lematin #Suisse\",\"sig\":\"ac20ab965f232216eca838c4a48956c33e84f72add09ee1c77a16ca4ffbe58cb8d8c2be165539f82498fb0caca751194a4b403c0d4d37d35826d61488b34fe4e\"}]"

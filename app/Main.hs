@@ -28,7 +28,7 @@ main = do
 
     chan' <- atomically . dupTChan $ f
     forever $ atomically (readTChan chan') >>= 
-        (print . ("e: " <>) . content . con)
+        (mapM print . tags . con)
     
     threadDelay maxBound
     
