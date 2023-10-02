@@ -125,10 +125,10 @@ instance FromJSON Tag where
                                            <*> parseJSON (a V.! 1)
             _ -> pure $ Tag a
             
-isAZ :: Text -> Bool 
-isAZ t 
-    | T.length t == 1 && (isAlpha . T.head $ t) = True 
-    | otherwise = False 
+isAZ :: Text -> Bool
+isAZ t = case T.uncons t of 
+    Just (a, (T.null -> True)) -> isAlpha a  
+    _ -> False 
             
 instance ToJSON Tag where 
     toJSON (ETag i mr mm) = toJSON $ case (mr, mm) of 
