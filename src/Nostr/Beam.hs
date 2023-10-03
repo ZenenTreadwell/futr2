@@ -75,20 +75,31 @@ insertEv conn e@(Event i _ (Content{..})) =
                                       onConflictDoNothing
        
         runInsert $ B.insert (_events spec') (insertValues [toEv e])
+
+        void $ forM tags (\case  
+            ETag ie _ marker -> runInsert . B.insert (_replies spec') . insertExpressions $ [reply ie $ marker] 
+            PTag ip _ -> runInsert . B.insert (_mentions spec') . insertExpressions $ [mention ip] 
+            AZTag c t -> runInsert . B.insert (_azs spec') . insertExpressions $ [tagg c t] 
+            _ -> pure ()  
+            )
+
         
-        let (mx, rx) = gather . catMaybes $ flip P.map tags \case
-                ETag ie _ marker -> Just . Right $ (ie, marker)
-                PTag ip _ -> Just . Left $ ip
-                _ -> Nothing 
+        -- let (mx, rx) = gather . catMaybes $ flip P.map tags \case
+        --         ETag ie _ marker -> Just . Right $ (ie, marker)
+        --         PTag ip _ -> Just . Left $ ip
+        --         AZTag c t -> _ 
+        --         _ -> Nothing 
 
-        runInsert . B.insert (_mentions spec') . insertExpressions $ P.map mention mx
-        runInsert . B.insert (_replies spec') . insertExpressions $ P.map (uncurry reply) rx
+        -- P.map mention mx
+        -- P.map (uncurry reply) rx
 
-    gather :: [Either a b] ->  ([a], [b]) 
-    gather = P.foldr g ([],[]) 
-        where 
-        g (Right r) (mx, rx) = (mx, r:rx)  
-        g (Left l) (mx, rx) = (l:mx, rx)
+    -- gather :: [Either a b] ->  ([a], [b]) 
+    -- gather = P.foldr g ([],[]) 
+    --     where 
+    --     g (Right r) (mx, rx) = (mx, r:rx)  
+    --     g (Left l) (mx, rx) = (l:mx, rx)
+    tagg :: Char -> Text -> AzT (QExpr Sqlite m)
+    tagg c t = Az default_ (val_ . EvId . wq $ i) (val_ c) (val_ t) 
     
     reply :: Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
     reply id' marker = 

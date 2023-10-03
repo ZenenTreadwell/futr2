@@ -61,7 +61,6 @@ library
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , clplug
     , connection
     , containers
     , cryptohash-sha256
@@ -113,7 +112,6 @@ executable futr
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , clplug
     , connection
     , containers
     , cryptohash-sha256
@@ -174,7 +172,6 @@ test-suite futr2-test
     , beam-migrate
     , beam-sqlite
     , bytestring
-    , clplug
     , connection
     , containers
     , cryptohash-sha256

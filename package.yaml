@@ -34,11 +34,11 @@ dependencies:
 - aeson
 
 ## network 
+- wuss
+- websockets
 - warp 
 - wai
 - wai-websockets
-- wuss
-- websockets
 - servant 
 - servant-server
 - modern-uri
@@ -48,9 +48,6 @@ dependencies:
 ## crypto
 - cryptonite
 - cryptohash-sha256
-
-## 
-- clplug 
   
 ## database
 - beam-core

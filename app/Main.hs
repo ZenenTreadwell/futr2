@@ -27,18 +27,20 @@ import Data.Aeson
 import Data.ByteString as BS
 import Network.Wai.Handler.WebSockets
 
-
 main :: IO ()
 main = do 
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    forkIO . run 9481 
-        $ websocketsOr co (acceptRequest >=> relay o f) (serve x s) 
+    void . forkIO . run 9481 $ websocketsOr co 
+        (acceptRequest >=> relay o f) 
+        (serve x s) 
     threadDelay 100000
     mapM_ (forkIO . runH . (\d -> harvestr o d)) $ defaultRelay
     chan' <- atomically . dupTChan $ f
-    forever $ atomically (readTChan chan') >>= 
-        (print . ("e :"<>) . content . con)
+    void . forever $ atomically (readTChan chan') >>= \c -> do   
+        -- print . ("e :"<>) . content . con
+        mapM print . tags . con $ c 
+        print . ("e : "<>) . content . con $ c
     threadDelay maxBound
     
 runH = \case 
@@ -46,17 +48,15 @@ runH = \case
     _ -> pure () 
 
 type Nip45 = Get '[JSON] Text 
-
+x :: Proxy Nip45
+x = Proxy
 s :: Server Nip45
 s = return . decodeUtf8 . BS.toStrict . encode . object $ 
-    [ "name" .= ("" :: Text) 
+    [ "name" .= (""::Text) 
     , "description" .= (""::Text) 
     , "pubkey" .= (""::Text) 
     -- XXX configurable 
     ]
 
-x :: Proxy Nip45
-x = Proxy
-    
-
+co :: ConnectionOptions
 co = defaultConnectionOptions

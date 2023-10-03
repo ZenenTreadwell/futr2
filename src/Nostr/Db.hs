@@ -28,11 +28,24 @@ type T = TableEntity
 data Db f = Db {
         _events :: f (T EvT)
       , _identities :: f (T IdT)
+      , _azs :: f (T AzT)
       , _relays :: f (T RelayT)
       , _plebs :: f (T PlebT)
       , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       } deriving (Generic, Database Sqlite)
+
+data AzT f = Az {
+        _idaz :: C f Int32
+      , _eidaz :: PrimaryKey EvT f
+      , _letter :: C f Char 
+      , _valaz :: C f Text
+      } deriving (Generic, Beamable)
+type Az = AzT 
+type AzId = PrimaryKey AzT Identity 
+instance Table AzT where 
+      data PrimaryKey AzT f = AzId (C f Int32) deriving (Generic, Beamable)
+      primaryKey = AzId . _idaz
 
 data EvT f = Ev {
         _eid :: C f Text 
@@ -105,6 +118,12 @@ instance HasDefaultSqlDataType Sqlite Marker where
     defaultSqlDataType _ _ _ = sqliteTextType 
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be Marker where 
+    sqlValueSyntax = autoSqlValueSyntax
+
+instance HasDefaultSqlDataType Sqlite Char where 
+      defaultSqlDataType _ _ _ = sqliteTextType
+
+instance HasSqlValueSyntax be String => HasSqlValueSyntax be Char where 
     sqlValueSyntax = autoSqlValueSyntax
 
 instance FromBackendRow Sqlite Marker where
