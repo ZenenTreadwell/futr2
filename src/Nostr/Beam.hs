@@ -11,6 +11,7 @@
 module Nostr.Beam where
 
 import Prelude as P
+import Numeric
 import Database.Beam as B
 import Database.Beam.Sqlite
 import Database.SQLite.Simple as SQL
@@ -35,6 +36,10 @@ import Control.Monad.STM
 import Control.Exception
 import Control.Concurrent.STM.TChan
 import Database.SQLite.Simple.Function as SQL
+import Crypto.Hash.SHA256 as SHA256
+import qualified Data.ByteString.Base16 as Hex
+import Data.ByteString.Char8 as BS8
+import Control.Concurrent
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
@@ -64,42 +69,37 @@ insertPl conn e@(Event i _ (Content{..})) =
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) =  
-    try runIns
-    where
-    runIns = 
-        runBeamSqlite conn $ do
-    
+    try . runBeamSqliteDebug print conn $ do
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                       anyConflict
                                       onConflictDoNothing
-       
         runInsert $ B.insert (_events spec') (insertValues [toEv e])
+        forM_ tags insertTz 
 
-        void $ forM tags (\case  
-            ETag ie _ marker -> runInsert . B.insert (_replies spec') . insertExpressions $ [reply ie $ marker] 
-            PTag ip _ -> runInsert . B.insert (_mentions spec') . insertExpressions $ [mention ip] 
-            AZTag c t -> runInsert . B.insert (_azs spec') . insertExpressions $ [tagg c t] 
-            _ -> pure ()  
-            )
+    where 
+    insertTz :: Tag -> SqliteM ()
+    insertTz = \case  
+        ETag ie _ marker -> into (_replies spec') $ [reply ie $ marker] 
+        PTag ip _ -> into (_mentions spec') $ [mention ip] 
+        AZTag c t -> do 
+            let azid = readHex . BS8.unpack . Hex.encode . SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+            let azid2 = case azid of 
+                            [] -> 42 
+                            (f, _) : _ -> f 
+                
+            runInsert $ insertOnConflict (_azs spec') 
+                (insertExpressions [tagg azid2 c t])
+                anyConflict
+                onConflictDoNothing 
+            into (_tagz spec') [Tagz default_ (val_ azid2) (val_ . EvId . wq $ i)] 
+            
+        _ -> pure ()  
 
-        
-        -- let (mx, rx) = gather . catMaybes $ flip P.map tags \case
-        --         ETag ie _ marker -> Just . Right $ (ie, marker)
-        --         PTag ip _ -> Just . Left $ ip
-        --         AZTag c t -> _ 
-        --         _ -> Nothing 
-
-        -- P.map mention mx
-        -- P.map (uncurry reply) rx
-
-    -- gather :: [Either a b] ->  ([a], [b]) 
-    -- gather = P.foldr g ([],[]) 
-    --     where 
-    --     g (Right r) (mx, rx) = (mx, r:rx)  
-    --     g (Left l) (mx, rx) = (l:mx, rx)
-    tagg :: Char -> Text -> AzT (QExpr Sqlite m)
-    tagg c t = Az default_ (val_ . EvId . wq $ i) (val_ c) (val_ t) 
+    into b = runInsert . B.insert b . insertExpressions
+    
+    tagg :: Int64 -> Char -> Text -> AzT (QExpr Sqlite m)
+    tagg y c t = Az (val_ y) (val_ c) (val_ t)
     
     reply :: Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
     reply id' marker = 
@@ -107,6 +107,7 @@ insertEv conn e@(Event i _ (Content{..})) =
     
     mention :: Hex32 -> MentionT (QExpr Sqlite m) 
     mention id' = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id') 
+
 
 toEv :: Event -> EvT Identity 
 toEv e = Ev 
@@ -142,7 +143,6 @@ toHex32 :: Text -> Maybe Hex32
 toHex32 = decode . encode 
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
-
 fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ )
     = do 
         hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx

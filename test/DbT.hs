@@ -10,7 +10,6 @@ import Control.Monad as M
 getDbTest = do 
     o <- open "./futr.sqlite" 
     f <- createDb o
-    
     insertEv o wev
     return $ describe "database queries" do 
        it "use limit" $ do 

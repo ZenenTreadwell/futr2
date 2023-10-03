@@ -28,6 +28,7 @@ type T = TableEntity
 data Db f = Db {
         _events :: f (T EvT)
       , _identities :: f (T IdT)
+      , _tagz :: f (T TagzT)
       , _azs :: f (T AzT)
       , _relays :: f (T RelayT)
       , _plebs :: f (T PlebT)
@@ -35,16 +36,26 @@ data Db f = Db {
       , _mentions :: f (T MentionT)
       } deriving (Generic, Database Sqlite)
 
+data TagzT f = Tagz {
+        _tzid :: C f Int64
+      , _azi :: C f Int64
+      , _teid :: PrimaryKey EvT f 
+      } deriving (Generic, Beamable)
+type Tagz = TagzT
+type TagzId = PrimaryKey TagzT Identity 
+instance Table TagzT where 
+      data PrimaryKey TagzT f = TagzId (C f Int64) deriving (Generic, Beamable)
+      primaryKey = TagzId . _tzid
+
 data AzT f = Az {
-        _idaz :: C f Int32
-      , _eidaz :: PrimaryKey EvT f
+        _idaz :: C f Int64
       , _letter :: C f Char 
       , _valaz :: C f Text
       } deriving (Generic, Beamable)
 type Az = AzT 
 type AzId = PrimaryKey AzT Identity 
 instance Table AzT where 
-      data PrimaryKey AzT f = AzId (C f Int32) deriving (Generic, Beamable)
+      data PrimaryKey AzT f = AzId (C f Int64) deriving (Generic, Beamable)
       primaryKey = AzId . _idaz
 
 data EvT f = Ev {
