@@ -47,6 +47,7 @@ library
       BlockArguments
       OverloadedStrings
       LambdaCase
+      DataKinds
   ghc-options: -Wall -fno-warn-orphans
   pkgconfig-depends:
       libsecp256k1
@@ -98,6 +99,7 @@ executable futr
       BlockArguments
       OverloadedStrings
       LambdaCase
+      DataKinds
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -158,6 +160,7 @@ test-suite futr2-test
       BlockArguments
       OverloadedStrings
       LambdaCase
+      DataKinds
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1

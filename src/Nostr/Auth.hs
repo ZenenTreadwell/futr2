@@ -27,8 +27,6 @@ validate :: Event -> Text -> MaybeT IO Hex32
 validate e@(Event _ _ (Content{..})) challenge = do 
     22242 <- pure kind
     Just (Chal c) <- pure $ L.find isChal tags
-    liftIO $ print c
-    liftIO $ print challenge
     True <- pure $ c == challenge
     True <- lift $ verifyE e
     pure pubkey
@@ -60,7 +58,6 @@ judge target = (>= target) . difficulty . eid
 difficulty :: Hex32 -> Int 
 difficulty (Hex32 b) = go 0 b 
     where 
-
     go i bs 
         | BS.null bs      = i
         | BS.head bs == 0 = go (i + 8) (BS.tail bs)

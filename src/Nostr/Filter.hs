@@ -18,7 +18,7 @@ matchFx :: Event -> [Filter] -> Bool
 matchFx = any . matchF 
 
 matchF :: Event -> Filter -> Bool
-matchF e' (Filter i a k e p s u _) = all id . catMaybes $ 
+matchF e' (Filter i a k e p s u _  ) = all id . catMaybes $ 
     [ matchM e' <$> i  
     , matchM e' <$> a
     , matchM e' <$> k
@@ -36,15 +36,19 @@ data Filter = Filter {
     , ptagF :: Maybe PTagM
     , sinceF :: (Maybe Since)
     , untilF :: Maybe Until  
+    -- , aztagF :: [Tag]
     , limitF :: Maybe Limit   
     } deriving (Show, Eq, Generic)
     
 emptyF :: Filter
 emptyF = 
-     Filter Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+     Filter 
+        Nothing Nothing Nothing 
+        Nothing Nothing Nothing 
+        Nothing Nothing -- []      Nothing 
     
 instance ToJSON Filter where 
-    toJSON (Filter i a k e p s u ml) = object . catMaybes $ 
+    toJSON (Filter i a k e p s u  ml) = object . catMaybes $ 
         [ toKv <$> i 
         , toKv <$> a 
         , toKv <$> k
@@ -145,5 +149,8 @@ instance FromJSON Filter where
           <*>   o .:? "#p"
           <*>   o .:? "since"
           <*>   o .:? "until"
+          -- <*>   getTags o
           <*>   o .:? "limit"       
     
+getTags :: Object -> Parser [Tag]
+getTags a = undefined 

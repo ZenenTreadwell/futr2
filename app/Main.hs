@@ -38,8 +38,6 @@ main = do
     mapM_ (forkIO . runH . (\d -> harvestr o d)) $ defaultRelay
     chan' <- atomically . dupTChan $ f
     void . forever $ atomically (readTChan chan') >>= \c -> do   
-        -- print . ("e :"<>) . content . con
-        mapM print . tags . con $ c 
         print . ("e : "<>) . content . con $ c
     threadDelay maxBound
     

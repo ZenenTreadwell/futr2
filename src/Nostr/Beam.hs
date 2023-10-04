@@ -68,45 +68,40 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
-insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqliteDebug print conn $ do
+insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqlite conn $ do
     runInsert $ insertOnConflict (_plebs spec') 
                                  (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                  anyConflict
                                  onConflictDoNothing
     runInsert $ B.insert (_events spec') (insertValues [toEv e])
     mapM_ insertTz tags 
-
     where 
     insertTz :: Tag -> SqliteM ()
     insertTz = \case  
         ETag ie _ marker -> into (_replies spec') [reply ie marker] 
         PTag ip _ -> into (_mentions spec') [mention ip] 
         AZTag c t -> 
-            let azid :: Text
-                azid = decodeUtf8 . Hex.encode . SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+            let azid :: ByteString
+                azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
             in do 
-            -- 
-            -- into (_tey spec') [tagz azid (wq i)] 
             runInsert $ insertOnConflict (_azs spec') 
-                (insertExpressions [tagg azid c t])
+                (insertExpressions [Az (val_ azid)])
                 anyConflict
                 onConflictDoNothing 
-        _ -> pure ()  
 
-    -- tagz :: Text -> Text -> Tagz (QExpr Sqlite m)
-    tagz a b = Tey default_ (val_ a) (val_ b)
-    
-    tagg :: Text -> Char -> Text -> AzT (QExpr Sqlite m)
-    tagg y c t = Az (val_ y) (val_ c) (val_ t)
-    
+            into (_azt spec') [AzRef default_ 
+                                   (val_ . AzId $ azid) 
+                                   (val_ . EvId . wq $ i)
+                              ] 
+
+        _ -> pure ()  
+        
     reply :: Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
     reply id' marker = 
         Reply default_ (val_ . EvId . wq $ i) (val_ . wq $ id') (val_ marker)
     
     mention :: Hex32 -> MentionT (QExpr Sqlite m) 
     mention id' = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id') 
-
-    
 
 into b = runInsert . B.insert b . insertExpressions
 

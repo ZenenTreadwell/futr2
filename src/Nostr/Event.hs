@@ -15,9 +15,6 @@ import Secp256k1.Internal
 import Nostr.Keys
 import Data.Function
 
--- broadcastE :: Event -> IO (TChan Event)
-broadcastE _ = undefined 
-
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
     | idE con == eid = do 
