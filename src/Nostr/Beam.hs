@@ -68,37 +68,35 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
-insertEv conn e@(Event i _ (Content{..})) =  
-    try . runBeamSqliteDebug print conn $ do
-        runInsert $ insertOnConflict (_plebs spec') 
-                                     (insertExpressions [Pleb (val_ $ wq pubkey) default_])
-                                      anyConflict
-                                      onConflictDoNothing
-        runInsert $ B.insert (_events spec') (insertValues [toEv e])
-        forM_ tags insertTz 
+insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqliteDebug print conn $ do
+    runInsert $ insertOnConflict (_plebs spec') 
+                                 (insertExpressions [Pleb (val_ $ wq pubkey) default_])
+                                 anyConflict
+                                 onConflictDoNothing
+    runInsert $ B.insert (_events spec') (insertValues [toEv e])
+    mapM_ insertTz tags 
 
     where 
     insertTz :: Tag -> SqliteM ()
     insertTz = \case  
-        ETag ie _ marker -> into (_replies spec') $ [reply ie $ marker] 
-        PTag ip _ -> into (_mentions spec') $ [mention ip] 
-        AZTag c t -> do 
-            let azid = readHex . BS8.unpack . Hex.encode . SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-            let azid2 = case azid of 
-                            [] -> 42 
-                            (f, _) : _ -> f 
-                
+        ETag ie _ marker -> into (_replies spec') [reply ie marker] 
+        PTag ip _ -> into (_mentions spec') [mention ip] 
+        AZTag c t -> 
+            let azid :: Text
+                azid = decodeUtf8 . Hex.encode . SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+            in do 
+            -- 
+            -- into (_tey spec') [tagz azid (wq i)] 
             runInsert $ insertOnConflict (_azs spec') 
-                (insertExpressions [tagg azid2 c t])
+                (insertExpressions [tagg azid c t])
                 anyConflict
                 onConflictDoNothing 
-            into (_tagz spec') [Tagz default_ (val_ azid2) (val_ . EvId . wq $ i)] 
-            
         _ -> pure ()  
 
-    into b = runInsert . B.insert b . insertExpressions
+    -- tagz :: Text -> Text -> Tagz (QExpr Sqlite m)
+    tagz a b = Tey default_ (val_ a) (val_ b)
     
-    tagg :: Int64 -> Char -> Text -> AzT (QExpr Sqlite m)
+    tagg :: Text -> Char -> Text -> AzT (QExpr Sqlite m)
     tagg y c t = Az (val_ y) (val_ c) (val_ t)
     
     reply :: Hex32 -> Maybe Marker -> ReplyT (QExpr Sqlite m) 
@@ -108,6 +106,9 @@ insertEv conn e@(Event i _ (Content{..})) =
     mention :: Hex32 -> MentionT (QExpr Sqlite m) 
     mention id' = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id') 
 
+    
+
+into b = runInsert . B.insert b . insertExpressions
 
 toEv :: Event -> EvT Identity 
 toEv e = Ev 
@@ -123,7 +124,7 @@ wq = decodeUtf8 . BS.toStrict . encode
 qw :: FromJSON a => Text -> Maybe a
 qw = decode . BS.fromStrict . encodeUtf8 
 
-insertId :: Connection -> Text -> IO ()
+insertId :: Connection -> ByteString -> IO ()
 insertId conn privKey = runBeamSqlite conn $
     runInsert $ B.insert (_identities spec') 
               $ insertValues [Id privKey]
@@ -158,20 +159,21 @@ fetch db ff@Filter{..} =
        _ -> runSelectReturningList . select . nub_ . limit_ 10000000   
         
     d' = getQf ff  
+
+   
   
 getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf Filter{..} = 
-    do 
-        e <- all_ (_events spec')
+    do  e <- all_ (_events spec')
 
         case idsF of 
-            Just (Ids (P.map (val_ . ("\""<>) . (<> "%")) -> px)) -> 
+            Just (Ids (P.map (val_ . (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ (_eid e)) 
                                  (val_ False) px 
             _ -> pure () 
         
         case authorsF of 
-            Just (Authors (P.map (val_ . ("\"" <>) . (<> "%")) -> px)) -> 
+            Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ ((\(PlebId p) -> p) $ _pub e)) 
                                  (val_ False) px
             _ -> pure () 
@@ -244,8 +246,6 @@ lookupPid db t = P.map (content . con) <$> fetch db emptyF{authorsF=Just aye}
     
 lookupEid :: SQL.Connection -> Hex32 -> IO _ 
 lookupEid db t = 
-    let exi = wq t 
-    in 
     runBeamSqlite db 
     $ runSelectReturningOne 
-    $ lookup_ (_events spec') (EvId exi)
+    $ lookup_ (_events spec') (EvId . wq $ t)
