@@ -1,8 +1,10 @@
 
 module Nostr.Filter where 
 
+import Prelude as P 
 import Data.Aeson as J
 import Data.Aeson.Types
+import Data.Aeson.Key
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -18,7 +20,7 @@ matchFx :: Event -> [Filter] -> Bool
 matchFx = any . matchF 
 
 matchF :: Event -> Filter -> Bool
-matchF e' (Filter i a k e p s u _  ) = all id . catMaybes $ 
+matchF e' (Filter i a k e p s u _ _  ) = all id . catMaybes $ 
     [ matchM e' <$> i  
     , matchM e' <$> a
     , matchM e' <$> k
@@ -36,7 +38,7 @@ data Filter = Filter {
     , ptagF :: Maybe PTagM
     , sinceF :: (Maybe Since)
     , untilF :: Maybe Until  
-    -- , aztagF :: [Tag]
+    , aztagF :: [Tag]
     , limitF :: Maybe Limit   
     } deriving (Show, Eq, Generic)
     
@@ -45,10 +47,10 @@ emptyF =
      Filter 
         Nothing Nothing Nothing 
         Nothing Nothing Nothing 
-        Nothing Nothing -- []      Nothing 
+        Nothing []      Nothing 
     
 instance ToJSON Filter where 
-    toJSON (Filter i a k e p s u  ml) = object . catMaybes $ 
+    toJSON (Filter i a k e p s u tx ml) = object . catMaybes $ 
         [ toKv <$> i 
         , toKv <$> a 
         , toKv <$> k
@@ -57,7 +59,7 @@ instance ToJSON Filter where
         , toKv <$> s
         , toKv <$> u
         , toKv <$> ml
-        ] 
+        ] <> P.map (Just . toKv) tx
 
 newtype Ids = Ids [Text] deriving (Show, Eq, Generic)
 newtype Authors = Authors [Text] deriving (Show, Eq, Generic)
@@ -136,6 +138,10 @@ instance Keyable Until where
 
 instance Keyable Limit where 
     toKv (Limit l) = "limit" .= l
+
+instance Keyable Tag where 
+    toKv (AZTag l x) = (fromText $ "#" <> T.singleton l) .= x
+    toKv _ = undefined  
     
 instance FromJSON Filter where 
     parseJSON = withObject "filter" buildFilter 
@@ -149,8 +155,14 @@ instance FromJSON Filter where
           <*>   o .:? "#p"
           <*>   o .:? "since"
           <*>   o .:? "until"
-          -- <*>   getTags o
+          <*>   getTags o
           <*>   o .:? "limit"       
     
 getTags :: Object -> Parser [Tag]
-getTags a = undefined 
+getTags a =  
+    let letters = [x | x <- ['a'..'z'] ++ ['A'..'Z'], notElem x ("epEP" :: String)]
+        ags = P.map (checkTag a) letters
+    in catMaybes <$> (sequenceA $ ags) 
+
+checkTag :: Object -> Char -> Parser (Maybe Tag)
+checkTag o x = (AZTag x <$>) <$> (o .:? (fromText $ "#" <> T.singleton x))

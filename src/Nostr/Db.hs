@@ -28,13 +28,14 @@ spec' = defaultDbSettings
 type T = TableEntity
 data Db f = Db {
         _events :: f (T EvT)
-      , _identities :: f (T IdT)
-      , _azt :: f (T AzRefT)
-      , _azs :: f (T AzT)
-      , _relays :: f (T RelayT)
-      , _plebs :: f (T PlebT)
       , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
+      , _azt :: f (T AzRefT)
+      , _azs :: f (T AzT)
+      , _plebs :: f (T PlebT)
+      , _dms :: f (T DmT)
+      , _identities :: f (T IdT)
+      , _relays :: f (T RelayT)
       } deriving (Generic, Database Sqlite)
 
 data AzRefT f = AzRef {
@@ -62,7 +63,8 @@ data EvT f = Ev {
       , _pub :: PrimaryKey PlebT f
       , _time :: C f Int64
       , _kind :: C f Int32 
-      , _con :: C f Text 
+      , _expires :: C f (Maybe Int64)
+      , _con :: C f Text
       } deriving (Generic, Beamable)
 type Ev = EvT 
 type EvId = PrimaryKey EvT Identity 
@@ -100,10 +102,22 @@ instance Table PlebT where
       data PrimaryKey PlebT f = PlebId (C f Text) deriving (Generic, Beamable)
       primaryKey = PlebId . _pubp
 
+data DmT f = Dm { 
+        _dmid :: C f Int32
+      , _dmcon :: C f ByteString
+      , _dmdelivered :: C f Bool 
+      , _dmrecipient :: PrimaryKey PlebT f 
+      } deriving (Generic, Beamable)
+type Dm = DmT 
+type DmId = PrimaryKey DmT Identity
+instance Table DmT where 
+      data PrimaryKey DmT f = DmId (C f Int32) deriving (Generic, Beamable)
+      primaryKey = DmId . _dmid
+
 data ReplyT f = Reply {
         _idxr :: C f Int32
       , _eidr :: PrimaryKey EvT f
-      , _eidrr :: C f Text -- Either (PrimaryKey EvT f) 
+      , _eidrr :: C f Text
       , _markerr :: C f (Maybe Marker)
       } deriving (Generic, Beamable) 
 type Reply = ReplyT
@@ -124,7 +138,6 @@ instance Table MentionT where
       primaryKey = MentionId . _idxm
 
 instance HasDefaultSqlDataType Sqlite Marker where 
-    -- defaultSqlDataType :: _ 
     defaultSqlDataType _ _ _ = sqliteTextType 
 
 instance HasSqlValueSyntax be String => HasSqlValueSyntax be Marker where 

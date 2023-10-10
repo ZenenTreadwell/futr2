@@ -14,6 +14,7 @@ import qualified Crypto.Hash.SHA256 as SHA256
 import Secp256k1.Internal
 import Nostr.Keys
 import Data.Function
+import Data.Int
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -103,6 +104,7 @@ data Tag =
     | PTag Hex32 (Maybe Text)
     | Nonce Int Int
     | Chal Text
+    | Expiry Int64
     | AZTag Char Text 
     | Tag  Array
     deriving (Eq, Show, Generic)
@@ -129,6 +131,7 @@ instance FromJSON Tag where
                                <*> traverse parseJSON (a V.!? 2) 
             String "nonce" -> Nonce <$> n1 <*> n2 
             String "challenge" -> Chal <$> parseJSON (a V.! 1)
+            String "expiration" -> Expiry . fromIntegral <$> n1
             String (isAZ -> True) -> AZTag  <$> parseJSON (a V.! 0)
                                             <*> parseJSON (a V.! 1)
             _ -> pure $ Tag a
@@ -146,6 +149,7 @@ instance ToJSON Tag where
         (Nothing, Nothing) -> ee
         where 
         ee = [String "e", toJSON i]
+    toJSON (Expiry x) = toJSON [String "expiration", toJSON x]
     toJSON (PTag i mr) = toJSON case mr of 
         Just r -> [String "p", toJSON i, toJSON r]
         Nothing -> [String "p", toJSON i]

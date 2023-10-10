@@ -96,6 +96,7 @@ instance Arbitrary Filter where
                      <*> arbitrary
                      <*> arbitrary
                      <*> arbitrary
+                     <*> (pure [])
                      <*> arbitrary
 
 instance Arbitrary Ids where 

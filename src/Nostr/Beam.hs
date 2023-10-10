@@ -67,6 +67,17 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ runUpdate
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
+insertDm :: Connection -> Event -> IO () 
+insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec') 
+    $ insertExpressions 
+    [ Dm default_ (val_ . BS.toStrict . encode $ e) (val_ False) (val_ . PlebId . wq $ p)]
+    where 
+    p = case L.filter isPTag . tags . con $ e of 
+            (PTag x _) : _ -> x 
+            _ -> error "invalid dm" 
+    isPTag (PTag{}) = True
+    isPTag _ = False    
+
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqlite conn $ do
     runInsert $ insertOnConflict (_plebs spec') 
@@ -111,7 +122,19 @@ toEv e = Ev
       (PlebId . wq . pubkey . con $ e) 
       (fromInteger . created_at . con $ e) 
       (fromIntegral . kind . con $ e)
+      (calcExpiry e)
       (wq e)
+
+calcExpiry :: Event -> Maybe Int64
+calcExpiry e = case L.filter isExp . tags . con $ e of 
+    (Expiry x) : _ -> Just x
+    _ -> case kind . con $ e of 
+        -- XXX current timestamp issue again
+        -- (isEphemeral -> True) -> 
+        _ -> Nothing
+    where 
+    isExp (Expiry{}) = True
+    isExp _ = False  
 
 wq :: ToJSON a => a -> Text 
 wq = decodeUtf8 . BS.toStrict . encode 
@@ -139,10 +162,12 @@ toHex32 :: Text -> Maybe Hex32
 toHex32 = decode . encode 
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
-fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ )
-    = do 
-        hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx
-        pure . mapMaybe (qw . _con) . catMaybes $ hx
+
+fetch _ (Filter _ _ _ _ _ _ _ _ (Just (Limit 0))) = return []
+
+fetch db (Filter (Just (Ids tx@(P.all isHex32 -> True))) _ _ _ _ _ _ _ _ ) = do 
+    hx <- mapM (lookupEid db) $ mapMaybe toHex32 tx
+    pure . mapMaybe (qw . _con) . catMaybes $ hx
         
 fetch db ff@Filter{..} =  
     mapMaybe (qw . _con) <$> runBeamSqlite db (s' d') 
@@ -154,21 +179,22 @@ fetch db ff@Filter{..} =
        _ -> runSelectReturningList . select . nub_ . limit_ 10000000   
         
     d' = getQf ff  
-
-   
   
 getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf Filter{..} = 
     do  e <- all_ (_events spec')
+        
+        -- XXX have to IO / pass in?
+        -- guard_ $ _expires e >. val_ (Just 100)
 
         case idsF of 
-            Just (Ids (P.map (val_ . (<> "%")) -> px)) -> 
+            Just (Ids (P.map (val_ . ("\""<>). (<>"%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ (_eid e)) 
                                  (val_ False) px 
             _ -> pure () 
         
         case authorsF of 
-            Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
+            Just (Authors (P.map (val_ . ("\""<>). (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ ((\(PlebId p) -> p) $ _pub e)) 
                                  (val_ False) px
             _ -> pure () 
@@ -201,6 +227,13 @@ getQf Filter{..} =
             Just (Until (fromIntegral -> u)) -> 
                 guard_ $ (_time e <. val_ u )
             _ -> pure () 
+
+        flip mapM_ aztagF \case 
+            AZTag c t -> do  
+                let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+                ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. (_azref rf)) (all_ (_azt spec'))
+                guard_ (_iieid ref `references_` e)
+            _ -> pure ()
             
         pure e
 

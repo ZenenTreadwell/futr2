@@ -23,13 +23,6 @@ import Nostr.Beam
 import Nostr.Keys
 import Nostr.Auth
 
-
-data Nlient = Nlient {
-      eventfeed :: TChan Event
-    , filters :: TVar [Filter]
-    } 
-
-
 harvestr :: SQL.Connection -> URI -> Maybe (IO ()) 
 harvestr db uri = do 
     sch <- unRText <$> uriScheme uri 

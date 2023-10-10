@@ -6,11 +6,23 @@ import Nostr.Filter
 import Golden
 import Database.SQLite.Simple
 import Control.Monad as M
+import Nostr.Event
+import Nostr.Keys
+import Data.Time.Clock.POSIX
 
 getDbTest = do 
+    kp <- genKeyPair 
+    p1 <- exportPub kp
+    sec :: Integer <- round <$> getPOSIXTime
+    let keyless = Content 1 
+                    [AZTag 't' "butterflies"] 
+                    "garden golgun goodoo"
+                    sec
+    mE <- signE kp keyless 
     o <- open "./futr.sqlite" 
     f <- createDb o
     insertEv o wev
+    insertEv o mE
     return $ describe "database queries" do 
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl
@@ -34,12 +46,16 @@ ff = P.zip
   , emptyF {etagF = Just . ETagM $ [evref]} 
   , emptyF {ptagF = Just . PTagM $ [pub, keyref]}
   , emptyF {kindsF = Just . Kinds $ [0]}
+  , emptyF {aztagF = [AZTag 't' "butterflies"]}
+
   ] [
     "Ids1", "Ids2"
     , "Authors"
     , "ETags"
     , "PTags"
     , "Kind 0"
+    , "t tag" 
+    
     -- , "Since"
     -- , "Until"
    ]

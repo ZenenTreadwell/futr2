@@ -29,14 +29,6 @@ import qualified Data.ByteString.Base16 as Hex
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
--- type Auth = M.Map Hex32 
-
-data Nctx = Nctx {
-      database :: SQL.Connection
-    , eventfeed :: TChan Event
-    , subs :: [TVar Subs]
-    -- , 
-    }
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
@@ -46,6 +38,7 @@ relay db chan ws = do
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
     WS.sendTextData ws . encode $ Challenge r
     race_ (listen' r s) (broadcast' s chan') 
+    
     where 
 
     broadcast' :: TVar Subs -> TChan Event -> IO () 
@@ -94,9 +87,10 @@ findKeyByValue f = M.foldlWithKey' (\acc k v ->
 submit :: SQL.Connection -> WS.Connection -> Event -> IO () 
 submit db ws e = do 
     trust <- verifyE e
-    if not trust 
-        then reply False (Invalid "signature failed")
-        else do  
+    if not trust then reply False (Invalid "signature failed")
+    else case (kind . con) e of 
+        4 -> insertDm db e
+        _ -> do  
             insRes <- (mask_ $ insertEv db e)  
             case insRes of 
                 Left (SQLError ErrorConstraint t _) -> 
@@ -104,7 +98,6 @@ submit db ws e = do
                 Left (SQLError _ t _) -> 
                     reply False (ServerErr t)
                 Right _ -> reply True None 
-    
     where
     reply :: Bool -> WhyNot -> IO () 
     reply b = WS.sendTextData ws . encode . Ok (eid e) b  
