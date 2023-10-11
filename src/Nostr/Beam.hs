@@ -19,6 +19,8 @@ import Database.Beam.Migrate.Simple
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Sqlite.Migrate (migrationBackend)
 import Data.Text (Text)
+import Data.Time
+import Data.Time.Clock
 import Data.Text as T
 import Data.List as L 
 import Data.Maybe
@@ -40,6 +42,7 @@ import Crypto.Hash.SHA256 as SHA256
 import qualified Data.ByteString.Base16 as Hex
 import Data.ByteString.Char8 as BS8
 import Control.Concurrent
+import Data.Time.Clock.POSIX
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
@@ -79,13 +82,15 @@ insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec')
     isPTag _ = False    
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
-insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqlite conn $ do
-    runInsert $ insertOnConflict (_plebs spec') 
-                                 (insertExpressions [Pleb (val_ $ wq pubkey) default_])
-                                 anyConflict
-                                 onConflictDoNothing
-    runInsert $ B.insert (_events spec') (insertValues [toEv e])
-    mapM_ insertTz tags 
+insertEv conn e@(Event i _ (Content{..})) = do 
+    ex <- calcExpiry e
+    try . runBeamSqlite conn $ do
+        runInsert $ insertOnConflict (_plebs spec') 
+                                     (insertExpressions [Pleb (val_ $ wq pubkey) default_])
+                                     anyConflict
+                                     onConflictDoNothing
+        runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
+        mapM_ insertTz tags 
     where 
     insertTz :: Tag -> SqliteM ()
     insertTz = \case  
@@ -116,25 +121,35 @@ insertEv conn e@(Event i _ (Content{..})) =   try . runBeamSqlite conn $ do
 
 into b = runInsert . B.insert b . insertExpressions
 
-toEv :: Event -> EvT Identity 
-toEv e = Ev 
+toEv :: Maybe LocalTime -> Event -> EvT Identity 
+toEv x e = Ev 
       (wq $ eid e) 
       (PlebId . wq . pubkey . con $ e) 
       (fromInteger . created_at . con $ e) 
       (fromIntegral . kind . con $ e)
-      (calcExpiry e)
+      x
       (wq e)
 
-calcExpiry :: Event -> Maybe Int64
+calcExpiry :: Event -> IO (Maybe LocalTime)
 calcExpiry e = case L.filter isExp . tags . con $ e of 
-    (Expiry x) : _ -> Just x
+    (Expiry x) : _ -> pure . Just 
+                           . zonedTimeToLocalTime 
+                           . utcToZonedTime utc 
+                           . posixSecondsToUTCTime 
+                           . realToFrac $ x
     _ -> case kind . con $ e of 
-        -- XXX current timestamp issue again
-        -- (isEphemeral -> True) -> 
-        _ -> Nothing
+        (isEphemeral -> True) -> do 
+            zo <- getCurrentTimeZone
+            ti <- addUTCTime fifteen <$> getCurrentTime
+            let ow = zonedTimeToLocalTime $ utcToZonedTime zo ti
+            pure . Just $ ow
+        _ -> pure Nothing
     where 
     isExp (Expiry{}) = True
     isExp _ = False  
+    isEphemeral k = k >= 10000 && k < 20000
+    fifteen :: NominalDiffTime
+    fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
 
 wq :: ToJSON a => a -> Text 
 wq = decodeUtf8 . BS.toStrict . encode 
@@ -183,10 +198,10 @@ fetch db ff@Filter{..} =
 getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf Filter{..} = 
     do  e <- all_ (_events spec')
-        
-        -- XXX have to IO / pass in?
-        -- guard_ $ _expires e >. val_ (Just 100)
+    
 
+        -- guard_ $ _expires e <. currentTimestamp_ 
+        
         case idsF of 
             Just (Ids (P.map (val_ . ("\""<>). (<>"%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ (_eid e)) 

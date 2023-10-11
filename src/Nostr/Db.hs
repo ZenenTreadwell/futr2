@@ -18,6 +18,7 @@ import Data.Text (Text)
 import Data.ByteString 
 import qualified Data.Text as T 
 import Nostr.Event
+import Data.Time
 
 spec :: CheckedDatabaseSettings Sqlite Db
 spec = defaultMigratableDbSettings 
@@ -63,7 +64,7 @@ data EvT f = Ev {
       , _pub :: PrimaryKey PlebT f
       , _time :: C f Int64
       , _kind :: C f Int32 
-      , _expires :: C f (Maybe Int64)
+      , _expires :: C f (Maybe LocalTime)
       , _con :: C f Text
       } deriving (Generic, Beamable)
 type Ev = EvT 
