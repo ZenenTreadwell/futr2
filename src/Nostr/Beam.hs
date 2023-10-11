@@ -43,6 +43,7 @@ import qualified Data.ByteString.Base16 as Hex
 import Data.ByteString.Char8 as BS8
 import Control.Concurrent
 import Data.Time.Clock.POSIX
+import Data.Functor.Identity 
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
@@ -81,6 +82,18 @@ insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec')
     isPTag (PTag{}) = True
     isPTag _ = False    
 
+
+data InsMode = Regular | Replace | ParReplace
+
+insMode :: Event -> InsMode 
+insMode e = case kind . con $ e of
+    0 -> Replace 
+    ((<10000) -> True) -> Regular
+    ((<20000) -> True) -> Replace
+    ((<30000) -> True) -> Regular 
+    ((<40000) -> True) -> ParReplace 
+    _ -> Regular
+
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
     ex <- calcExpiry e
@@ -89,6 +102,26 @@ insertEv conn e@(Event i _ (Content{..})) = do
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                      anyConflict
                                      onConflictDoNothing
+        -- e' required for use with references_ : 
+        --        EvT (QGenExpr QValueContext Sqlite s) 
+        -- actual EvT Identity 
+        -- case insMode e of 
+        --     Regular -> pure ()  
+        --     Replace -> do 
+        --         e' <- runSelectReturningOne $ select do
+        --             ee <- all_ (_events spec')
+        --             guard_ $ _pub ee ==. (val_ . PlebId . wq $ e)
+        --             guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
+        --             pure ee
+        --         case e' of 
+        --             Just (ee' :: _) -> do 
+        --                 runDelete $ B.delete (_azt spec') 
+        --                             (\azt'-> _iieid azt' `references_` ee') 
+        --             _ -> pure ()
+        --         pure () 
+        --         -- runDelete $ B.delete (_events spec') \e' -> 
+                  
+        --     ParReplace -> pure ()
         runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
         mapM_ insertTz tags 
     where 
@@ -147,7 +180,7 @@ calcExpiry e = case L.filter isExp . tags . con $ e of
     where 
     isExp (Expiry{}) = True
     isExp _ = False  
-    isEphemeral k = k >= 10000 && k < 20000
+    isEphemeral k = k >= 20000 && k < 30000
     fifteen :: NominalDiffTime
     fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
 
