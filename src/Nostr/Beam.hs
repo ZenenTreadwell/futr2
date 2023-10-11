@@ -198,9 +198,8 @@ fetch db ff@Filter{..} =
 getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf Filter{..} = 
     do  e <- all_ (_events spec')
-    
 
-        -- guard_ $ _expires e <. currentTimestamp_ 
+        guard_ $ fromMaybe_ currentTimestamp_ (_expires e) <=. currentTimestamp_ 
         
         case idsF of 
             Just (Ids (P.map (val_ . ("\""<>). (<>"%")) -> px)) -> 
