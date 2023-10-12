@@ -14,16 +14,27 @@ getDbTest = do
     kp <- genKeyPair 
     p1 <- exportPub kp
     sec :: Integer <- round <$> getPOSIXTime
-    let keyless = Content 1 
+    let keyless = Content 11111 
                     [AZTag 't' "butterflies"] 
-                    "garden golgun goodoo"
+                    "first"
                     sec
+
+    let keyless2 = Content 11111 
+                    [AZTag 't' "butterflies"] 
+                    "second"
+                    sec
+
     mE <- signE kp keyless 
+    mE2 <- signE kp keyless2 
     o <- open "./futr.sqlite" 
     f <- createDb o
     insertEv o wev
     insertEv o mE
+    insertEv o mE2
     return $ describe "database queries" do 
+       it "replacable" $ do 
+          f' <- content . con . head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
+          shouldBe "second" f'
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 

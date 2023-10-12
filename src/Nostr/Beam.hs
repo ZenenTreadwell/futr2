@@ -83,7 +83,7 @@ insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec')
     isPTag _ = False    
 
 
-data InsMode = Regular | Replace | ParReplace
+data InsMode = Regular | Replace | ParReplace deriving (Show)
 
 insMode :: Event -> InsMode 
 insMode e = case kind . con $ e of
@@ -94,6 +94,19 @@ insMode e = case kind . con $ e of
     ((<40000) -> True) -> ParReplace 
     _ -> Regular
 
+
+removeEv :: Text -> SqliteM ()
+removeEv ee' = do 
+    runDelete $ B.delete (_azt spec') 
+                (\a -> (val_ (EvId ee') ==.) . _iieid $ a) 
+    runDelete $ B.delete (_mentions spec')
+                (\a -> (val_ (EvId ee') ==.) . _eidm $ a) 
+    runDelete $ B.delete (_replies spec')
+                (\a -> (val_ (EvId ee') ==.) . _eidr $ a) 
+    runDelete $ B.delete (_events spec') 
+                (\a -> (val_ ee' ==.) . _eid $ a) 
+
+
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
     ex <- calcExpiry e
@@ -102,26 +115,19 @@ insertEv conn e@(Event i _ (Content{..})) = do
                                      (insertExpressions [Pleb (val_ $ wq pubkey) default_])
                                      anyConflict
                                      onConflictDoNothing
-        -- e' required for use with references_ : 
-        --        EvT (QGenExpr QValueContext Sqlite s) 
-        -- actual EvT Identity 
-        -- case insMode e of 
-        --     Regular -> pure ()  
-        --     Replace -> do 
-        --         e' <- runSelectReturningOne $ select do
-        --             ee <- all_ (_events spec')
-        --             guard_ $ _pub ee ==. (val_ . PlebId . wq $ e)
-        --             guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
-        --             pure ee
-        --         case e' of 
-        --             Just (ee' :: _) -> do 
-        --                 runDelete $ B.delete (_azt spec') 
-        --                             (\azt'-> _iieid azt' `references_` ee') 
-        --             _ -> pure ()
-        --         pure () 
-        --         -- runDelete $ B.delete (_events spec') \e' -> 
-                  
-        --     ParReplace -> pure ()
+        case insMode e of 
+            Regular -> pure ()  
+            Replace -> do 
+                e' :: Maybe Text <- runSelectReturningOne $ select do
+                    ee <- all_ (_events spec')
+                    guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
+                    guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
+                    pure . _eid $ ee
+                case e' of 
+                    Just ee' -> removeEv ee'
+                    _ -> pure ()
+                pure () 
+            ParReplace -> pure ()
         runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
         mapM_ insertTz tags 
     where 
@@ -278,7 +284,7 @@ getQf Filter{..} =
         flip mapM_ aztagF \case 
             AZTag c t -> do  
                 let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-                ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. (_azref rf)) (all_ (_azt spec'))
+                ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. _azref rf) (all_ (_azt spec'))
                 guard_ (_iieid ref `references_` e)
             _ -> pure ()
             
