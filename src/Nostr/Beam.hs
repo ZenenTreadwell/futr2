@@ -126,11 +126,28 @@ insertEv conn e@(Event i _ (Content{..})) = do
                 case e' of 
                     Just ee' -> removeEv ee'
                     _ -> pure ()
-                pure () 
-            ParReplace -> pure ()
+            ParReplace -> do 
+                let mfirstD = listToMaybe . P.filter isD $ tags  
+                e' <- case mfirstD of 
+                    Just (AZTag c t) -> do 
+                        runSelectReturningOne $ select do
+                            ee <- all_ (_events spec')
+                            let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+                            ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. _azref rf) (all_ (_azt spec'))
+                            guard_ (_iieid ref `references_` ee)
+                            guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
+                            guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
+                            pure . _eid $ ee
+                    _ -> pure Nothing 
+                case e' of 
+                    Just ee' -> removeEv ee'
+                    _ -> pure ()
         runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
         mapM_ insertTz tags 
     where 
+    isD :: Tag -> Bool
+    isD (AZTag 'd' _) = True
+    isD _ = False
     insertTz :: Tag -> SqliteM ()
     insertTz = \case  
         ETag ie _ marker -> into (_replies spec') [reply ie marker] 
@@ -238,7 +255,7 @@ getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf Filter{..} = 
     do  e <- all_ (_events spec')
 
-        guard_ $ fromMaybe_ currentTimestamp_ (_expires e) <=. currentTimestamp_ 
+        guard_ $ fromMaybe_ currentTimestamp_ (_expires e) >=. currentTimestamp_ 
         
         case idsF of 
             Just (Ids (P.map (val_ . ("\""<>). (<>"%")) -> px)) -> 

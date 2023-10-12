@@ -9,6 +9,7 @@ import Control.Monad as M
 import Nostr.Event
 import Nostr.Keys
 import Data.Time.Clock.POSIX
+import Data.Maybe
 
 getDbTest = do 
     kp <- genKeyPair 
@@ -23,18 +24,47 @@ getDbTest = do
                     [AZTag 't' "butterflies"] 
                     "second"
                     sec
+                    
+    let keyless3 = Content 33333 
+                    [AZTag 'd' "butterflies"] 
+                    "first"
+                    sec
+
+    let keyless4 = Content 33333
+                    [AZTag 'd' "butterflies"] 
+                    "second"
+                    sec
+                    
+    let keyless5 = Content 22222 
+                    [] 
+                    "first"
+                    sec
 
     mE <- signE kp keyless 
     mE2 <- signE kp keyless2 
+    mE3 <- signE kp keyless3 
+    mE4 <- signE kp keyless4 
+    mE5 <- signE kp keyless5
     o <- open "./futr.sqlite" 
     f <- createDb o
     insertEv o wev
     insertEv o mE
     insertEv o mE2
+    insertEv o mE3
+    insertEv o mE4
+    insertEv o mE5
     return $ describe "database queries" do 
        it "replacable" $ do 
           f' <- content . con . head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
           shouldBe "second" f'
+       it "parameterized replaceable" $ do 
+          f' <- content . con . head <$> fetch o emptyF{kindsF=(Just . Kinds $ [33333])}
+          shouldBe "second" f'
+      
+       it "expires shortly?" $ do  
+          f' <- fetch o emptyF{kindsF=(Just . Kinds $ [22222])}
+          shouldBe True (0 < P.length f') 
+          
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl
           shouldBe 42 f' 
