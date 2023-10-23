@@ -32,16 +32,16 @@ data Db f = Db {
       , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       , _azt :: f (T AzRefT)
-      , _azs :: f (T AzT)
-      , _plebs :: f (T PlebT)
       , _dms :: f (T DmT)
-      , _identities :: f (T IdT)
       , _relays :: f (T RelayT)
+
+      , _plebs :: f (T PlebT)
+      , _identities :: f (T IdT)
       } deriving (Generic, Database Sqlite)
 
 data AzRefT f = AzRef {
         _tagzrid :: C f Int32
-      , _azref :: PrimaryKey AzT f
+      , _azref :: C f ByteString
       , _iieid :: PrimaryKey EvT f 
       } deriving (Generic, Beamable)
 type AzRef = AzRefT
@@ -50,15 +50,6 @@ instance Table AzRefT where
       data PrimaryKey AzRefT f = AzRefId (C f Int32) deriving (Generic, Beamable)
       primaryKey = AzRefId . _tagzrid 
       
-data AzT f = Az {
-        _idaz :: C f ByteString
-      } deriving (Generic, Beamable)
-type Az = AzT 
-type AzId = PrimaryKey AzT Identity 
-instance Table AzT where 
-      data PrimaryKey AzT f = AzId (C f ByteString) deriving (Generic, Beamable)
-      primaryKey = AzId . _idaz
-
 data EvT f = Ev {
         _eid :: C f Text 
       , _pub :: PrimaryKey PlebT f

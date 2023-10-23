@@ -133,7 +133,9 @@ insertEv conn e@(Event i _ (Content{..})) = do
                         runSelectReturningOne $ select do
                             ee <- all_ (_events spec')
                             let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-                            ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. _azref rf) (all_ (_azt spec'))
+                            ref <- filter_ 
+                                       (\rf ->  val_ azid ==. _azref rf) 
+                                       (all_ (_azt spec'))
                             guard_ (_iieid ref `references_` ee)
                             guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
                             guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
@@ -156,13 +158,8 @@ insertEv conn e@(Event i _ (Content{..})) = do
             let azid :: ByteString
                 azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
             in do 
-            runInsert $ insertOnConflict (_azs spec') 
-                (insertExpressions [Az (val_ azid)])
-                anyConflict
-                onConflictDoNothing 
-
             into (_azt spec') [AzRef default_ 
-                                   (val_ . AzId $ azid) 
+                                   (val_ azid) 
                                    (val_ . EvId . wq $ i)
                               ] 
 
@@ -217,6 +214,12 @@ insertId :: Connection -> ByteString -> IO ()
 insertId conn privKey = runBeamSqlite conn $
     runInsert $ B.insert (_identities spec') 
               $ insertValues [Id privKey]
+
+getIdentities :: Connection -> IO [Hex96]
+getIdentities conn = runBeamSqlite conn $ do 
+    idz <- runSelectReturningList . select $ all_ (_identities spec')
+    pure $ P.map (Hex96 . _priv) idz
+    
 
 insertRelay :: Connection -> Text -> IO ()
 insertRelay db uri = runBeamSqlite db $ do
@@ -301,7 +304,7 @@ getQf Filter{..} =
         flip mapM_ aztagF \case 
             AZTag c t -> do  
                 let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-                ref <- filter_ (\rf -> (val_ . AzId $ azid) ==. _azref rf) (all_ (_azt spec'))
+                ref <- filter_ (\rf -> val_ azid ==. _azref rf) (all_ (_azt spec'))
                 guard_ (_iieid ref `references_` e)
             _ -> pure ()
             

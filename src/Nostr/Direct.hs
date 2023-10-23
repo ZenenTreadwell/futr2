@@ -45,9 +45,10 @@ getShared kp pu = do
     se <- mallocBytes 32 
     (kp', 96) <- getPtr $ un96 kp 
     keyPairSec ctx se kp' 
-    (pu', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ pu
     sh <- mallocBytes 32 
     ha <- hashPtr copyX
+    -- (pu', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ pu
+    (pu', 64) <- parsePub pu >>= getPtr . un64
     r <- ecdh ctx sh pu' se ha nullPtr  
     if r == 1 
         then Hex32 <$> packPtr (sh, 32)

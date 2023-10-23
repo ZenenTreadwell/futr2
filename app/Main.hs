@@ -26,6 +26,16 @@ import Data.Text.Encoding
 import Data.Aeson
 import Data.ByteString as BS
 import Network.Wai.Handler.WebSockets
+import Nostr.Keys
+import Nostr.Wire
+import Text.URI
+import Data.Maybe
+import Data.Traversable
+import Data.Time.Clock.POSIX
+import Nostr.Auth
+import Data.Map as M 
+import Control.Concurrent.STM.TVar
+import Nostr.Pool
 
 main :: IO ()
 main = do 
@@ -35,15 +45,25 @@ main = do
         (acceptRequest >=> relay o f) 
         (serve x s) 
     threadDelay 100000
-    mapM_ (forkIO . runH . (\d -> harvestr o d)) $ defaultRelay
+
+    idents <- getIdentities o
+    me' <- case idents of 
+        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+        me : _ -> pure me
+
+    tv <- newTVarIO M.empty
+
+    let pool = Pool tv o me'
+
+    mapM_ (addRelay pool) defaultRelay
+
+    sec :: Integer <- round <$> getPOSIXTime
+    castAll pool (Subscribe "a" [liveF sec])
+
     chan' <- atomically . dupTChan $ f
     void . forever $ atomically (readTChan chan') >>= \c -> do   
         print . ("e : "<>) . content . con $ c
-    threadDelay maxBound
-    
-runH = \case 
-    Just m -> m
-    _ -> pure () 
+
 
 type Nip45 = Get '[JSON] Text 
 x :: Proxy Nip45

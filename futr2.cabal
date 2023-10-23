@@ -34,6 +34,7 @@ library
       Nostr.Filter
       Nostr.Harvest
       Nostr.Keys
+      Nostr.Pool
       Nostr.Relay
       Nostr.Wire
       Secp256k1.Internal

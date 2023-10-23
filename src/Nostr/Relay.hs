@@ -32,7 +32,6 @@ type Subs = M.Map Text [Filter]
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
-    print "client connected"
     chan' <- atomically $ dupTChan chan
     s <- newTVarIO M.empty
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
