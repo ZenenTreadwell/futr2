@@ -69,7 +69,7 @@ decryptE kp (Event _ _ c) = do
     let (_ , iv) = extract . content $ c
     sh <- getShared kp (pubkey c)
     let ccc = createCtx sh iv
-    pure $ decryptMsg ccc (content c)
+    pure . T.dropWhileEnd (== '\n') $ decryptMsg ccc (content c)
 
 createCtx :: Shared -> Iv -> AesCtx
 createCtx sh iv = AesCtx xo ox iv
@@ -100,10 +100,10 @@ extract t = case T.splitOn "?iv=" t of
     where d = decodeBase64 . encodeUtf8 
 
 pad :: ByteString -> ByteString
-pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 0
+pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 10
 
 unpad :: ByteString -> ByteString 
-unpad = BS.reverse . BS.dropWhile (==0) . BS.reverse
+unpad = BS.reverse . BS.dropWhile (==10) . BS.reverse
 
 prepare :: Hex32 -> ByteString -> IO AesCtx
 prepare sh iv = pure . AesCtx xo ox $ iv

@@ -2,6 +2,7 @@ module Nip4 where
 
 import Prelude as P
 import Test.Hspec
+import Golden
 import Nostr.Keys
 import Nostr.Event
 import Nostr.Auth
@@ -11,6 +12,8 @@ import Control.Monad as M
 import Data.List as L
 import Data.ByteString as BS
 import System.Entropy
+import Data.Maybe
+import Data.Aeson as J
 
 type Kx = Vector (Vector Hex32)
 
@@ -57,6 +60,8 @@ getNip4Test = do
     dmsg1 <- decryptMsg ccc <$> encryptMsg ccc "domina"
 
     printKx matrikx
+
+    dmsgAmyth <- decryptE mepriv fromAmyth
     
     return $ describe "nip 4" do 
         it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
@@ -65,3 +70,4 @@ getNip4Test = do
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
         it "domino" $ shouldBe "domino" doo 
         it "domina" $ shouldBe "domina" dmsg1
+        it "DOMINO" $ shouldBe "DOMINO" dmsgAmyth

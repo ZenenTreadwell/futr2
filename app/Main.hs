@@ -6,6 +6,7 @@
 module Main (main) where
 
 import Prelude as P 
+import qualified Data.ByteString.Base16 as Hex
 import Network.WebSockets as WS
 import Control.Monad
 import Database.SQLite.Simple as SQL
@@ -14,6 +15,8 @@ import Nostr.Relay
 import Nostr.Harvest
 import Nostr.Event
 import Nostr.Boots
+import Nostr.Direct
+import Nostr.Filter
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
@@ -51,18 +54,36 @@ main = do
         [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
         me : _ -> pure me
 
+    print "me pub"
+    meep <- exportPub me' 
+    print . wq $ meep
+
+    print "me priv"
+    print . wq $ me'
+
+
     tv <- newTVarIO M.empty
 
     let pool = Pool tv o me'
 
-    mapM_ (addRelay pool) defaultRelay
+    mapM_ (addRelay pool) $ P.take 2 defaultRelay
 
     sec :: Integer <- round <$> getPOSIXTime
-    castAll pool (Subscribe "a" [liveF sec])
+
+    threadDelay 100000
+    castAll pool $ Subscribe "a" 
+        [ emptyF{ptagF=Just (PTagM [meep])}
+        , liveF sec
+        ]
 
     chan' <- atomically . dupTChan $ f
     void . forever $ atomically (readTChan chan') >>= \c -> do   
         print . ("e : "<>) . content . con $ c
+        print . ("p : "<>) . wq . pubkey . con $ c
+        if kind (con c) == 4 then decryptE me' c >>= print 
+                             else pure () 
+
+
 
 
 type Nip45 = Get '[JSON] Text 
