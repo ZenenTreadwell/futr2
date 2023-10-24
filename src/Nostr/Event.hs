@@ -101,7 +101,7 @@ instance FromJSON Event where
                   )
 data Tag = 
       ETag Hex32 (Maybe Text) (Maybe Marker)
-    | PTag Hex32 (Maybe Text)
+    | PTag Hex32 (Maybe Text) (Maybe Text) 
     | Nonce Int Int
     | Chal Text
     | Expiry Int64
@@ -129,6 +129,7 @@ instance FromJSON Tag where
                                <*> traverse parseJSON (a V.!? 3)
             String "p" -> PTag <$> parseJSON (a V.! 1) 
                                <*> traverse parseJSON (a V.!? 2) 
+                               <*> traverse parseJSON (a V.!? 3)
             String "nonce" -> Nonce <$> n1 <*> n2 
             String "challenge" -> Chal <$> parseJSON (a V.! 1)
             String "expiration" -> Expiry . fromIntegral <$> n1
@@ -150,9 +151,13 @@ instance ToJSON Tag where
         where 
         ee = [String "e", toJSON i]
     toJSON (Expiry x) = toJSON [String "expiration", toJSON x]
-    toJSON (PTag i mr) = toJSON case mr of 
-        Just r -> [String "p", toJSON i, toJSON r]
-        Nothing -> [String "p", toJSON i]
+    toJSON (PTag i mr mm) = toJSON case (mr, mm) of
+        (Just r, Just p) -> pp <> [toJSON r, toJSON p]
+        (Just r, Nothing) -> pp <> [toJSON r]
+        (Nothing, Just p) -> pp <> [String "", toJSON p]
+        (Nothing, Nothing) -> [String "p", toJSON i]
+        where 
+        pp = [String "p", toJSON i]
     toJSON (Tag a) = toJSON a                       
     toJSON (Nonce a i) = toJSON [String "nonce", toJSON a, toJSON i ]
     toJSON (Chal t) = toJSON [String "challenge", toJSON t]

@@ -47,28 +47,32 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
                      >>= WS.sendTextData ws . encode
 
     acceptcast = receiveData ws >>= \c -> case decode c of 
-        Just dow -> downer kp uri ch db dow  
+        Just dow -> downer dow  
         _ -> print "decode failed" >> print c
     
-
-downer :: Hex96 -> URI -> TChan Up -> SQL.Connection -> Down -> IO ()
-downer kp uri ch db = \case  
-  See _ e@(Event _ _ (Content{kind})) -> do  
-      trust <- verifyE e 
-      -- XXX kind 
-      when trust (void $ insertEv db e)
-  Live _ -> print "--------live"
-  Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
-  Notice note -> print $ "note:" <> note 
-  Challenge t -> do
-      e <- authenticate kp uri t
-      atomically $ writeTChan ch (Auth e)  
-      print "sent auth (rec challenge)"
-  CountD _ _ -> pure () 
-
+    downer :: Down -> IO ()
+    downer = \case  
+        See _ e@(Event _ _ (Content{kind})) -> do  
+            trust <- verifyE e 
+            -- XXX kind 
+            when trust (void $ insertEv db e)
+        Live _ -> print "--------live"
+        Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
+        Notice note -> print $ "note:" <> note 
+        Challenge t -> do
+            e <- authenticate kp uri t
+            atomically $ writeTChan ch (Auth e)  
+            print "sent auth (rec challenge)"
+        CountD _ _ -> pure () 
      
 byeRelay :: Pool -> URI -> IO ()
-byeRelay p u = undefined 
+byeRelay p@(Pool tv _ kp) uri = do
+    tv' <- atomically $ readTVar tv  
+    case M.lookup uri tv' of 
+        Just (Feed uch trd) -> do  
+            atomically . writeTVar tv $ M.delete uri tv'
+            killThread trd 
+        _ -> pure () 
 
 castAll :: Pool -> Up -> IO () 
 castAll (Pool tv _ _) u = do 
@@ -77,10 +81,25 @@ castAll (Pool tv _ _) u = do
     where xyz :: Feed -> IO () 
           xyz (Feed uch _) = atomically $ writeTChan uch u 
     
-
 castOne :: Pool -> URI -> Up -> IO () 
-castOne p u m = undefined 
+castOne (Pool tv _ _) uri m = do 
+    tv' <- atomically $ readTVar tv  
+    case M.lookup uri tv' of 
+        Just (Feed uch _) -> atomically $ writeTChan uch m 
+        _ -> pure () 
 
+signCastAll :: Pool -> Keyless -> IO () 
+signCastAll p@(Pool tv _ kp) kl = do 
+    u <- Submit <$> signE kp kl
+    castAll p u 
+
+signCastOne :: Pool -> URI -> Keyless -> IO () 
+signCastOne p@(Pool tv _ kp) uri kl = do 
+    u <- Submit <$> signE kp kl
+    castOne p uri u
+
+
+    
 checkUri :: URI -> Maybe (ClientApp () -> IO ())
 checkUri uri = do 
     sch <- unRText <$> uriScheme uri 

@@ -61,7 +61,7 @@ encryptE kp re msg = do
     let xx = createCtx sh iv
     m <- encryptMsg xx (encodeUtf8 msg)
     n <- round <$> getPOSIXTime
-    let c = Content 4 [PTag re Nothing] m n 
+    let c = Content 4 [PTag re Nothing Nothing] m n 
     signE kp c
 
 decryptE :: Hex96 -> Event -> IO Text 

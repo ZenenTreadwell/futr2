@@ -43,7 +43,7 @@ instance Arbitrary Content where
                       <*> arbitrary
   
 instance Arbitrary Tag where 
-  arbitrary = oneof [ PTag <$> arbitrary <*> arbitrary
+  arbitrary = oneof [ PTag <$> arbitrary <*> arbitrary <*> arbitrary
                     , Nonce <$> arbitrary <*> arbitrary
 
                     -- , AZTag <$> arbitrary <*> arbitrary 

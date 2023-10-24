@@ -77,7 +77,7 @@ insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec')
     [ Dm default_ (val_ . BS.toStrict . encode $ e) (val_ False) (val_ . PlebId . wq $ p)]
     where 
     p = case L.filter isPTag . tags . con $ e of 
-            (PTag x _) : _ -> x 
+            (PTag x _ _) : _ -> x 
             _ -> error "invalid dm" 
     isPTag (PTag{}) = True
     isPTag _ = False    
@@ -153,7 +153,7 @@ insertEv conn e@(Event i _ (Content{..})) = do
     insertTz :: Tag -> SqliteM ()
     insertTz = \case  
         ETag ie _ marker -> into (_replies spec') [reply ie marker] 
-        PTag ip _ -> into (_mentions spec') [mention ip] 
+        PTag ip _ _ -> into (_mentions spec') [mention ip] 
         AZTag c t -> 
             let azid :: ByteString
                 azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)

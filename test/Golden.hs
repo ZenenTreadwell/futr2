@@ -20,7 +20,7 @@ ev = Content
     1
     [ 
       ETag evref Nothing Nothing 
-    , PTag keyref Nothing  
+    , PTag keyref Nothing Nothing  
     ] 
     "Walled gardens became prisons, and nostr is the first step towards tearing down the prison walls."         
     1673347337

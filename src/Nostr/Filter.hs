@@ -102,7 +102,7 @@ instance Matchable ETagM where
 instance Matchable PTagM where
     matchM e (PTagM px) = any (flip elem ptags) px
         where 
-        ptags = map (\(PTag p _) -> p) . filter isPtag . tags . con $ e
+        ptags = map (\(PTag p _ _) -> p) . filter isPtag . tags . con $ e
         isPtag (PTag{}) = True
         isPtag _ = False   
 
