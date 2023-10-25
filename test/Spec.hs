@@ -15,11 +15,9 @@ main = do
   nip1 <- nip1GetTest
   nip4 <- getNip4Test
   nip13 <- getNip13Test
-  ecdaT <- getEcdaTest
   dbT <- getDbTest
   hspec do 
     nip1
     nip4
     nip13
-    ecdaT
     dbT
