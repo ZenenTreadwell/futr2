@@ -10,7 +10,6 @@ run relay
 
 - `stack build` 
 - `stack exec futr` 
-- `torify <path to futr>`
 
 dependencies 
 
@@ -19,21 +18,16 @@ dependencies
 
 NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
 wip (relay focus)
-- [x] 1 
+- [x] 1 - base
+- [x] 2 - contacts
+- [x] 4 - direct messages 
 - [x] 10 
-- [ ] 4 - aes 
-- [x] 42 - auth
-- [x] 13 - pow
 - [x] 45 - count
 - [ ] 11 - relay-meta
+- [x] 42 - auth
+- [x] 13 - pow
 
---- likely 
-            
-- [ ] 52 
-- [ ] 15
-- [ ] 25  
-- [ ] 30
-- [ ] 57 
+... 
 
 database file futr.sqlite is created in the local directory   
 

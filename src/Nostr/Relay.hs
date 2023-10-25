@@ -29,7 +29,6 @@ import qualified Data.ByteString.Base16 as Hex
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
-
 type Auth = Either Text Hex32
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
@@ -88,11 +87,10 @@ relay db chan ws = do
 isSend :: Auth -> Event -> Bool
 isSend _ (Event _ _ Content{kind}) | kind /= 4 = True
 isSend (Left _) _ = False
-isSend (Right p) (Event _ _ Content{tags}) = getP tags == p
+isSend (Right p) (Event _ _ Content{tags}) = case P.filter isPTag tags of 
+    (PTag x _ _) : _ -> x == p 
+    _ -> False
     where 
-    getP tx = case P.filter isPTag tx of 
-        (PTag x _ _) : _ -> x 
-        _ -> error "invalid dm"
     isPTag (PTag{}) = True
     isPTag _ = False    
     
