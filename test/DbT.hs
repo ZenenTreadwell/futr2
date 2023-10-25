@@ -3,13 +3,24 @@ import Test.Hspec
 import Prelude as P 
 import Nostr.Beam
 import Nostr.Filter
+import Nostr.Db
 import Golden
 import Database.SQLite.Simple
 import Control.Monad as M
+import Control.Concurrent
+import Control.Monad.IO.Class
 import Nostr.Event
 import Nostr.Keys
 import Data.Time.Clock.POSIX
+import Data.Time.Clock
+import Data.Time.LocalTime
+import Data.Time
 import Data.Maybe
+import Database.Beam
+import Database.Beam.Sqlite
+import Database.Beam.Migrate
+import Database.Beam.Backend.SQL
+import Database.Beam.Sqlite.Syntax
 
 getDbTest = do 
     kp <- genKeyPair 
@@ -62,8 +73,15 @@ getDbTest = do
           shouldBe "second" f'
       
        it "expires shortly?" $ do  
-          f' <- fetch o emptyF{kindsF=(Just . Kinds $ [22222])}
-          shouldBe True (0 < P.length f') 
+          Just (Just f') <- runBeamSqlite o $ runSelectReturningOne $ select $ do 
+              ee <- all_ (_events spec')
+              guard_ (_eid ee ==. val_ (wq $ eid mE5)) 
+              pure (_expires ee) 
+          zo <- getCurrentTimeZone
+          ti <- getCurrentTime
+          let ow = zonedTimeToLocalTime $ utcToZonedTime zo ti
+          let expiresIn = diffLocalTime f' ow
+          shouldBe True (fifteen > expiresIn) 
           
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl

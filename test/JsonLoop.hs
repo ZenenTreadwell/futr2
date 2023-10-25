@@ -43,7 +43,8 @@ instance Arbitrary Content where
                       <*> arbitrary
   
 instance Arbitrary Tag where 
-  arbitrary = oneof [ PTag <$> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = oneof [ 
+                      PTag <$> arbitrary <*> pure (Just "rrr") <*> arbitrary
                     , Nonce <$> arbitrary <*> arbitrary
 
                     -- , AZTag <$> arbitrary <*> arbitrary 
@@ -85,7 +86,7 @@ instance Arbitrary WhyNot where
       , Block <$> arbitrary
       , RateLimit <$> arbitrary
       , Restrict <$> arbitrary
-      , WhyNot <$> arbitrary
+      , WhyNot <$> pure "reasons"
       ] 
 
 instance Arbitrary Filter where 

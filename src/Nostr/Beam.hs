@@ -201,8 +201,9 @@ calcExpiry e = case L.filter isExp . tags . con $ e of
     isExp (Expiry{}) = True
     isExp _ = False  
     isEphemeral k = k >= 20000 && k < 30000
-    fifteen :: NominalDiffTime
-    fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
+    
+fifteen :: NominalDiffTime
+fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
 
 wq :: ToJSON a => a -> Text 
 wq = decodeUtf8 . BS.toStrict . encode 
