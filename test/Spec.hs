@@ -6,7 +6,6 @@ import Golden
 import Nip1
 import Nip4
 import Nip13
-import Ecda
 import DbT
           
 main :: IO ()

@@ -146,7 +146,6 @@ test-suite futr2-test
   main-is: Spec.hs
   other-modules:
       DbT
-      Ecda
       Golden
       JsonLoop
       Nip1
