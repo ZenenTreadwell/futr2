@@ -83,9 +83,6 @@ main = do
         if kind (con c) == 4 then decryptE me' c >>= print 
                              else pure () 
 
-
-
-
 type Nip45 = Get '[JSON] Text 
 x :: Proxy Nip45
 x = Proxy

@@ -250,8 +250,15 @@ fetch db ff@Filter{..} =
     -- s' :: _ -- Q Sqlite db x y 
     s' = case limitF of 
        Just (Limit (fromIntegral -> x)) 
-            -> runSelectReturningList . select . nub_ . limit_ x  
-       _ -> runSelectReturningList . select . nub_ . limit_ 10000000   
+            -> runSelectReturningList . select 
+                                      . limit_ x 
+                                      . nub_ 
+                                      . orderBy_ (desc_ . _time) 
+
+       _ -> runSelectReturningList . select 
+                                   . limit_ 10000000 
+                                   . nub_ 
+                                   . orderBy_ (desc_ . _time) 
         
     d' = getQf ff  
   
