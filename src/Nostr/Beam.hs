@@ -71,18 +71,6 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ runUpdate
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
-insertDm :: Connection -> Event -> IO () 
-insertDm conn e = runBeamSqlite conn $ runInsert . B.insert (_dms spec') 
-    $ insertExpressions 
-    [ Dm default_ (val_ . BS.toStrict . encode $ e) (val_ False) (val_ . PlebId . wq $ p)]
-    where 
-    p = case L.filter isPTag . tags . con $ e of 
-            (PTag x _ _) : _ -> x 
-            _ -> error "invalid dm" 
-    isPTag (PTag{}) = True
-    isPTag _ = False    
-
-
 data InsMode = Regular | Replace | ParReplace deriving (Show)
 
 insMode :: Event -> InsMode 

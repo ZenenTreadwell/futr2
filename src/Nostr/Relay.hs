@@ -30,41 +30,50 @@ import qualified Data.ByteString.Base16 as Hex
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 
+type Auth = Either Text Hex32
+
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
     chan' <- atomically $ dupTChan chan
     s <- newTVarIO M.empty
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
+    a <- newTVarIO (Left r)
     WS.sendTextData ws . encode $ Challenge r
-    race_ (listen' r s) (broadcast' s chan') 
+    race_ (listen' a s) (broadcast' a s chan') 
     
     where 
 
-    broadcast' :: TVar Subs -> TChan Event -> IO () 
-    broadcast' subs chan = forever do 
+    broadcast' :: TVar Auth -> TVar Subs -> TChan Event -> IO () 
+    broadcast' au subs chan = forever do 
         e <- atomically $ readTChan chan
         m <- readTVarIO subs
-        case findKeyByValue (P.any (matchF e)) m of
+        a <- readTVarIO au
+        when (isSend a e) case findKeyByValue (P.any (matchF e)) m of
             Just s' -> WS.sendTextData ws . encode $ See s' e
             _ -> pure () 
 
-    listen' :: Text -> TVar Subs -> IO ()
-    listen' c subs = forever do
+    listen' :: TVar Auth -> TVar Subs -> IO ()
+    listen' au subs = forever do
         eo <- E.try . WS.receiveData $ ws :: Listen
         case decode <$> eo of 
             Right (Just d) -> case d of 
                 Subscribe s fx -> do 
                     ex <- fetchx db fx
+                    a <- readTVarIO au
                     void $ WS.sendTextDatas ws 
-                         $ P.map (encode . See s) ex   
+                         $ P.map (encode . See s) $ P.filter (isSend a) ex   
                     atomically $ modifyTVar subs (M.insert s fx) 
                 Submit e -> submit db ws e 
                 End s -> atomically $ modifyTVar subs (M.delete s)
                 Auth t -> do 
-                    v <- runMaybeT $ validate t c
-                    case v of 
-                        Just p -> print p
-                        Nothing -> print "failly"
+                    a <- readTVarIO au
+                    case a of 
+                        Right _ -> pure () 
+                        Left c -> do 
+                            v <- runMaybeT $ validate t c
+                            case v of 
+                                Just p -> atomically $ writeTVar au (Right p)
+                                Nothing -> pure () 
                 CountU s fx -> do 
                     n <- sum . L.concatMap (P.map fromIntegral) -- sum . L.concat . P.map fromInteger 
                         <$> mapM (countFx db) fx 
@@ -75,6 +84,18 @@ relay db chan ws = do
                 print z 
                 print "client killed_"  
                 myThreadId >>= killThread 
+
+isSend :: Auth -> Event -> Bool
+isSend _ (Event _ _ Content{kind}) | kind /= 4 = True
+isSend (Left _) _ = False
+isSend (Right p) (Event _ _ Content{tags}) = getP tags == p
+    where 
+    getP tx = case P.filter isPTag tx of 
+        (PTag x _ _) : _ -> x 
+        _ -> error "invalid dm"
+    isPTag (PTag{}) = True
+    isPTag _ = False    
+    
 
 fetchx :: SQL.Connection -> [Filter] -> IO [Event]
 fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 
@@ -87,16 +108,14 @@ submit :: SQL.Connection -> WS.Connection -> Event -> IO ()
 submit db ws e = do 
     trust <- verifyE e
     if not trust then reply False (Invalid "signature failed")
-    else case (kind . con) e of 
-        4 -> insertDm db e
-        _ -> do  
-            insRes <- (mask_ $ insertEv db e)  
-            case insRes of 
-                Left (SQLError ErrorConstraint t _) -> 
-                    reply False (Duplicate t) 
-                Left (SQLError _ t _) -> 
-                    reply False (ServerErr t)
-                Right _ -> reply True None 
+    else do  
+        insRes <- mask_ $ insertEv db e  
+        case insRes of 
+            Left (SQLError ErrorConstraint t _) -> 
+                reply False (Duplicate t) 
+            Left (SQLError _ t _) -> 
+                reply False (ServerErr t)
+            Right _ -> reply True None 
     where
     reply :: Bool -> WhyNot -> IO () 
     reply b = WS.sendTextData ws . encode . Ok (eid e) b  

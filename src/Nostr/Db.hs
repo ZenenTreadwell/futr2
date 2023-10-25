@@ -32,7 +32,6 @@ data Db f = Db {
       , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       , _azt :: f (T AzRefT)
-      , _dms :: f (T DmT)
       , _relays :: f (T RelayT)
 
       , _plebs :: f (T PlebT)
@@ -93,18 +92,6 @@ type PlebId = PrimaryKey PlebT Identity
 instance Table PlebT where 
       data PrimaryKey PlebT f = PlebId (C f Text) deriving (Generic, Beamable)
       primaryKey = PlebId . _pubp
-
-data DmT f = Dm { 
-        _dmid :: C f Int32
-      , _dmcon :: C f ByteString
-      , _dmdelivered :: C f Bool 
-      , _dmrecipient :: PrimaryKey PlebT f 
-      } deriving (Generic, Beamable)
-type Dm = DmT 
-type DmId = PrimaryKey DmT Identity
-instance Table DmT where 
-      data PrimaryKey DmT f = DmId (C f Int32) deriving (Generic, Beamable)
-      primaryKey = DmId . _dmid
 
 data ReplyT f = Reply {
         _idxr :: C f Int32
