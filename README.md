@@ -20,15 +20,14 @@ NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protoc
 wip (relay focus)
 - [x] 1 - base
 - [x] 2 - contacts
-- [ ] 4 - direct messages 
-  - [x] - only serve to authorized 
-  - [x] - decrypt from Amythst 
-  - [ ] - Amythst can decrypt ours ??
+- [x] 4 - direct messages 
 - [x] 10 
 - [x] 45 - count
-- [ ] 11 - relay-meta
 - [x] 42 - auth
 - [x] 13 - pow
+
+- [ ] 11 - relay-meta
+- [ ] 19 - bech32 keys
 
 ... 
 

@@ -39,6 +39,8 @@ import Nostr.Auth
 import Data.Map as M 
 import Control.Concurrent.STM.TVar
 import Nostr.Pool
+import Control.Exception as E
+import System.IO.Error
 
 main :: IO ()
 main = do 
@@ -61,27 +63,42 @@ main = do
     print "me priv"
     print . wq $ me'
 
-
     tv <- newTVarIO M.empty
 
     let pool = Pool tv o me'
 
-    mapM_ (addRelay pool) $ P.take 2 defaultRelay
-
     sec :: Integer <- round <$> getPOSIXTime
 
-    threadDelay 100000
-    castAll pool $ Subscribe "a" 
-        [ emptyF{ptagF=Just (PTagM [meep])}
-        , liveF sec
-        ]
+    mapM_ (addRelay pool) defaultRelay
+    castAll pool $ Subscribe "a" [ 
+             liveF sec 
+           , emptyF{ptagF=Just (PTagM [meep])}
+           ]
+    --     , emptyF{authorsF=Just (Authors ["5917"]) }
+    --     ]
+
+    -- threadDelay 1000000
+
+    -- let pubgossip = Hex32 . Hex.decodeLenient $ 
+    --                   "239bf80a7c0742bcc412b46ffba1975dec619592a011823071e3b491ce0338ae"
+    -- example create and broadcast kind 1
+    -- let kl = Content 1 [PTag pubgossip Nothing Nothing] "sigh nostr" sec 
+    -- eee <- signE me' kl 
+    -- castAll pool . Submit $ eee   
+
+    -- example create and broadcast kind 4
+    -- ee <- encryptE me' pubgossip "domino" 
+    -- castAll pool . Submit $ ee   
 
     chan' <- atomically . dupTChan $ f
     void . forever $ atomically (readTChan chan') >>= \c -> do   
         print . ("e : "<>) . content . con $ c
         print . ("p : "<>) . wq . pubkey . con $ c
-        if kind (con c) == 4 then decryptE me' c >>= print 
-                             else pure () 
+        x <- E.try $ if kind (con c) == 4 then decryptE me' c >>= print 
+                                          else pure () 
+        case x of 
+            Left (SomeException _) -> pure () 
+            Right _ -> pure () 
 
 type Nip45 = Get '[JSON] Text 
 x :: Proxy Nip45

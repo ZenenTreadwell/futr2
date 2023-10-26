@@ -54,6 +54,7 @@ foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_verify" schnorrSigna
 foreign import ccall safe "secp256k1.h secp256k1_schnorrsig_sign32" schnorrSign
   :: Ctx -> Ptr Sig64 -> Ptr Msg32 -> Ptr KeyPair96 -> Ptr Salt32 -> IO Ret
 
+
 foreign import ccall safe "secp256k1.h secp256k1_ecdh" ecdh
   ::  Ctx -> Ptr CUChar -> Ptr p -> Ptr s -> 
       FunPtr q -> Ptr w -> IO Ret

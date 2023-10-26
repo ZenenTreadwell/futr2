@@ -33,7 +33,6 @@ data Db f = Db {
       , _mentions :: f (T MentionT)
       , _azt :: f (T AzRefT)
       , _relays :: f (T RelayT)
-
       , _plebs :: f (T PlebT)
       , _identities :: f (T IdT)
       } deriving (Generic, Database Sqlite)
