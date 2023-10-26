@@ -44,4 +44,4 @@ nip1GetTest = do
       it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
       it "npubs work" $ shouldBe banswer (npub bexample)
-      it "npubs work 2" $ shouldBe bexample (xnpub banswer) 
+      it "npubs work 2" $ shouldBe (Just bexample) (xnpub banswer) 

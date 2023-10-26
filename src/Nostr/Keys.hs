@@ -22,10 +22,10 @@ npub (Hex32 b) =
       Right t -> t
       Left _ -> error "invalid npub"
 
-xnpub :: Text -> Hex32
+xnpub :: Text -> Maybe Hex32
 xnpub t = case BECH.decode t of 
     Right (_, d) -> case dataPartToBytes d of 
-        Just s -> Hex32 s 
+        Just s -> J.decode . J.encode $ Hex32 s 
         _ -> error "dataPart "
     Left e -> error . show $ e
  
