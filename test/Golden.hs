@@ -8,6 +8,7 @@ import Nostr.Event
 import Data.Aeson as J
 import Data.Text.Encoding 
 import Data.Maybe
+import Data.Text (Text)
 
 evid = Hex32 $ Hex.decodeLenient 
     "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65"
@@ -59,3 +60,10 @@ fromAmyth = fromJust . J.decode $
 pubamyth = Hex32 . Hex.decodeLenient $
     "394f5711480e96d231dfd4ed882547cae4e04474ef335fd0e60fb301e99ea2fb"
     -- encryptE me' pubamyth "domino" >>= castAll pool . Submit  
+
+
+bexample =  Hex32 . Hex.decodeLenient $
+    "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"
+
+banswer :: Text 
+banswer = "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6"

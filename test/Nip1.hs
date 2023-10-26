@@ -7,6 +7,7 @@ import Nostr.Keys
 import Nostr.Filter
 import Data.ByteString as BS
 import Data.Time.Clock.POSIX
+import Nostr.Beam
 
 nip1GetTest = do
     kp <- genKeyPair 
@@ -42,3 +43,5 @@ nip1GetTest = do
       it "matches until" $ shouldBe True (matchM wev (Until 1673347338))
       it "matches f" $ shouldBe True (matchF wev (emptyF{idsF = Just $ Ids ["437"]}))
       it "no matches f" $ shouldBe False (matchF wev (emptyF{idsF = Just $ Ids ["37"]}))
+      it "npubs work" $ shouldBe banswer (npub bexample)
+      it "npubs work 2" $ shouldBe bexample (xnpub banswer) 

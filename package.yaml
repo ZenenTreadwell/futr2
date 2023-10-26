@@ -30,6 +30,7 @@ dependencies:
 - bytestring
 - base16-bytestring
 - base64-bytestring
+- bech32
 - containers
 - aeson
 

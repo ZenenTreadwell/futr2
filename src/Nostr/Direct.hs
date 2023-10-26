@@ -33,7 +33,7 @@ encodeBase64 = convertToBase Base64
 decodeBase64 :: ByteString -> ByteString  
 decodeBase64 t = case convertFromBase Base64 t of 
     Right a -> a
-    _ -> error "cc"
+    _ -> error "invalid base64"
 
 type Msg = ByteString 
 type Iv = ByteString 
@@ -44,10 +44,9 @@ getShared :: Hex96 -> Hex32 -> IO Hex32
 getShared kp pu = do 
     se <- mallocBytes 32 
     (kp', 96) <- getPtr $ un96 kp 
-    keyPairSec ctx se kp' 
+    _ <- keyPairSec ctx se kp' 
     sh <- mallocBytes 32 
     ha <- hashPtr copyX
-    -- (pu', 33) <- getPtr . (Hex.decodeLenient "02" <>) . un32 $ pu
     (pu', 64) <- parsePub pu >>= getPtr . un64
     r <- ecdh ctx sh pu' se ha nullPtr  
     if r == 1 
@@ -108,13 +107,13 @@ unpad = BS.reverse . BS.dropWhile (==10) . BS.reverse
 prepare :: Hex32 -> ByteString -> IO AesCtx
 prepare sh iv = pure . AesCtx xo ox $ iv
     where 
-        xo :: AES256
-        xo = case cipherInit . un32 $ sh :: CryptoFailable AES256 of 
-            CryptoPassed a -> a 
-            _ -> error "ff"
-        ox :: IV AES256
-        ox = case makeIV iv of 
-            Just a -> a
-            _ -> error "gg" 
+    xo :: AES256
+    xo = case cipherInit . un32 $ sh :: CryptoFailable AES256 of 
+        CryptoPassed a -> a 
+        _ -> error "ff"
+    ox :: IV AES256
+    ox = case makeIV iv of 
+        Just a -> a
+        _ -> error "gg" 
 
 

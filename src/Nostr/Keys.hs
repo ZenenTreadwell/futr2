@@ -1,8 +1,9 @@
 module Nostr.Keys where 
 
 import Control.Monad
-import qualified Data.ByteString as BS
 import Data.ByteString.Base16 as Hex
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson as J
@@ -12,7 +13,22 @@ import Foreign.Ptr
 import Secp256k1.Internal 
 import Data.Text (Text)
 import Crypto.Hash.SHA256 as SHA256
-    
+import Codec.Binary.Bech32 as BECH
+
+npub :: Hex32 -> Text
+npub (Hex32 b) = 
+  let Right prefix = humanReadablePartFromText "npub"
+  in case BECH.encode prefix . dataPartFromBytes $ b of
+      Right t -> t
+      Left _ -> error "invalid npub"
+
+xnpub :: Text -> Hex32
+xnpub t = case BECH.decode t of 
+    Right (_, d) -> case dataPartToBytes d of 
+        Just s -> Hex32 s 
+        _ -> error "dataPart "
+    Left e -> error . show $ e
+ 
 newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show)
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
 newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
@@ -57,6 +73,8 @@ genKeyPair = do
     case ret of 
         1 -> Hex96 <$> packPtr (keypair, 96)
         _ -> undefined 
+
+
 
 exportPub :: Hex96 -> IO Hex32 
 exportPub (Hex96 bs) = do 
