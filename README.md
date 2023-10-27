@@ -12,27 +12,25 @@ run relay
 - `stack exec futr` 
 
 dependencies 
-
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
-- ...
 
-NIP Checklist ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
-wip (relay focus)
-- [x] 1 - base
+**NIP**list ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
+- [x] 1 - base (incl. 12, 16, 20, 33)
 - [x] 2 - contacts
 - [x] 4 - direct messages 
 - [x] 10 
 - [x] 45 - count
-- [x] 42 - auth
+- [x] 42 - authentication
 - [x] 13 - pow
-
-- [ ] 11 - relay-meta
+- [x] 40 - expiration
+- [ ] 9 - delete (stop serving deleted)
 - [ ] 19 - bech32 keys
+- [ ] 11 - relay-meta
 
 ... 
 
 database file futr.sqlite is created in the local directory   
 
-`bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9`
-
-
+tip the dev:
+- `bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9` (bitcoin)
+- `lno1pgz8getnwstzzqehd9zs2y36z2504hv42g7ucg6cnzknhq9qde9x8j3xlmtgm5x30s` (bolt12, lightning)
