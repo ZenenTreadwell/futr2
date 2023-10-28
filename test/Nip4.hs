@@ -64,10 +64,10 @@ getNip4Test = do
     dmsgAmyth <- decryptE mepriv fromAmyth
     
     return $ describe "nip 4" do 
-        it "extract iv" $ shouldBe 16 (BS.length . snd . extract . content . con $ e1)
+        it "extract iv" $ shouldBe 16 (BS.length . snd . fromJust . extract . content . con $ e1)
         it "shared secret ? " $ shouldBe sh1 sh2 
         it "always share nicely" $ shouldBe True (L.all id resultkx) 
         it "sometimes share nicely" $ shouldBe True (L.any id resultkx) 
-        it "domino" $ shouldBe "domino" doo 
-        it "domina" $ shouldBe "domina" dmsg1
-        it "DOMINO" $ shouldBe "DOMINO" dmsgAmyth
+        it "domino" $ shouldBe (Just "domino") doo 
+        it "domina" $ shouldBe (Just "domina") dmsg1
+        it "DOMINO" $ shouldBe (Just "DOMINO") dmsgAmyth

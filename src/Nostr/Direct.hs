@@ -11,7 +11,7 @@ import Data.Time.Clock.POSIX
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Data.Text.Encoding (decodeUtf8, decodeUtf8', encodeUtf8)
 import Crypto.Error
 import System.Entropy 
 import Foreign.Marshal.Alloc
@@ -23,6 +23,7 @@ import Data.ByteArray.Encoding
 import Data.ByteString.Base16 as Hex
 import Foreign.C
 import Foreign
+import Control.Exception as E
 
 encodeBase64' :: ByteString -> ByteString 
 encodeBase64' = B64.encode 
@@ -63,12 +64,14 @@ encryptE kp re msg = do
     let c = Content 4 [PTag re Nothing Nothing] m n 
     signE kp c
 
-decryptE :: Hex96 -> Event -> IO Text 
+decryptE :: Hex96 -> Event -> IO (Maybe Text) 
 decryptE kp (Event _ _ c) = do 
-    let (_ , iv) = extract . content $ c
-    sh <- getShared kp (pubkey c)
-    let ccc = createCtx sh iv
-    pure . T.dropWhileEnd (== '\n') $ decryptMsg ccc (content c)
+    case extract . content $ c of 
+        Just (_, iv) -> do 
+            sh <- getShared kp (pubkey c)
+            let ccc = createCtx sh iv
+            pure $ decryptMsg ccc (content c)
+        Nothing -> pure Nothing 
 
 createCtx :: Shared -> Iv -> AesCtx
 createCtx sh iv = AesCtx xo ox iv
@@ -88,14 +91,19 @@ encryptMsg (AesCtx xo ox iv) (pad -> m) = pure . decodeUtf8 $ fin
     msg = encodeBase64 $ cbcEncrypt xo ox m
     fin = msg <> "?iv=" <> encodeBase64 iv
 
-decryptMsg :: AesCtx -> Text -> Text  
-decryptMsg (AesCtx xo ox _) = 
-    decodeUtf8 . unpad  . cbcDecrypt xo ox . fst . extract
-
-extract :: Text -> (ByteString, ByteString) 
+decryptMsg :: AesCtx -> Text -> Maybe Text  
+decryptMsg (AesCtx xo ox _) t = do
+    msg <- fst <$> extract t
+    case decodeUtf8' . unpad  . cbcDecrypt xo ox $ msg of 
+        Left _ -> Nothing
+        Right m -> Just m
+        -- XXX paddings
+        
+    
+extract :: Text -> Maybe (ByteString, ByteString) 
 extract t = case T.splitOn "?iv=" t of 
-    [ m, iv ] -> (d m, d iv)
-    _ -> error "invalid content" 
+    [ m, iv ] -> Just (d m, d iv)
+    _ -> Nothing 
     where d = decodeBase64 . encodeUtf8 
 
 pad :: ByteString -> ByteString

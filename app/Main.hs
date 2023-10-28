@@ -94,11 +94,20 @@ main = do
     void . forever $ atomically (readTChan chan') >>= \c -> do   
         print . ("e : "<>) . content . con $ c
         print . ("p : "<>) . wq . pubkey . con $ c
-        x <- E.try $ if kind (con c) == 4 then decryptE me' c >>= print 
-                                          else pure () 
+        x <- E.try $ if    kind (con c) == 4 
+                        && getP (tags $ con c) == Just meep 
+                     then decryptE me' c >>= print 
+                     else pure () 
         case x of 
             Left (SomeException _) -> pure () 
             Right _ -> pure () 
+
+getP :: [Tag] -> Maybe Hex32 
+getP tx = case P.filter isPTag tx of 
+    (PTag x _ _) : _ -> Just x   
+    _ -> Nothing 
+    where isPTag (PTag{}) = True 
+          isPTag _ = False
 
 type Nip45 = Get '[JSON] Text 
 x :: Proxy Nip45
