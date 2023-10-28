@@ -87,8 +87,8 @@ relay db chan ws = do
 isSend :: Auth -> Event -> Bool
 isSend _ (Event _ _ Content{kind}) | kind /= 4 = True
 isSend (Left _) _ = False
-isSend (Right p) (Event _ _ Content{tags}) = case P.filter isPTag tags of 
-    (PTag x _ _) : _ -> x == p 
+isSend (Right p) (Event _ _ Content{tags, pubkey}) = case P.filter isPTag tags of 
+    (PTag x _ _) : _ -> x == p || pubkey == p
     _ -> False
     where 
     isPTag (PTag{}) = True
