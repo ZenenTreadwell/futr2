@@ -15,6 +15,7 @@ import Secp256k1.Internal
 import Nostr.Keys
 import Data.Function
 import Data.Int
+import Data.Text.Encoding
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -102,6 +103,7 @@ instance FromJSON Event where
 data Tag = 
       ETag Hex32 (Maybe Text) (Maybe Marker)
     | PTag Hex32 (Maybe Text) (Maybe Text) 
+    | ATag Replaceable (Maybe Text)
     | Nonce Int Int
     | Chal Text
     | Expiry Int64
@@ -111,6 +113,23 @@ data Tag =
 data Marker = Reply' | Root' | Mention'
     deriving (Eq, Show, Read, Generic)
     
+data Replaceable = Replaceable Int Hex32 (Maybe Text) 
+                   deriving (Eq, Show, Generic)
+
+instance FromJSON Replaceable where 
+    parseJSON = withText "replaceable" \t ->  
+        case T.splitOn ":" t of 
+            [qw -> Just k, qw -> Just p] -> pure $ Replaceable k p Nothing 
+            [qw -> Just k, qw -> Just p, ""] -> pure $ Replaceable k p Nothing
+            [qw -> Just k, qw -> Just p, Just -> d] -> pure $ Replaceable k p d
+            _ -> fail "invalid a tag"
+
+instance ToJSON Replaceable where 
+    toJSON (Replaceable (wq -> k) (wq -> p) Nothing) = String $ 
+        k <> ":" <> p <> ":" 
+    toJSON (Replaceable (wq -> k) (wq -> p) (Just d)) = String $ 
+        k <> ":" <> p <> ":" <> d 
+
 
 getNonce :: Value -> Parser Int
 getNonce v = case v of  
@@ -130,6 +149,8 @@ instance FromJSON Tag where
             String "p" -> PTag <$> parseJSON (a V.! 1) 
                                <*> traverse parseJSON (a V.!? 2) 
                                <*> traverse parseJSON (a V.!? 3)
+            String "a" -> ATag <$> parseJSON (a V.! 1)
+                               <*> traverse parseJSON (a V.!? 2)
             String "nonce" -> Nonce <$> n1 <*> n2 
             String "challenge" -> Chal <$> parseJSON (a V.! 1)
             String "expiration" -> Expiry . fromIntegral <$> n1
@@ -150,7 +171,6 @@ instance ToJSON Tag where
         (Nothing, Nothing) -> ee
         where 
         ee = [String "e", toJSON i]
-    toJSON (Expiry x) = toJSON [String "expiration", toJSON x]
     toJSON (PTag i mr mm) = toJSON case (mr, mm) of
         (Just r, Just p) -> pp <> [toJSON r, toJSON p]
         (Just r, Nothing) -> pp <> [toJSON r]
@@ -158,6 +178,12 @@ instance ToJSON Tag where
         (Nothing, Nothing) -> [String "p", toJSON i]
         where 
         pp = [String "p", toJSON i]
+    toJSON (ATag ref mr) = toJSON case mr of 
+        Just r -> aa <> [String r]
+        Nothing -> aa
+        where 
+        aa = [String "a", toJSON ref]
+    toJSON (Expiry x) = toJSON [String "expiration", toJSON x]
     toJSON (Tag a) = toJSON a                       
     toJSON (Nonce a i) = toJSON [String "nonce", toJSON a, toJSON i ]
     toJSON (Chal t) = toJSON [String "challenge", toJSON t]
@@ -173,3 +199,9 @@ instance ToJSON Marker where
     toJSON Reply' = String "reply"
     toJSON Root' = String "root"
     toJSON Mention' = String "mention"
+
+wq :: ToJSON a => a -> Text 
+wq = decodeUtf8 . BS.toStrict . J.encode 
+
+qw :: FromJSON a => Text -> Maybe a
+qw = J.decode . BS.fromStrict . encodeUtf8 

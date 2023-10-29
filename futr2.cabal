@@ -69,6 +69,7 @@ library
     , cryptohash-sha256
     , cryptonite
     , entropy
+    , fmt
     , hspec
     , memory
     , modern-uri
@@ -122,6 +123,7 @@ executable futr
     , cryptohash-sha256
     , cryptonite
     , entropy
+    , fmt
     , futr2
     , hspec
     , memory
@@ -183,6 +185,7 @@ test-suite futr2-test
     , cryptohash-sha256
     , cryptonite
     , entropy
+    , fmt
     , futr2
     , hspec
     , memory

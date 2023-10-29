@@ -23,6 +23,7 @@ dependencies:
 - transformers
 - async  
 - memory 
+- fmt
 
 ## data
 - text

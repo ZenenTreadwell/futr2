@@ -46,10 +46,6 @@ main :: IO ()
 main = do 
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    void . forkIO . run 9481 $ websocketsOr co 
-        (acceptRequest >=> relay o f) 
-        (serve x s) 
-    threadDelay 100000
 
     idents <- getIdentities o
     me' <- case idents of 
@@ -59,9 +55,11 @@ main = do
     print "me pub"
     meep <- exportPub me' 
     print . wq $ meep
+    void . forkIO . run 9481 $ websocketsOr co 
+        (acceptRequest >=> relay o f) 
+        (serve (Proxy :: Proxy Nip11) (n11 meep)) 
 
-    print "me priv"
-    print . wq $ me'
+    threadDelay 100000
 
     tv <- newTVarIO M.empty
 
@@ -74,21 +72,6 @@ main = do
              liveF sec 
            , emptyF{ptagF=Just (PTagM [meep])}
            ]
-    --     , emptyF{authorsF=Just (Authors ["5917"]) }
-    --     ]
-
-    -- threadDelay 1000000
-
-    -- let pubgossip = Hex32 . Hex.decodeLenient $ 
-    --                   "239bf80a7c0742bcc412b46ffba1975dec619592a011823071e3b491ce0338ae"
-    -- example create and broadcast kind 1
-    -- let kl = Content 1 [PTag pubgossip Nothing Nothing] "sigh nostr" sec 
-    -- eee <- signE me' kl 
-    -- castAll pool . Submit $ eee   
-
-    -- example create and broadcast kind 4
-    -- ee <- encryptE me' pubgossip "domino" 
-    -- castAll pool . Submit $ ee   
 
     chan' <- atomically . dupTChan $ f
     void . forever $ atomically (readTChan chan') >>= \c -> do   
@@ -109,15 +92,23 @@ getP tx = case P.filter isPTag tx of
     where isPTag (PTag{}) = True 
           isPTag _ = False
 
-type Nip45 = Get '[JSON] Text 
-x :: Proxy Nip45
-x = Proxy
-s :: Server Nip45
-s = return . decodeUtf8 . BS.toStrict . encode . object $ 
-    [ "name" .= (""::Text) 
-    , "description" .= (""::Text) 
-    , "pubkey" .= (""::Text) 
-    -- XXX configurable 
+
+none :: Text
+none = ""
+
+type Nip11 = Get '[JSON] Text 
+n11 :: Hex32 -> Server Nip11
+n11 pub = return . decodeUtf8 . BS.toStrict . encode . object $ 
+    -- XXX configurable ?  
+    [ "name" .= none 
+    , "description" .= none 
+    , "pubkey" .= wq pub 
+    , "contact" .= none
+    , "supported_nips" .= 
+         ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
+          :: [Int])
+    , "software" .= ("http://github.com/autonomousorganization/futr2" :: Text) 
+    , "version" .= ("0.0.0.0" :: Text)
     ]
 
 co :: ConnectionOptions

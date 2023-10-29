@@ -16,6 +16,7 @@ dependencies
 
 **NIP**list ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
 - [x] 1 - base (incl. 12, 16, 20, 33)
+- [x] 11 - relay-meta (edit in app/Main if desired)
 - [x] 2 - contacts
 - [x] 4 - direct messages 
 - [x] 10 
@@ -25,7 +26,6 @@ dependencies
 - [x] 40 - expiration
 - [ ] 9 - delete (stop serving deleted)
 - [ ] 19 - bech32 keys
-- [ ] 11 - relay-meta
 
 ... 
 

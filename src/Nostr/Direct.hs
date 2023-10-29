@@ -99,18 +99,17 @@ decryptMsg (AesCtx xo ox _) t = do
         Right m -> Just m
         -- XXX paddings
         
+pad :: ByteString -> ByteString
+pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 10
+
+unpad :: ByteString -> ByteString 
+unpad = BS.reverse . BS.dropWhile (==10) . BS.reverse
     
 extract :: Text -> Maybe (ByteString, ByteString) 
 extract t = case T.splitOn "?iv=" t of 
     [ m, iv ] -> Just (d m, d iv)
     _ -> Nothing 
     where d = decodeBase64 . encodeUtf8 
-
-pad :: ByteString -> ByteString
-pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 10
-
-unpad :: ByteString -> ByteString 
-unpad = BS.reverse . BS.dropWhile (==10) . BS.reverse
 
 prepare :: Hex32 -> ByteString -> IO AesCtx
 prepare sh iv = pure . AesCtx xo ox $ iv

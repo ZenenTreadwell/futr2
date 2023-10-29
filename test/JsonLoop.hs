@@ -12,6 +12,7 @@ import Nostr.Wire
 
 runLoops :: IO () 
 runLoops = do 
+    quickCheck . label "loop replaceable" $ (loops :: Replaceable -> Bool)
     quickCheck . label "loop event" $ (loops :: Event -> Bool) 
     quickCheck $ label "loop filter" $ (loops :: Filter -> Bool) 
     quickCheck . label "loop down" $ (loops :: Down -> Bool)
@@ -46,10 +47,13 @@ instance Arbitrary Tag where
   arbitrary = oneof [ 
                       PTag <$> arbitrary <*> pure (Just "rrr") <*> arbitrary
                     , Nonce <$> arbitrary <*> arbitrary
+                    , ATag <$> arbitrary <*> arbitrary
 
                     -- , AZTag <$> arbitrary <*> arbitrary 
                     ] 
-
+instance Arbitrary Replaceable where 
+  arbitrary = Replaceable <$> arbitrary <*> arbitrary <*> (oneof 
+    [ pure (Just "test"), pure Nothing ] ) 
 
 genUnicodeChar :: Gen Char
 genUnicodeChar = toEnum <$> choose (0, fromEnum (maxBound :: Char))

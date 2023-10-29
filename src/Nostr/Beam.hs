@@ -71,11 +71,12 @@ insertPl conn e@(Event i _ (Content{..})) =
         $ runUpdate
         $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
 
-data InsMode = Regular | Replace | ParReplace deriving (Show)
+data InsMode = Regular | Replace | ParReplace | Delete deriving (Show)
 
 insMode :: Event -> InsMode 
 insMode e = case kind . con $ e of
     0 -> Replace 
+    5 -> Delete
     ((<10000) -> True) -> Regular
     ((<20000) -> True) -> Replace
     ((<30000) -> True) -> Regular 
@@ -105,6 +106,7 @@ insertEv conn e@(Event i _ (Content{..})) = do
                                      onConflictDoNothing
         case insMode e of 
             Regular -> pure ()  
+            Delete -> pure () 
             Replace -> do 
                 e' :: Maybe Text <- runSelectReturningOne $ select do
                     ee <- all_ (_events spec')
@@ -193,11 +195,6 @@ calcExpiry e = case L.filter isExp . tags . con $ e of
 fifteen :: NominalDiffTime
 fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
 
-wq :: ToJSON a => a -> Text 
-wq = decodeUtf8 . BS.toStrict . encode 
-
-qw :: FromJSON a => Text -> Maybe a
-qw = decode . BS.fromStrict . encodeUtf8 
 
 insertId :: Connection -> ByteString -> IO ()
 insertId conn privKey = runBeamSqlite conn $
