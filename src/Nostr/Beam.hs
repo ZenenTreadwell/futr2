@@ -113,7 +113,14 @@ insertEv conn e@(Event i _ (Content{..})) = do
                         (PlebId (val_ $ wq pubkey) ==. _pub e')
                         (val_ (wq ee) ==. _eid e')
                     )    
-                ATag (Replaceable k _ md) _ -> pure () 
+                ATag (Replaceable k _ md) _ -> case md of 
+                    Nothing -> runUpdate $ B.update (_events spec')
+                        (\e' -> _expires e' <-. (val_ $ mxpiry 1337) ) 
+                        (\e' ->     _kind e' ==. val_ (fromIntegral k)
+                                &&. (PlebId (val_ $ wq pubkey) ==. _pub e')
+                        )
+                    Just d -> do 
+                        pure ()
                 _ -> pure () 
             Replace -> do 
                 e' :: Maybe Text <- runSelectReturningOne $ select do
