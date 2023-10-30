@@ -21,6 +21,7 @@ import Database.Beam.Sqlite
 import Database.Beam.Migrate
 import Database.Beam.Backend.SQL
 import Database.Beam.Sqlite.Syntax
+import Data.Text as T
 
 getDbTest = do 
     kp <- genKeyPair 
@@ -37,12 +38,12 @@ getDbTest = do
                     sec
                     
     let keyless3 = Content 33333 
-                    [AZTag 'd' "butterflies"] 
+                    [AZTag 'd' "butts"] 
                     "first"
                     sec
 
     let keyless4 = Content 33333
-                    [AZTag 'd' "butterflies"] 
+                    [AZTag 'd' "butts"] 
                     "second"
                     sec
                     
@@ -51,11 +52,14 @@ getDbTest = do
                     "first"
                     sec
 
+    let keyless6 = Content 1 [] "oops" sec
+
     mE <- signE kp keyless 
     mE2 <- signE kp keyless2 
     mE3 <- signE kp keyless3 
     mE4 <- signE kp keyless4 
     mE5 <- signE kp keyless5
+    mE6 <- signE kp keyless6
     o <- open "./futr.sqlite" 
     f <- createDb o
     insertEv o wev
@@ -64,12 +68,13 @@ getDbTest = do
     insertEv o mE3
     insertEv o mE4
     insertEv o mE5
+    insertEv o mE6
     return $ describe "database queries" do 
        it "replacable" $ do 
-          f' <- content . con . head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
+          f' <- content . con . P.head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
           shouldBe "second" f'
        it "parameterized replaceable" $ do 
-          f' <- content . con . head <$> fetch o emptyF{kindsF=(Just . Kinds $ [33333])}
+          f' <- content . con . P.head <$> fetch o emptyF{kindsF=(Just . Kinds $ [33333])}
           shouldBe "second" f'
       
        it "expires shortly?" $ do  
@@ -94,6 +99,21 @@ getDbTest = do
               ex <- fetch o fi
               c : _ <- countFx o fi 
               shouldBe (fromIntegral c) (P.length ex)
+
+       it "deletes by etag" $ do 
+           mE7 <- signE kp $ Content 5 [ETag (eid mE6) Nothing Nothing] "oooops" sec
+           insertEv o mE7
+           aFx <- P.length 
+                  <$> fetch o emptyF{ idsF=Just (Ids [T.take 19 . T.drop 1 . wq $ eid mE6]) }
+           shouldBe 0 aFx
+       it "deletes by atag" $ do 
+           mE8 <- signE kp $ Content 5 [ATag (Replaceable 33333 p1 (Just "butts")) Nothing] "oooops" sec
+           insertEv o mE8 
+           
+           aFx <- P.length 
+                  <$> fetch o emptyF{aztagF = [AZTag 'd' "butts" ] }
+           aFx `shouldBe` 0
+        
           
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
 

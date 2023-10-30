@@ -24,7 +24,7 @@ dependencies
 - [x] 42 - authentication
 - [x] 13 - pow
 - [x] 40 - expiration
-- [ ] 9 - delete (stop serving deleted)
+- [x] 9 - delete (stop serving deleted)
 - [ ] 19 - bech32 keys
 
 ... 
