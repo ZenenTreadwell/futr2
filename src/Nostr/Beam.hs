@@ -44,6 +44,7 @@ import Data.ByteString.Char8 as BS8
 import Control.Concurrent
 import Data.Time.Clock.POSIX
 import Data.Functor.Identity 
+import Data.Foldable as F
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
@@ -107,20 +108,16 @@ insertEv conn e@(Event i _ (Content{..})) = do
         case insMode e of 
             Regular -> pure ()  
             Delete -> forM_ tags \case 
-                ETag (wq -> ee) _ _ -> runUpdate $ B.update (_events spec') 
-                    (\e' -> _expires e' <-. (val_ $ mxpiry 1337) ) 
-                    (\e' -> (&&.)  
-                        (PlebId (val_ $ wq pubkey) ==. _pub e')
-                        (val_ (wq ee) ==. _eid e')
-                    )    
+                ETag (wq -> ee) _ _ -> retireByEid pubkey ee
                 ATag (Replaceable k _ md) _ -> case md of 
                     Nothing -> runUpdate $ B.update (_events spec')
-                        (\e' -> _expires e' <-. (val_ $ mxpiry 1337) ) 
+                        (\e' -> _expires e' <-. val_ (mxpiry 1337) ) 
                         (\e' ->     _kind e' ==. val_ (fromIntegral k)
                                 &&. (PlebId (val_ $ wq pubkey) ==. _pub e')
                         )
                     Just d -> do 
-                        pure ()
+                        me <- replLook k pubkey (AZTag 'd' d)  
+                        for_ me (retireByEid pubkey)
                 _ -> pure () 
             Replace -> do 
                 e' :: Maybe Text <- runSelectReturningOne $ select do
@@ -128,27 +125,13 @@ insertEv conn e@(Event i _ (Content{..})) = do
                     guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
                     guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
                     pure . _eid $ ee
-                case e' of 
-                    Just ee' -> removeEv ee'
-                    _ -> pure ()
+                for_ e' removeEv 
             ParReplace -> do 
-                let mfirstD = listToMaybe . P.filter isD $ tags  
+                let mfirstD = F.find isD $ tags  
                 e' <- case mfirstD of 
-                    Just (AZTag c t) -> do 
-                        runSelectReturningOne $ select do
-                            ee <- all_ (_events spec')
-                            let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-                            ref <- filter_ 
-                                       (\rf ->  val_ azid ==. _azref rf) 
-                                       (all_ (_azt spec'))
-                            guard_ (_iieid ref `references_` ee)
-                            guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
-                            guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
-                            pure . _eid $ ee
+                    Just z -> replLook kind pubkey z
                     _ -> pure Nothing 
-                case e' of 
-                    Just ee' -> removeEv ee'
-                    _ -> pure ()
+                for_ e' removeEv
         runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
         mapM_ insertTz tags 
     where 
@@ -176,6 +159,32 @@ insertEv conn e@(Event i _ (Content{..})) = do
     
     mention :: Hex32 -> MentionT (QExpr Sqlite m) 
     mention id' = Mention default_ (val_ . EvId . wq $ i) (val_ . wq $ id') 
+
+retireByEid :: Hex32 -> Text -> SqliteM () 
+retireByEid pubkey ee = runUpdate $ B.update (_events spec') 
+    (\e' -> _expires e' <-. val_ (mxpiry 1337) ) 
+    (\e' -> (&&.)  
+        (PlebId (val_ $ wq pubkey) ==. _pub e')
+        (val_ (wq ee) ==. _eid e')
+    )    
+
+replLook :: Int -> Hex32 -> Tag -> SqliteM (Maybe Text) 
+replLook kind pubkey (AZTag c t) =  
+                        runSelectReturningOne $ select do
+                            ee <- all_ (_events spec')
+                            let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+                            ref <- filter_ 
+                                       (\rf ->  val_ azid ==. _azref rf) 
+                                       (all_ (_azt spec'))
+                            guard_ (_iieid ref `references_` ee)
+                            guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
+                            guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
+                            pure . _eid $ ee
+replLook _ _ _ = pure Nothing 
+
+
+
+
 
 into b = runInsert . B.insert b . insertExpressions
 
