@@ -7,6 +7,7 @@ import Data.Aeson as J
 import Data.Aeson.Types
 import qualified Data.Vector as V
 import Data.Text as T
+import qualified Data.Text.Lazy as LT
 import Data.Char
 import GHC.Generics 
 import Foreign.Marshal.Alloc
@@ -16,6 +17,7 @@ import Nostr.Keys
 import Data.Function
 import Data.Int
 import Data.Text.Encoding
+import Data.Aeson.Text
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -103,7 +105,7 @@ instance FromJSON Event where
 data Tag = 
       ETag Hex32 (Maybe Text) (Maybe Marker)
     | PTag Hex32 (Maybe Text) (Maybe Text) 
-    | ATag Replaceable (Maybe Text)
+    | ATag ARef (Maybe Text)
     | Nonce Int Int
     | Chal Text
     | Expiry Int64
@@ -113,21 +115,23 @@ data Tag =
 data Marker = Reply' | Root' | Mention'
     deriving (Eq, Show, Read, Generic)
     
-data Replaceable = Replaceable Int Hex32 (Maybe Text) 
+data ARef = ARef Int Hex32 (Maybe Text) 
                    deriving (Eq, Show, Generic)
 
-instance FromJSON Replaceable where 
+instance FromJSON ARef where 
     parseJSON = withText "replaceable" \t ->  
         case T.splitOn ":" t of 
-            [qw -> Just k, qw -> Just p] -> pure $ Replaceable k p Nothing 
-            [qw -> Just k, qw -> Just p, ""] -> pure $ Replaceable k p Nothing
-            [qw -> Just k, qw -> Just p, Just -> d] -> pure $ Replaceable k p d
-            _ -> fail "invalid a tag"
+            [a, b] -> makeAR a b Nothing
+            [a, b, ""] -> makeAR a b Nothing
+            [a, b, c] -> makeAR a b (Just c)
+            _ -> fail "Invalid ARef"
+        where makeAR a b mc = flip (ARef (read $ T.unpack a)) mc  
+                              <$> parseJSON (String b)
 
-instance ToJSON Replaceable where 
-    toJSON (Replaceable (wq -> k) (wq -> p) Nothing) = String $ 
+instance ToJSON ARef where 
+    toJSON (ARef (wq -> k) (wq -> p) Nothing) = String $ 
         k <> ":" <> p <> ":" 
-    toJSON (Replaceable (wq -> k) (wq -> p) (Just d)) = String $ 
+    toJSON (ARef (wq -> k) (wq -> p) (Just d)) = String $ 
         k <> ":" <> p <> ":" <> d 
 
 
@@ -201,7 +205,9 @@ instance ToJSON Marker where
     toJSON Mention' = String "mention"
 
 wq :: ToJSON a => a -> Text 
-wq = decodeUtf8 . BS.toStrict . J.encode 
+wq (toJSON -> a) = case a of 
+    String s -> s 
+    _ -> (LT.toStrict . encodeToLazyText) a
 
 qw :: FromJSON a => Text -> Maybe a
 qw = J.decode . BS.fromStrict . encodeUtf8 

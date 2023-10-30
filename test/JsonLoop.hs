@@ -12,7 +12,7 @@ import Nostr.Wire
 
 runLoops :: IO () 
 runLoops = do 
-    quickCheck . label "loop replaceable" $ (loops :: Replaceable -> Bool)
+    quickCheck . label "loop replaceable" $ (loops :: ARef -> Bool)
     quickCheck . label "loop event" $ (loops :: Event -> Bool) 
     quickCheck $ label "loop filter" $ (loops :: Filter -> Bool) 
     quickCheck . label "loop down" $ (loops :: Down -> Bool)
@@ -51,8 +51,8 @@ instance Arbitrary Tag where
 
                     -- , AZTag <$> arbitrary <*> arbitrary 
                     ] 
-instance Arbitrary Replaceable where 
-  arbitrary = Replaceable <$> arbitrary <*> arbitrary <*> (oneof 
+instance Arbitrary ARef where 
+  arbitrary = ARef <$> arbitrary <*> arbitrary <*> (oneof 
     [ pure (Just "test"), pure Nothing ] ) 
 
 genUnicodeChar :: Gen Char

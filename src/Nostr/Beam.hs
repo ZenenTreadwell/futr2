@@ -109,7 +109,7 @@ insertEv conn e@(Event i _ (Content{..})) = do
             Regular -> pure ()  
             Delete -> forM_ tags \case 
                 ETag (wq -> ee) _ _ -> retireByEid pubkey ee
-                ATag (Replaceable k _ md) _ -> case md of 
+                ATag (ARef k _ md) _ -> case md of 
                     Nothing -> runUpdate $ B.update (_events spec')
                         (\e' -> _expires e' <-. val_ (mxpiry 1337) ) 
                         (\e' ->     _kind e' ==. val_ (fromIntegral k)
@@ -170,16 +170,16 @@ retireByEid pubkey ee = runUpdate $ B.update (_events spec')
 
 replLook :: Int -> Hex32 -> Tag -> SqliteM (Maybe Text) 
 replLook kind pubkey (AZTag c t) =  
-                        runSelectReturningOne $ select do
-                            ee <- all_ (_events spec')
-                            let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
-                            ref <- filter_ 
-                                       (\rf ->  val_ azid ==. _azref rf) 
-                                       (all_ (_azt spec'))
-                            guard_ (_iieid ref `references_` ee)
-                            guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
-                            guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
-                            pure . _eid $ ee
+    runSelectReturningOne $ select do
+        ee <- all_ (_events spec')
+        let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
+        ref <- filter_ 
+                   (\rf ->  val_ azid ==. _azref rf) 
+                   (all_ (_azt spec'))
+        guard_ (_iieid ref `references_` ee)
+        guard_ $ _pub ee ==. (val_ . PlebId . wq $ pubkey)
+        guard_ $ _kind ee ==. (val_ . (fromIntegral :: Int -> Int32) $ kind)
+        pure . _eid $ ee
 replLook _ _ _ = pure Nothing 
 
 
@@ -279,13 +279,13 @@ getQf Filter{..} =
         guard_ $ fromMaybe_ currentTimestamp_ (_expires e) >=. currentTimestamp_ 
         
         case idsF of 
-            Just (Ids (P.map (val_ . ("\""<>). (<>"%")) -> px)) -> 
+            Just (Ids (P.map (val_ . (<>"%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ (_eid e)) 
                                  (val_ False) px 
             _ -> pure () 
         
         case authorsF of 
-            Just (Authors (P.map (val_ . ("\""<>). (<> "%")) -> px)) -> 
+            Just (Authors (P.map (val_ . (<> "%")) -> px)) -> 
                 guard_ $ P.foldr ((||.) . like_ ((\(PlebId p) -> p) $ _pub e)) 
                                  (val_ False) px
             _ -> pure () 

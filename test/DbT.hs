@@ -98,7 +98,7 @@ getDbTest = do
           it "got expected count" $ do 
               ex <- fetch o fi
               c : _ <- countFx o fi 
-              shouldBe (fromIntegral c) (P.length ex)
+              fromIntegral c `shouldBe` P.length ex
 
        it "deletes by etag" $ do 
            mE7 <- signE kp $ Content 5 [ETag (eid mE6) Nothing Nothing] "oooops" sec
@@ -107,7 +107,7 @@ getDbTest = do
                   <$> fetch o emptyF{ idsF=Just (Ids [T.take 19 . T.drop 1 . wq $ eid mE6]) }
            shouldBe 0 aFx
        it "deletes by atag" $ do 
-           mE8 <- signE kp $ Content 5 [ATag (Replaceable 33333 p1 (Just "butts")) Nothing] "oooops" sec
+           mE8 <- signE kp $ Content 5 [ATag (ARef 33333 p1 (Just "butts")) Nothing] "oooops" sec
            insertEv o mE8 
            
            aFx <- P.length 
@@ -134,7 +134,4 @@ ff = P.zip
     , "PTags"
     , "Kind 0"
     , "t tag" 
-    
-    -- , "Since"
-    -- , "Until"
    ]
