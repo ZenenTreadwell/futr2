@@ -106,7 +106,15 @@ insertEv conn e@(Event i _ (Content{..})) = do
                                      onConflictDoNothing
         case insMode e of 
             Regular -> pure ()  
-            Delete -> pure () 
+            Delete -> forM_ tags \case 
+                ETag (wq -> ee) _ _ -> runUpdate $ B.update (_events spec') 
+                    (\e' -> _expires e' <-. (val_ $ mxpiry 1337) ) 
+                    (\e' -> (&&.)  
+                        (PlebId (val_ $ wq pubkey) ==. _pub e')
+                        (val_ (wq ee) ==. _eid e')
+                    )    
+                ATag (Replaceable k _ md) _ -> pure () 
+                _ -> pure () 
             Replace -> do 
                 e' :: Maybe Text <- runSelectReturningOne $ select do
                     ee <- all_ (_events spec')
@@ -173,13 +181,14 @@ toEv x e = Ev
       x
       (wq e)
 
+
+mxpiry :: Int64 -> Maybe LocalTime
+mxpiry = Just . zonedTimeToLocalTime  . utcToZonedTime utc 
+              . posixSecondsToUTCTime . realToFrac 
+
 calcExpiry :: Event -> IO (Maybe LocalTime)
 calcExpiry e = case L.filter isExp . tags . con $ e of 
-    (Expiry x) : _ -> pure . Just 
-                           . zonedTimeToLocalTime 
-                           . utcToZonedTime utc 
-                           . posixSecondsToUTCTime 
-                           . realToFrac $ x
+    (Expiry x) : _ -> pure . mxpiry $ x 
     _ -> case kind . con $ e of 
         (isEphemeral -> True) -> do 
             zo <- getCurrentTimeZone
