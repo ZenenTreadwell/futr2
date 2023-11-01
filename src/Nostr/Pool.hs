@@ -1,20 +1,15 @@
 module Nostr.Pool where 
 
 import Prelude as P
-import Control.Exception as E
 import Control.Concurrent
 import Network.WebSockets as WS
-import Network.Connection as C 
-import Network.TLS as TLS
 import Wuss
 import Database.SQLite.Simple as SQL
 import Text.URI as URI
 import Data.Text as T
-import Data.Time.Clock.POSIX
 import Control.Concurrent.STM.TChan
 import Control.Concurrent.STM.TVar
 import Control.Concurrent.Async
-import Control.Monad.Trans.Maybe
 import GHC.Conc
 import Data.Aeson
 import Control.Monad
@@ -52,27 +47,23 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
     
     downer :: Down -> IO ()
     downer = \case  
-        See _ e@(Event _ _ (Content{kind})) -> do  
+        See _ e -> do  
             trust <- verifyE e 
-            -- XXX kind 
             when trust (void $ insertEv db e)
-        Live _ -> print "--------live"
+        Live l -> print $ "--------live " <> l
         Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
         Notice note -> print $ "note:" <> note 
         Challenge t -> do
             e <- authenticate kp uri t
             atomically $ writeTChan ch (Auth e)  
-            print "sent auth (rec challenge)"
         CountD _ _ -> pure () 
      
 byeRelay :: Pool -> URI -> IO ()
-byeRelay p@(Pool tv _ kp) uri = do
-    tv' <- atomically $ readTVar tv  
-    case M.lookup uri tv' of 
-        Just (Feed uch trd) -> do  
-            atomically . writeTVar tv $ M.delete uri tv'
-            killThread trd 
-        _ -> pure () 
+byeRelay (Pool tv _ _) uri = do
+    tv' <- readTVarIO tv  
+    for_ (M.lookup uri tv') \(Feed _ t) -> do  
+        atomically . writeTVar tv $ M.delete uri tv'
+        killThread t 
 
 castAll :: Pool -> Up -> IO () 
 castAll (Pool tv _ _) u = do 
@@ -99,7 +90,6 @@ signCastOne p@(Pool tv _ kp) uri kl = do
     castOne p uri u
 
 
-    
 checkUri :: URI -> Maybe (ClientApp () -> IO ())
 checkUri uri = do 
     sch <- unRText <$> uriScheme uri 

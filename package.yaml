@@ -18,22 +18,21 @@ dependencies:
 ## control
 - time
 - entropy
-- stm 
+- memory 
 - mtl
 - transformers
+- stm 
 - async  
-- memory 
-- fmt
 
 ## data
 - text
 - vector 
 - bytestring
+- containers
+- aeson
 - base16-bytestring
 - base64-bytestring
 - bech32
-- containers
-- aeson
 
 ## network 
 - wuss

@@ -20,10 +20,6 @@ import Secp256k1.Internal
 import Nostr.Keys
 import Nostr.Event
 import Data.ByteArray.Encoding
-import Data.ByteString.Base16 as Hex
-import Foreign.C
-import Foreign
-import Control.Exception as E
 
 encodeBase64' :: ByteString -> ByteString 
 encodeBase64' = B64.encode 

@@ -3,7 +3,6 @@ module Nostr.Keys where
 import Control.Monad
 import Data.ByteString.Base16 as Hex
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Aeson as J
@@ -12,7 +11,6 @@ import Foreign.Marshal.Alloc
 import Foreign.Ptr
 import Secp256k1.Internal 
 import Data.Text (Text)
-import Crypto.Hash.SHA256 as SHA256
 import Codec.Binary.Bech32 as BECH
 
 npub :: Hex32 -> Text

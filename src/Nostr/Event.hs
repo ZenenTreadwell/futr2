@@ -14,7 +14,6 @@ import Foreign.Marshal.Alloc
 import qualified Crypto.Hash.SHA256 as SHA256
 import Secp256k1.Internal
 import Nostr.Keys
-import Data.Function
 import Data.Int
 import Data.Text.Encoding
 import Data.Aeson.Text

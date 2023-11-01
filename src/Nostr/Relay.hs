@@ -1,14 +1,15 @@
 module Nostr.Relay where 
 
 import Prelude as P
-import qualified Data.Text as T
 import Control.Exception as E
 import Control.Concurrent.Async
 import Control.Concurrent.STM.TChan
 import Network.WebSockets as WS
 import Database.SQLite.Simple as SQL
+import Control.Monad.IO.Class
 import Data.Aeson as J
 import Data.ByteString.Lazy as LB
+import Data.ByteString as BS
 import Data.List as L
 import Data.Text (Text)
 import Data.Map.Strict as M 
@@ -26,10 +27,39 @@ import System.Entropy
 import Control.Monad.Trans.Maybe
 import Data.Text.Encoding
 import qualified Data.ByteString.Base16 as Hex
+import Servant.API
+import Servant.Server
+import Data.Proxy
+import Network.Wai.Handler.Warp as W
+import Network.Wai.Handler.WebSockets
 
 type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 type Auth = Either Text Hex32
+
+type Nip11 = Get '[JSON] Text 
+n11 :: Server Nip11
+n11 = do 
+    return . decodeUtf8 . BS.toStrict . encode . object $ [ 
+          "name" .=+ ""
+        , "description" .=+ "" 
+        , "pubkey" .=+ "" 
+        , "contact" .=+ ""
+        , "supported_nips" .= 
+             ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
+              :: [Int])
+        , "software" .=+ "http://github.com/autonomousorganization/futr2"  
+        , "version" .=+ "0.0.0.0"
+        ]
+    where 
+    (.=+) :: KeyValue k => Key -> Text -> k 
+    (.=+) = (.=)
+
+runRelay :: Port -> SQL.Connection -> TChan Event -> IO ()
+runRelay p o f = W.run p $ websocketsOr defaultConnectionOptions 
+    (acceptRequest >=> relay o f) 
+    (serve (Proxy :: Proxy Nip11) n11) 
+
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do

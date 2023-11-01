@@ -7,7 +7,6 @@ import Nostr.Keys
 import Text.URI
 import Data.Bits
 import Data.Text (Text)
-import Data.Word
 import Data.Aeson
 import Data.Time.Clock.POSIX
 import Data.Vector as V

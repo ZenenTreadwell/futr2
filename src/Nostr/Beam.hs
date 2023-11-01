@@ -11,20 +11,16 @@
 module Nostr.Beam where
 
 import Prelude as P
-import Numeric
 import Database.Beam as B
 import Database.Beam.Sqlite
 import Database.SQLite.Simple as SQL
 import Database.Beam.Migrate.Simple
 import Database.Beam.Backend.SQL.BeamExtensions
 import Database.Beam.Sqlite.Migrate (migrationBackend)
-import Data.Text (Text)
 import Data.Time
-import Data.Time.Clock
 import Data.Text as T
 import Data.List as L 
 import Data.Maybe
-import Data.Text.Encoding 
 import qualified Data.ByteString as BS 
 import Nostr.Event
 import Nostr.Filter
@@ -32,18 +28,14 @@ import Nostr.Keys
 import Data.Aeson
 import Data.Int
 import Nostr.Db
-import Data.Maybe
 import Control.Monad.State
 import Control.Monad.STM
 import Control.Exception
 import Control.Concurrent.STM.TChan
 import Database.SQLite.Simple.Function as SQL
 import Crypto.Hash.SHA256 as SHA256
-import qualified Data.ByteString.Base16 as Hex
 import Data.ByteString.Char8 as BS8
-import Control.Concurrent
 import Data.Time.Clock.POSIX
-import Data.Functor.Identity 
 import Data.Foldable as F
 
 createDb :: SQL.Connection -> IO (TChan Event) 
@@ -182,10 +174,6 @@ replLook kind pubkey (AZTag c t) =
         pure . _eid $ ee
 replLook _ _ _ = pure Nothing 
 
-
-
-
-
 into b = runInsert . B.insert b . insertExpressions
 
 toEv :: Maybe LocalTime -> Event -> EvT Identity 
@@ -219,7 +207,6 @@ calcExpiry e = case L.filter isExp . tags . con $ e of
     
 fifteen :: NominalDiffTime
 fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
-
 
 insertId :: Connection -> ByteString -> IO ()
 insertId conn privKey = runBeamSqlite conn $
@@ -319,7 +306,7 @@ getQf Filter{..} =
                 guard_ $ (_time e <. val_ u )
             _ -> pure () 
 
-        flip mapM_ aztagF \case 
+        forM_ aztagF \case 
             AZTag c t -> do  
                 let azid = SHA256.hash  . BS.toStrict  . encode  $ (c,t)
                 ref <- filter_ (\rf -> val_ azid ==. _azref rf) (all_ (_azt spec'))

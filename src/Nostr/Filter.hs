@@ -12,10 +12,6 @@ import GHC.Generics
 import Nostr.Event 
 import Nostr.Keys
 
-unString :: Value -> Text
-unString (String t) = t 
-unString _ = undefined 
-
 matchFx :: Event -> [Filter] -> Bool 
 matchFx = any . matchF 
 
@@ -83,11 +79,11 @@ class Matchable a where
     matchM :: Event -> a -> Bool
 
 instance Matchable Ids where 
-    matchM e (Ids tx) = any (flip T.isPrefixOf (unString . toJSON . eid $ e)) tx
+    matchM e (Ids tx) = any (flip T.isPrefixOf (wq . eid $ e)) tx
 
 instance Matchable Authors where
     matchM e (Authors ax) = any 
-        (flip T.isPrefixOf (unString . toJSON . pubkey . con $ e)) ax  
+        (flip T.isPrefixOf (wq . pubkey . con $ e)) ax  
 
 instance Matchable Kinds where 
     matchM e (Kinds kx) = any (== (kind . con $ e)) kx
@@ -148,15 +144,15 @@ instance FromJSON Filter where
       where 
       buildFilter :: Object -> Parser Filter
       buildFilter o = Filter 
-          <$> (o .:? "ids")    
-          <*>  (o .:? "authors")
-          <*>  (o .:? "kinds")
-          <*>   o .:? "#e"
-          <*>   o .:? "#p"
-          <*>   o .:? "since"
-          <*>   o .:? "until"
-          <*>   getTags o
-          <*>   o .:? "limit"       
+          <$> o .:? "ids"    
+          <*> o .:? "authors"
+          <*> o .:? "kinds"
+          <*> o .:? "#e"
+          <*> o .:? "#p"
+          <*> o .:? "since"
+          <*> o .:? "until"
+          <*> getTags o
+          <*> o .:? "limit"       
     
 getTags :: Object -> Parser [Tag]
 getTags a =  
