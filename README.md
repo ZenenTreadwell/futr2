@@ -4,17 +4,16 @@
   
 ~ [prolic of futr](https://github.com/prolic/futr)
 
-types for interacting with nostr relays and relay implementation 
+Install the dependencies 
+- [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
+- [SDL2 and GLEW](https://github.com/fjvallarino/monomer/blob/main/docs/tutorials/00-setup.md#libraries-sdl2-and-glew)
 
-run relay     
-
+Run     
 - `stack build` 
+- `stack test`
 - `stack exec futr` 
 
-dependencies 
-- [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
-
-**NIP**list ([Nostr Improvement Possibilities](https://github.com/nostr-protocol/nips))
+[Nostr #s](https://github.com/nostr-protocol/nips)
 - [x] 1 - base (incl. 12, 16, 20, 33)
 - [x] 11 - relay-meta (edit in app/Main if desired)
 - [x] 2 - contacts
@@ -26,10 +25,7 @@ dependencies
 - [x] 40 - expiration
 - [x] 9 - delete (stop serving deleted)
 - [ ] 19 - bech32 keys
-
-... 
-
-database file futr.sqlite is created in the local directory   
+- [ ] . . . . . 
 
 tip the dev:
 - `bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9` (bitcoin)

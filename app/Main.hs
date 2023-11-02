@@ -43,6 +43,20 @@ main = do
     forkIO $ runRelay 9481 o f 
 
     void $ start o f 
+    idents <- getIdentities o
+    k <- case idents of 
+        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+        me : _ -> pure me
+    u <- exportPub k
+    p <- poolParty
+
+    let pool :: Pool = p o k 
+    sec :: Integer <- round <$> getPOSIXTime
+    mapM_ (addRelay pool) defaultRelay
+    castAll pool $ Subscribe "a" [ 
+             liveF sec 
+           , emptyF{ptagF=Just (PTagM [u])}
+           ]
 
     threadDelay maxBound
 

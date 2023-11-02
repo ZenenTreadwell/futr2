@@ -22,6 +22,11 @@ import Nostr.Auth
 import Data.Map as M
 import Data.Foldable
 
+
+poolParty :: IO (SQL.Connection -> Hex96 -> Pool)
+poolParty = Pool <$>  newTVarIO M.empty
+
+
 data Pool = Pool (TVar (M.Map URI Feed)) SQL.Connection Hex96
 
 data Feed = Feed (TChan Up) ThreadId
