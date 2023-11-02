@@ -34,9 +34,15 @@ import Data.Map as M
 import Control.Concurrent.STM.TVar
 import Nostr.Pool
 import Control.Exception as E
+import Nostr.Gui
 
 main :: IO ()
 main = do 
     o <- SQL.open "./futr.sqlite"
     f <- createDb o
-    runRelay 9481 o f 
+    forkIO $ runRelay 9481 o f 
+
+    void $ start o f 
+
+    threadDelay maxBound
+

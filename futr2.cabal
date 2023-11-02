@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -32,6 +32,7 @@ library
       Nostr.Direct
       Nostr.Event
       Nostr.Filter
+      Nostr.Gui
       Nostr.Harvest
       Nostr.Keys
       Nostr.Pool
@@ -72,6 +73,8 @@ library
     , hspec
     , memory
     , modern-uri
+    , monomer
+    , monomer-hagrid
     , mtl
     , servant
     , servant-server
@@ -126,6 +129,8 @@ executable futr
     , hspec
     , memory
     , modern-uri
+    , monomer
+    , monomer-hagrid
     , mtl
     , servant
     , servant-server
@@ -187,6 +192,8 @@ test-suite futr2-test
     , hspec
     , memory
     , modern-uri
+    , monomer
+    , monomer-hagrid
     , mtl
     , servant
     , servant-server

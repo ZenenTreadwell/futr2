@@ -12,6 +12,20 @@ packages:
   original:
     hackage: clplug-0.4.0.0
 - completed:
+    hackage: monomer-1.5.1.0@sha256:0441ecfb767c716015d4baace5bd66eda62bb65afdca0ca3ad7d81a9d4bd1353,17356
+    pantry-tree:
+      sha256: f803a19d455fad33a0e02db0aac1996d53f70e8311e480ca1752085c81d1690c
+      size: 14513
+  original:
+    hackage: monomer-1.5.1.0
+- completed:
+    hackage: monomer-hagrid-0.3.1.1@sha256:3f1977428fa9a022a57f5622dfcf083a380bd478a5e719c99dc3f6a0fb6e337a,5564
+    pantry-tree:
+      sha256: 3faeb276e564b428f60665c0fc5c6a398994027f23287680615233996ac48225
+      size: 662
+  original:
+    hackage: monomer-hagrid-0.3.1.1
+- completed:
     commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
     git: https://github.com/AutonomousOrganization/beam
     name: beam-core

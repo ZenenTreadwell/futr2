@@ -49,6 +49,11 @@ dependencies:
 ## crypto
 - cryptonite
 - cryptohash-sha256
+
+## display 
+- monomer
+- monomer-hagrid 
+
   
 ## database
 - beam-core
