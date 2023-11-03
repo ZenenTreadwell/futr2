@@ -37,14 +37,17 @@ type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 type Auth = Either Text Hex32
 
+data RelayConf = RC Text Text Text Port Hex32 deriving (Show)
+
+
 type Nip11 = Get '[JSON] Text 
-n11 :: Server Nip11
-n11 = do 
+n11 :: RelayConf -> Server Nip11
+n11 (RC n d c _ k)= do 
     return . decodeUtf8 . BS.toStrict . encode . object $ [ 
-          "name" .=+ ""
-        , "description" .=+ "" 
-        , "pubkey" .=+ "" 
-        , "contact" .=+ ""
+          "name" .=+ n
+        , "description" .=+ d 
+        , "pubkey" .=+ wq k 
+        , "contact" .=+ c
         , "supported_nips" .= 
              ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
               :: [Int])
@@ -55,10 +58,11 @@ n11 = do
     (.=+) :: KeyValue k => Key -> Text -> k 
     (.=+) = (.=)
 
-runRelay :: Port -> SQL.Connection -> TChan Event -> IO ()
-runRelay p o f = W.run p $ websocketsOr defaultConnectionOptions 
-    (acceptRequest >=> relay o f) 
-    (serve (Proxy :: Proxy Nip11) n11) 
+runRelay :: RelayConf -> SQL.Connection -> TChan Event -> IO ()
+runRelay conf@(RC _ _ _ p _) o f =  
+    W.run p $ websocketsOr defaultConnectionOptions 
+        (acceptRequest >=> relay o f) 
+        (serve (Proxy :: Proxy Nip11) (n11 conf)) 
 
 
 relay :: SQL.Connection -> TChan Event -> ClientApp () 

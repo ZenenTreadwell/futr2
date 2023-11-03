@@ -25,6 +25,7 @@ import Servant.Server
 import Data.Proxy
 import Data.Text 
 import Data.Text.Encoding
+import Data.Text.IO as TIO
 import Data.Aeson
 import Data.ByteString as BS
 import Network.Wai.Handler.WebSockets
@@ -36,25 +37,54 @@ import Control.Concurrent.STM.TVar
 import Nostr.Pool
 import Control.Exception as E
 import Nostr.Gui
-import System.Directory
+import System.Directory as D
+import System.IO as S
+import Data.Ini.Config
+
+
+
+
 
 main :: IO ()
 main = do 
     d <- (<>"/.futr") <$> getHomeDirectory 
-    print d
     createDirectoryIfMissing False d 
-    o <- SQL.open $ d <> "/events.sqlite" 
+    let conf' = d <> "/futr.conf"
+        db'   = d <> "/events.sqlite" 
+    o <- SQL.open db' 
     f <- createDb o
+  
+    idents <- getIdentities o
+    kp <- case idents of 
+        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+        me : _ -> pure me
+    localIdentity <- exportPub kp
+    
+    sd <- doesFileExist conf' 
+    if sd then pure () 
+          else S.writeFile conf' "#"
+    
+    ctxt <- TIO.readFile conf' 
+    let conf = parseIniFile ctxt $ sectionMb "fuck" do 
+                   p <- fieldMbOf "port" number
+                   n <- fieldMb "name"
+                   d <- fieldMb "description"
+                   c <- fieldMb "contact"
+                   pk <- join . (qw <$>) <$> fieldMb "pubkey"
+                   pure $ RC (maybe "" id n)
+                             (maybe "" id d)
+                             (maybe "" id c)
+                             (maybe 9481 id p)
+                             (maybe localIdentity id pk)   
 
-    void (start o f)
+    print conf
+        
+    -- void . forkIO $ runRelay conf o f  
+    
+
+    -- void (start o f)
     
     -- forkIO $ 
-    -- race_ (runRelay 9481 o f) do 
-    --     idents <- getIdentities o
-    --     k <- case idents of 
-    --         [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
-    --         me : _ -> pure me
-    --     u <- exportPub k
     --     p <- poolParty
 
     --     let pool :: Pool = p o k 
@@ -65,5 +95,5 @@ main = do
     --            , emptyF{ptagF=Just (PTagM [u])}
     --            ]
 
-    threadDelay maxBound
+    -- threadDelay maxBound
 

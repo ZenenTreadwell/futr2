@@ -24,6 +24,8 @@ dependencies:
 - stm 
 - async  
 - directory
+# - ConfigFile
+- config-ini
 
 ## data
 - text
@@ -55,7 +57,6 @@ dependencies:
 - monomer
 - monomer-hagrid 
 
-  
 ## database
 - beam-core
 - beam-sqlite

@@ -65,6 +65,7 @@ library
     , beam-sqlite
     , bech32
     , bytestring
+    , config-ini
     , connection
     , containers
     , cryptohash-sha256
@@ -121,6 +122,7 @@ executable futr
     , beam-sqlite
     , bech32
     , bytestring
+    , config-ini
     , connection
     , containers
     , cryptohash-sha256
@@ -185,6 +187,7 @@ test-suite futr2-test
     , beam-sqlite
     , bech32
     , bytestring
+    , config-ini
     , connection
     , containers
     , cryptohash-sha256
