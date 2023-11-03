@@ -17,6 +17,7 @@ import Nostr.Direct
 import Nostr.Filter
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
+import Control.Concurrent.Async
 import Control.Monad.STM
 import Network.Wai.Handler.Warp
 import Servant.API
@@ -35,28 +36,34 @@ import Control.Concurrent.STM.TVar
 import Nostr.Pool
 import Control.Exception as E
 import Nostr.Gui
+import System.Directory
 
 main :: IO ()
 main = do 
-    o <- SQL.open "./futr.sqlite"
+    d <- (<>"/.futr") <$> getHomeDirectory 
+    print d
+    createDirectoryIfMissing False d 
+    o <- SQL.open $ d <> "/events.sqlite" 
     f <- createDb o
-    forkIO $ runRelay 9481 o f 
 
-    void $ start o f 
-    idents <- getIdentities o
-    k <- case idents of 
-        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
-        me : _ -> pure me
-    u <- exportPub k
-    p <- poolParty
+    void (start o f)
+    
+    -- forkIO $ 
+    -- race_ (runRelay 9481 o f) do 
+    --     idents <- getIdentities o
+    --     k <- case idents of 
+    --         [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+    --         me : _ -> pure me
+    --     u <- exportPub k
+    --     p <- poolParty
 
-    let pool :: Pool = p o k 
-    sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelay pool) defaultRelay
-    castAll pool $ Subscribe "a" [ 
-             liveF sec 
-           , emptyF{ptagF=Just (PTagM [u])}
-           ]
+    --     let pool :: Pool = p o k 
+    --     sec :: Integer <- round <$> getPOSIXTime
+    --     mapM_ (addRelay pool) defaultRelay
+    --     castAll pool $ Subscribe "a" [ 
+    --              liveF sec 
+    --            , emptyF{ptagF=Just (PTagM [u])}
+    --            ]
 
     threadDelay maxBound
 

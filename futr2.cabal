@@ -69,6 +69,7 @@ library
     , containers
     , cryptohash-sha256
     , cryptonite
+    , directory
     , entropy
     , hspec
     , memory
@@ -124,6 +125,7 @@ executable futr
     , containers
     , cryptohash-sha256
     , cryptonite
+    , directory
     , entropy
     , futr2
     , hspec
@@ -187,6 +189,7 @@ test-suite futr2-test
     , containers
     , cryptohash-sha256
     , cryptonite
+    , directory
     , entropy
     , futr2
     , hspec
