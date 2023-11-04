@@ -23,9 +23,10 @@ import Network.Wai.Handler.Warp
 import Servant.API
 import Servant.Server
 import Data.Proxy
-import Data.Text 
+import Data.Text as T
 import Data.Text.Encoding
 import Data.Text.IO as TIO
+import Data.Maybe
 import Data.Aeson
 import Data.ByteString as BS
 import Network.Wai.Handler.WebSockets
@@ -40,10 +41,6 @@ import Nostr.Gui
 import System.Directory as D
 import System.IO as S
 import Data.Ini.Config
-
-
-
-
 
 main :: IO ()
 main = do 
@@ -64,36 +61,34 @@ main = do
     if sd then pure () 
           else S.writeFile conf' "#"
     
-    ctxt <- TIO.readFile conf' 
-    let conf = parseIniFile ctxt $ sectionMb "fuck" do 
+    ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
+    case parseIniFile ctxt $ section "d" do 
                    p <- fieldMbOf "port" number
                    n <- fieldMb "name"
-                   d <- fieldMb "description"
+                   desc <- fieldMb "description"
                    c <- fieldMb "contact"
                    pk <- join . (qw <$>) <$> fieldMb "pubkey"
-                   pure $ RC (maybe "" id n)
-                             (maybe "" id d)
-                             (maybe "" id c)
-                             (maybe 9481 id p)
-                             (maybe localIdentity id pk)   
+                   pure $ RC (fromMaybe "" n)
+                             (fromMaybe "" desc)
+                             (fromMaybe "" c)
+                             (fromMaybe 9481 p)
+                             (fromMaybe localIdentity pk)   
 
-    print conf
-        
-    -- void . forkIO $ runRelay conf o f  
-    
+        of 
+        Left err -> print ("config error: " <> conf') >> print err
+        Right conf ->  do 
+            print conf
+            void . forkIO $ runRelay conf o f  
+            void (start o f)
+            p <- poolParty
 
-    -- void (start o f)
-    
-    -- forkIO $ 
-    --     p <- poolParty
+            let pool :: Pool = p o kp 
+            sec :: Integer <- round <$> getPOSIXTime
+            mapM_ (addRelay pool) defaultRelay
+            castAll pool $ Subscribe "a" [ 
+                     liveF sec 
+                   , emptyF{ptagF=Just (PTagM [localIdentity])}
+                   ]
 
-    --     let pool :: Pool = p o k 
-    --     sec :: Integer <- round <$> getPOSIXTime
-    --     mapM_ (addRelay pool) defaultRelay
-    --     castAll pool $ Subscribe "a" [ 
-    --              liveF sec 
-    --            , emptyF{ptagF=Just (PTagM [u])}
-    --            ]
-
-    -- threadDelay maxBound
+            threadDelay maxBound
 

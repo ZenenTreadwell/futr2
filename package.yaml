@@ -24,7 +24,6 @@ dependencies:
 - stm 
 - async  
 - directory
-# - ConfigFile
 - config-ini
 
 ## data
