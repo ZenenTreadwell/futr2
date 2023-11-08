@@ -25,7 +25,7 @@ import Data.Time.Clock.POSIX
 import Nostr.Boots
 import Control.Monad.STM
 
-poolParty :: SQL.Connection -> Hex96 -> IO Pool -- (SQL.Connection -> Hex96 -> Pool)
+poolParty :: SQL.Connection -> Hex96 -> IO Pool 
 poolParty db kp = do 
     p <- Pool <$>  newTVarIO M.empty
     let pool = p db kp

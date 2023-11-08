@@ -73,7 +73,7 @@ displayfeed f r = do
     
 config = [
         appWindowTitle "nostr"
-      -- , appWindowIcon "./assets/images/icon.png"
+      , appWindowIcon "./assets/images/icon.png"
       , appTheme darkTheme
       , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
       , appInitEvent AppInit

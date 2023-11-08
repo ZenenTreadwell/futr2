@@ -56,7 +56,7 @@ getDbTest = do
 
     let keyless7 = Content 0 [] "" sec
 
-    mEi :: Event <- signE kp keyless 
+    mE :: Event <- signE kp keyless 
     mE2 <- signE kp keyless2 
     mE3 <- signE kp keyless3 
     mE4 <- signE kp keyless4 
