@@ -76,7 +76,6 @@ insMode e = case kind . con $ e of
     ((<40000) -> True) -> ParReplace 
     _ -> Regular
 
-
 removeEv :: Text -> SqliteM ()
 removeEv ee' = do 
     runDelete $ B.delete (_azt spec') 
@@ -87,7 +86,6 @@ removeEv ee' = do
                 (\a -> (val_ (EvId ee') ==.) . _eidr $ a) 
     runDelete $ B.delete (_events spec') 
                 (\a -> (val_ ee' ==.) . _eid $ a) 
-
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
@@ -184,7 +182,6 @@ toEv x e = Ev
       (fromIntegral . kind . con $ e)
       x
       (wq e)
-
 
 mxpiry :: Int64 -> Maybe LocalTime
 mxpiry = Just . zonedTimeToLocalTime  . utcToZonedTime utc 
@@ -345,7 +342,7 @@ activityContest db = runBeamSqlite db $ s d
             (all_ . _replies $ spec')            
 
 
-lookupPid :: SQL.Connection -> Text -> IO _ 
+lookupPid :: SQL.Connection -> Text -> IO [Text] 
 lookupPid db t = P.map (content . con) <$> fetch db emptyF{authorsF=Just aye}
     where 
     aye = Authors [t]

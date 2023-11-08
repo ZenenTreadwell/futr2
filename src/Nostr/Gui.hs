@@ -2,11 +2,13 @@
 
 module Nostr.Gui where 
 
+import Prelude as P
 import Monomer
 import Monomer.Core.Style
 -- import Monomer.Lens
 import Monomer.Hagrid
 import Nostr.Event
+import Nostr.Pool
 import Control.Concurrent
 -- import Control.Lens
 import Nostr.Beam
@@ -15,6 +17,13 @@ import Database.SQLite.Simple as SQL
 import Control.Monad
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
+-- XXX uses lens
+import Monomer.Widgets.Singles.TextArea
+import Data.Map as M
+import Data.Text as T
+import Data.Text.Encoding as T
+import Data.Maybe
+import Text.URI
 
 data AppEvent = 
       AppInit
@@ -25,19 +34,20 @@ data AppEvent =
 data AppModel = B {
         theme :: Theme
       , msgs :: [Event]
+      , pool :: Pool'
     } deriving (Eq)
     
-mstart :: AppModel
-mstart = B lightTheme []
+mstart :: Pool' -> AppModel
+mstart p = B lightTheme [] p
 
 buildUI
   :: WidgetEnv AppModel AppEvent
   -> AppModel
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
-      label "test"
-    , vstack $ flip map (msgs m) (\e -> label (content . con $ e)) 
-        
+      label " under construction "
+    , vstack $ P.map (label . decodeUtf8 . encodeUtf8. content . con) (msgs m)  
+    , vstack $ P.map (label . render) (keys $ pool m)
     ]
 
 handle
@@ -50,7 +60,7 @@ handle
   -> [AppEventResponse AppModel AppEvent]
 handle db f e n m x = case x of 
     AppInit -> [Producer (displayfeed f)]
-    A e -> [Model $ m { msgs = e : (msgs m)}]
+    A e -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
     GetRe i -> []
     SwitchTheme t -> [Model $ m { theme = t }]
     
@@ -69,7 +79,7 @@ config = [
       , appInitEvent AppInit
       ]
 
-start :: SQL.Connection -> TChan Event -> IO ThreadId
-start db ff = forkOS (startApp mstart (handle db ff) buildUI config)
+start :: SQL.Connection -> TChan Event -> Pool' -> IO ThreadId
+start db ff pool = forkOS (startApp (mstart pool) (handle db ff) buildUI config)
 
 

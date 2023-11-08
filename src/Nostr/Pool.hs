@@ -21,15 +21,32 @@ import Nostr.Keys
 import Nostr.Auth
 import Data.Map as M
 import Data.Foldable
+import Data.Time.Clock.POSIX
+import Nostr.Boots
+import Control.Monad.STM
 
+poolParty :: SQL.Connection -> Hex96 -> IO Pool -- (SQL.Connection -> Hex96 -> Pool)
+poolParty db kp = do 
+    p <- Pool <$>  newTVarIO M.empty
+    let pool = p db kp
+    sec :: Integer <- round <$> getPOSIXTime
+    mapM_ (addRelay pool) defaultRelay
+    u <- exportPub kp
+    castAll pool $ Subscribe "a" [ 
+          liveF sec 
+        , emptyF{ptagF=Just (PTagM [u])}
+        ]
+    pure pool
+    
 
-poolParty :: IO (SQL.Connection -> Hex96 -> Pool)
-poolParty = Pool <$>  newTVarIO M.empty
+type Pool' = M.Map URI Feed 
 
+data Pool = Pool (TVar Pool') SQL.Connection Hex96
 
-data Pool = Pool (TVar (M.Map URI Feed)) SQL.Connection Hex96
-
-data Feed = Feed (TChan Up) ThreadId
+instance Eq Pool where 
+    (==) x y = False
+    
+data Feed = Feed (TChan Up) ThreadId deriving Eq
 
 addRelay :: Pool -> URI -> IO ()
 addRelay (Pool p db kp) uri = do 

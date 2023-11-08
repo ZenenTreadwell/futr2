@@ -1,32 +1,42 @@
-# futr2
+# futr
 
-"The name 'futr' was chosen from respect for the honorable Canadians."  
-  
-~ [prolic of futr](https://github.com/prolic/futr)
+The name futr was chosen from respect for the honorable Canadians.  
 
 Install the dependencies 
 - [libsecp256k1](https://github.com/bitcoin-core/secp256k1#building-with-autotools)
 - [SDL2 and GLEW](https://github.com/fjvallarino/monomer/blob/main/docs/tutorials/00-setup.md#libraries-sdl2-and-glew)
 
-Run     
+Build and run with stack:     
 - `stack build` 
 - `stack test`
 - `stack exec futr` 
 
-[Nostr #s](https://github.com/nostr-protocol/nips)
-- [x] 1 - base (incl. 12, 16, 20, 33)
-- [x] 11 - relay-meta (edit in app/Main if desired)
-- [x] 2 - contacts
-- [x] 4 - direct messages 
-- [x] 10 
-- [x] 45 - count
-- [x] 42 - authentication
-- [x] 13 - pow
-- [x] 40 - expiration
-- [x] 9 - delete (stop serving deleted)
-- [ ] 19 - bech32 keys
-- [ ] . . . . . 
 
-tip the dev:
-- `bc1q236vwrzwnedv6vuvfpgnmrwyvknc98js3fc6y9` (bitcoin)
-- `lno1pgz8getnwstzzqehd9zs2y36z2504hv42g7ucg6cnzknhq9qde9x8j3xlmtgm5x30s` (bolt12, lightning)
+Example creating and broadcasting reply
+
+```
+import Nostr.Keys (Hex96, Hex32)
+import Nostr.Event (signE, Event, Content, Tags)
+import Nostr.Pool (castAll, Pool)
+import Nostr.Wire (Up(..))
+
+bioing :: Pool -> Hex96 -> Hex32 -> IO ()
+bioing pool kp re = do 
+    e <- signE kp $ Content 1 [Etag re Nothing Nothing] "bioing" sec 
+    castAll pool (Submit e)
+```
+
+Relay options in ~/.futr/futr.conf are: 
+
+```
+name = 
+contact =  
+description =  
+pubkey = 
+port = 9481
+```
+
+App storage in ~/.futr/events.sqlite.
+
+
+Client wip

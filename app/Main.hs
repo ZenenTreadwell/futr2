@@ -17,6 +17,7 @@ import Nostr.Direct
 import Nostr.Filter
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
+import Control.Concurrent.STM.TVar
 import Control.Concurrent.Async
 import Control.Monad.STM
 import Network.Wai.Handler.Warp
@@ -79,16 +80,8 @@ main = do
         Right conf ->  do 
             print conf
             void . forkIO $ runRelay conf o f  
-            void (start o f)
-            p <- poolParty
-
-            let pool :: Pool = p o kp 
-            sec :: Integer <- round <$> getPOSIXTime
-            mapM_ (addRelay pool) defaultRelay
-            castAll pool $ Subscribe "a" [ 
-                     liveF sec 
-                   , emptyF{ptagF=Just (PTagM [localIdentity])}
-                   ]
-
+            pool@(Pool tv _ _) <- poolParty o kp
+            pool' <- readTVarIO tv 
+            void (start o f pool')
             threadDelay maxBound
 

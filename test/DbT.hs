@@ -54,13 +54,16 @@ getDbTest = do
 
     let keyless6 = Content 1 [] "oops" sec
 
-    mE <- signE kp keyless 
+    let keyless7 = Content 0 [] "" sec
+
+    mEi :: Event <- signE kp keyless 
     mE2 <- signE kp keyless2 
     mE3 <- signE kp keyless3 
     mE4 <- signE kp keyless4 
     mE5 <- signE kp keyless5
     mE6 <- signE kp keyless6
-    o <- open "./futr.sqlite" 
+    mE7 <- signE kp keyless7
+    o <- open "./test.sqlite" 
     f <- createDb o
     insertEv o wev
     insertEv o mE
@@ -69,6 +72,7 @@ getDbTest = do
     insertEv o mE4
     insertEv o mE5
     insertEv o mE6
+    insertEv o mE7
     return $ describe "database queries" do 
        it "replacable" $ do 
           f' <- content . con . P.head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
@@ -90,7 +94,7 @@ getDbTest = do
           
        it "use limit" $ do 
           f' <- P.length <$> fetch o fl
-          shouldBe 42 f' 
+          shouldBe 2 f' 
        void $ flip M.mapM ff  \(fi, ti) -> do 
           it ("got some" <> ti) $ do 
               ex <- fetch o fi
@@ -115,7 +119,7 @@ getDbTest = do
            aFx `shouldBe` 0
         
           
-fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 42)}
+fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 2)}
 
 ff = P.zip 
   [ emptyF {idsF = Just . Ids $ [
