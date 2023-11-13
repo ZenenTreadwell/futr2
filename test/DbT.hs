@@ -124,7 +124,7 @@ fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 2)}
 ff = P.zip 
   [ emptyF {idsF = Just . Ids $ [
     "4376c65d2f232afbe9b882a35baa4f6fe8667c4e684749af565f981833ed6a65" ]} 
-  , emptyF {idsF = Just . Ids $ ["3"]} 
+  , emptyF {idsF = Just . Ids $ ["0"]} 
   , emptyF {authorsF = Just . Authors $ ["6"]}
   , emptyF {etagF = Just . ETagM $ [evref]} 
   , emptyF {ptagF = Just . PTagM $ [pub, keyref]}

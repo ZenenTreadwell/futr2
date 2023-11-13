@@ -39,7 +39,6 @@ type Auth = Either Text Hex32
 
 data RelayConf = RC Text Text Text Port Hex32 deriving (Show)
 
-
 type Nip11 = Get '[JSON] Text 
 n11 :: RelayConf -> Server Nip11
 n11 (RC n d c _ k)= do 

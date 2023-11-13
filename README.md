@@ -10,6 +10,7 @@ Build and run with stack:
 - `stack build` 
 - `stack test`
 - `stack exec futr` 
+- `stack exec relay`  
 
 Configure nostr relay get info in ~/.futr/futr.conf are: 
 ```
