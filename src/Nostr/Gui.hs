@@ -45,10 +45,15 @@ buildUI
   -> AppModel
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
-      label " under construction "
-    , vstack $ P.map (label . decodeUtf8 . encodeUtf8. content . con) (msgs m)  
-    , vstack $ P.map (label . render) (keys $ pool m)
-    ]
+        label " under construction "
+      , label " under construction "
+      , label " under construction "
+      , hstack [
+          vstack $ P.map 
+              (flip label_ labelconfig . decodeUtf8 . encodeUtf8 . mymultiline . content . con) 
+              (msgs m)  
+        , vstack $ P.map (label . render) (keys $ pool m)
+        ]]
 
 handle
   :: SQL.Connection 
@@ -71,13 +76,23 @@ displayfeed f r = do
         e <- atomically $ readTChan f'
         r . A $ e
     
+
+mymultiline :: Text -> Text 
+mymultiline t = case T.splitAt 42 t of 
+    ((<> "\n") -> t, T.null -> True) -> t 
+    ((<> "\n") -> t1 , t2) -> t1 <> (mymultiline t2) 
+
+labelconfig = [
+    multiline
+  ]
+    
 config = [
-        appWindowTitle "nostr"
-      , appWindowIcon "./assets/images/icon.png"
-      , appTheme darkTheme
-      , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
-      , appInitEvent AppInit
-      ]
+     appWindowTitle "nostr"
+   , appWindowIcon "./assets/images/icon.png"
+   , appTheme darkTheme
+   , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
+   , appInitEvent AppInit
+   ]
 
 start :: SQL.Connection -> TChan Event -> Pool' -> IO ThreadId
 start db ff pool = forkOS (startApp (mstart pool) (handle db ff) buildUI config)
