@@ -4,7 +4,7 @@ module Main (main) where
 import Control.Monad
 import Data.Maybe
 import Database.SQLite.Simple as SQL
-import Data.Text.IO as TIO
+import Data.Text.IO as TIO 
 import System.Directory as D
 import Data.Ini.Config
 import Nostr.Event
@@ -14,6 +14,9 @@ import Nostr.Relay
 import Nostr.Keys
 
 main = do 
+    logo <- Prelude.readFile "assets/images/futr.utf8ans"
+    let logoLines = lines logo
+    mapM_ Prelude.putStrLn logoLines
     d <- (<>"/.futr") <$> getHomeDirectory 
     createDirectoryIfMissing False d 
     let conf' = d <> "/futr.conf"
