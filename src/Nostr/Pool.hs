@@ -2,9 +2,12 @@ module Nostr.Pool where
 
 import Prelude as P
 import Control.Concurrent
+import Control.Exception
 import Network.WebSockets as WS
 import Wuss
 import Database.SQLite.Simple as SQL
+import Network.Connection as C 
+import Network.TLS as TLS
 import Text.URI as URI
 import Data.Text as T
 import Control.Concurrent.STM.TChan
@@ -30,7 +33,7 @@ poolParty db kp = do
     p <- Pool <$>  newTVarIO M.empty
     let pool = p db kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelay pool) defaultRelay
+    mapM_ (addRelay pool) $ P.take 7 defaultRelay
     u <- exportPub kp
     castAll pool $ Subscribe "a" [ 
           liveF sec 
@@ -54,7 +57,7 @@ addRelay (Pool p db kp) uri = do
         Just socker -> pure socker 
         _ -> error "invalid uri?"
     ch <- newTChanIO
-    trd <- forkIO . skr $ feeder kp uri ch db
+    trd <- forkIO . (gottaCatchemAll uri p) . skr $ feeder kp uri ch db
     atomically $ modifyTVar p (M.insert uri (Feed ch trd))
     
 feeder :: Hex96 -> URI -> TChan Up -> SQL.Connection -> ClientApp ()  
@@ -150,3 +153,30 @@ directF p = emptyF {
       ptagF = Just $ PTagM [p]
     , kindsF = Just $ Kinds [4] 
     } 
+
+gottaCatchemAll :: URI -> TVar Pool' -> IO () -> IO ()  
+gottaCatchemAll uri tv = 
+      handle conerr2 
+    . handle handerr 
+    . handle tlserr 
+    . handle urierr 
+    . handle cryerr 
+    . handle cryerr3
+    where 
+    caught :: Exception z => z -> IO () 
+    caught z = do 
+        atomically $ modifyTVar tv (M.delete uri)
+        print . ("caught caught... " <>) 
+              . P.take 227 . show $ z
+    urierr :: URI.ParseException -> IO () 
+    urierr = caught 
+    tlserr :: TLS.TLSException -> IO () 
+    tlserr = caught
+    conerr2 :: C.HostCannotConnect -> IO () 
+    conerr2 = caught 
+    handerr :: WS.HandshakeException -> IO () 
+    handerr = caught 
+    cryerr :: WS.ConnectionException -> IO () 
+    cryerr = caught 
+    cryerr3 :: IOError -> IO ()
+    cryerr3 = caught 

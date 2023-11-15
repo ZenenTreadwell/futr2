@@ -25,6 +25,7 @@ dependencies:
 - async  
 - directory
 - config-ini
+- regex-tdfa
 
 ## data
 - text

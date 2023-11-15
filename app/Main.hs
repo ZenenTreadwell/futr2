@@ -80,8 +80,7 @@ main = do
         Right conf ->  do 
             print conf
             void . forkIO $ runRelay conf o f  
-            pool@(Pool tv _ _) <- poolParty o kp
-            pool' <- readTVarIO tv 
-            void (start o f pool')
+            pool <- poolParty o kp
+            void (start o f pool)
             threadDelay maxBound
 
