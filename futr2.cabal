@@ -33,7 +33,6 @@ library
       Nostr.Event
       Nostr.Filter
       Nostr.Gui
-      Nostr.Harvest
       Nostr.Keys
       Nostr.Pool
       Nostr.Relay
