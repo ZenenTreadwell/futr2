@@ -31,6 +31,7 @@ import Text.Regex.TDFA
 data AppEvent = 
       AppInit
     | FreshPool Pool'
+    | ReModel AppModel
     | SwitchTheme Theme
     | A Event
     | GetRe Hex32
@@ -75,10 +76,16 @@ handle
   -> [AppEventResponse AppModel AppEvent]
 handle db f pool e n m x = case x of 
     AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
-    A e -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
+    A e -> case kind . con $ e of 
+        1 -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
+        _ -> []
+        
     GetRe i -> []
     SwitchTheme t -> [Model $ m { theme = t }]
-    FreshPool p -> [ Model $ m { pool = p }]
+    ReModel m -> [Model m]
+    FreshPool p -> [ Task $ do 
+        pure . ReModel $ m { pool = p }
+        ]
     
 fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
 fresher pool@(Pool p _ _) r = do 

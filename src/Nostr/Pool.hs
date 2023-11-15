@@ -49,7 +49,10 @@ data Pool = Pool (TVar Pool') SQL.Connection Hex96
 instance Eq Pool where 
     (==) x y = False
     
-data Feed = Feed (TChan Up) ThreadId deriving Eq
+data Feed = Feed {
+      sendchan :: (TChan Up) 
+    , activethread :: ThreadId 
+    } deriving Eq
 
 addRelay :: Pool -> URI -> IO ()
 addRelay (Pool p db kp) uri = do 
@@ -141,10 +144,11 @@ extractURI uri = do
         where joined = P.foldl T.append "" $ 
                        fmap (flip T.append "/" . unRText) rx  
                       
+                   
 liveF :: Integer -> Filter 
 liveF sec = emptyF { 
       sinceF = Just $ Since $ sec 
-    , kindsF = Just $ Kinds [0, 1] 
+    , kindsF = Just $ Kinds [1] 
     , limitF = Just $ Limit 0 
     } 
 
@@ -168,6 +172,9 @@ gottaCatchemAll uri tv =
         atomically $ modifyTVar tv (M.delete uri)
         print . ("caught caught... " <>) 
               . P.take 227 . show $ z
+        -- XXX    
+        -- M.lookup uri <$> readTVarIO tv 
+        --     >>= maybe (pure ()) (killThread . activethread) 
     urierr :: URI.ParseException -> IO () 
     urierr = caught 
     tlserr :: TLS.TLSException -> IO () 

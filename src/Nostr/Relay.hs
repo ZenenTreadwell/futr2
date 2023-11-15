@@ -112,10 +112,7 @@ relay db chan ws = do
                     void $ WS.sendTextData ws . encode 
                          $ CountD s n 
             Right Nothing -> print . (<> " - right nothing") . show $ eo
-            Left z -> do
-                print z 
-                print "client killed_"  
-                myThreadId >>= killThread 
+            Left z -> myThreadId >>= killThread 
 
 isSend :: Auth -> Event -> Bool
 isSend _ (Event _ _ Content{kind}) | kind /= 4 = True
