@@ -33,7 +33,7 @@ poolParty db kp = do
     p <- Pool <$>  newTVarIO M.empty
     let pool = p db kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelay pool) $ P.take 7 defaultRelay
+    mapM_ (addRelay pool) defaultRelay
     u <- exportPub kp
     castAll pool $ Subscribe "a" [ 
           liveF sec 

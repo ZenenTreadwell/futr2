@@ -19,6 +19,7 @@ import Database.SQLite.Simple as SQL
 import Control.Monad
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
+import Control.Monad.State
 -- XXX uses lens
 import Monomer.Widgets.Singles.TextArea
 import Data.Map as M
@@ -27,6 +28,7 @@ import Data.Text.Encoding as T
 import Data.Maybe
 import Text.URI
 import Text.Regex.TDFA
+
 
 reglinks :: Text 
 reglinks = "http.+(jpg|gif|png)"
@@ -83,7 +85,7 @@ handle db f pool e n m x = case x of
         1 -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
         _ -> []
         
-    GetRe i -> []
+    GetRe i -> [Model $ m { selectedeid = Just i }]
     SwitchTheme t -> [Model $ m { theme = t }]
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
@@ -91,13 +93,18 @@ handle db f pool e n m x = case x of
         ]
 
 showMsg :: Event -> WidgetNode AppModel AppEvent
-showMsg (N.Event _ _ (Content{..})) = 
-            case content =~ reglinks :: Text of 
-                "" -> label "false"
-                t -> image_ t [fitWidth, fitHeight]
-
-
+showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)]
+            case content =~ reglinks :: (Text, Text, Text) of 
+                (t, "", _) -> label_ (mymultiline t) labelconfig
+                (b4, lt, af) -> vstack [ image_ lt [fitWidth, fitHeight] ]
             
+-- extractlinks :: State (Text, [Text]) (Text, [Text])
+extractlinks t = do 
+    (t, tl) <- get  
+    case t =~ reglinks :: (Text, Text, Text) of 
+        (t, "", "") -> get >>= pure 
+        
+    
         
 fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
 fresher pool@(Pool p _ _) r = do 
