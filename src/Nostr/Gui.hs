@@ -9,6 +9,7 @@ import Monomer.Core.Style
 import Monomer.Hagrid
 import Nostr.Event as N
 import Nostr.Pool
+import Nostr.Filter
 import Control.Concurrent
 
 import Control.Concurrent.STM.TVar
@@ -46,8 +47,10 @@ data AppModel = B {
       , msgs :: [Event]
       , pool :: Pool'
       , relaycount :: Int
-      , selectedeid :: Maybe Hex32
+      , selectedeid :: Maybe Selecty
     } deriving (Eq)
+
+data Selecty = Selecty Hex32 [Event] deriving (Eq)
     
 mstart :: SQL.Connection -> Pool' -> AppModel
 mstart o p = B lightTheme [] p (P.length p) Nothing
@@ -61,7 +64,10 @@ buildUI _ m = vstack [
       , label " under construction "
       , label " under construction "
       , case selectedeid m of 
-            Just x -> label $ wq x
+            Just (Selecty x ee) -> vstack $ 
+                [ label $ wq x 
+                , vstack (P.map showMsg ee) 
+                ]  
             Nothing -> label "nothing"  
       , hstack [
           vstack $ P.map 
@@ -70,6 +76,7 @@ buildUI _ m = vstack [
         , vstack $ P.map (label . render) (keys $ pool m)
         ]
       ]
+    
 handle
   :: SQL.Connection 
   -> TChan Event
@@ -85,7 +92,10 @@ handle db f pool e n m x = case x of
         1 -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
         _ -> []
         
-    GetRe i -> [Model $ m { selectedeid = Just i }]
+    GetRe i -> [Task $ do 
+        eex <- fetch db (emptyF {etagF = Just (ETagM [i])})
+        pure . ReModel $ m { selectedeid = Just (Selecty i eex) }
+        ]
     SwitchTheme t -> [Model $ m { theme = t }]
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
@@ -93,17 +103,18 @@ handle db f pool e n m x = case x of
         ]
 
 showMsg :: Event -> WidgetNode AppModel AppEvent
-showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)]
-            case content =~ reglinks :: (Text, Text, Text) of 
-                (t, "", _) -> label_ (mymultiline t) labelconfig
-                (b4, lt, af) -> vstack [ image_ lt [fitWidth, fitHeight] ]
-            
--- extractlinks :: State (Text, [Text]) (Text, [Text])
-extractlinks t = do 
-    (t, tl) <- get  
-    case t =~ reglinks :: (Text, Text, Text) of 
-        (t, "", "") -> get >>= pure 
-        
+showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
+            case evalState extractlinks ("", [], content)  of 
+                (b4, lt, af) -> vstack [
+                      label_ (mymultiline b4) labelconfig
+                    , hstack $ P.map (flip image_ [fitWidth, fitHeight]) lt
+                    ]
+extractlinks :: State (Text, [Text], Text) (Text, [Text], Text)
+extractlinks = do 
+    (tb, tlx, ta) <- get  
+    case ta =~ reglinks :: (Text, Text, Text) of 
+        (t, "", "") -> pure (tb <> t, tlx, "")
+        (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) >> extractlinks
     
         
 fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
