@@ -167,23 +167,25 @@ gottaCatchemAll uri tv =
     . handle cryerr 
     . handle cryerr3
     where 
-    caught :: Exception z => z -> IO () 
-    caught z = do 
+    caught :: String -> Exception z => z -> IO () 
+    caught zz z = do 
         atomically $ modifyTVar tv (M.delete uri)
-        print . ("caught caught... " <>) 
+        print . (zz <>)
+              . ("caught caught... " <>) 
               . P.take 227 . show $ z
         -- XXX    
         -- M.lookup uri <$> readTVarIO tv 
         --     >>= maybe (pure ()) (killThread . activethread) 
     urierr :: URI.ParseException -> IO () 
-    urierr = caught 
+    urierr = caught  showrender
     tlserr :: TLS.TLSException -> IO () 
-    tlserr = caught
+    tlserr = caught showrender
     conerr2 :: C.HostCannotConnect -> IO () 
-    conerr2 = caught 
+    conerr2 = caught  showrender
     handerr :: WS.HandshakeException -> IO () 
-    handerr = caught 
+    handerr = caught  showrender
     cryerr :: WS.ConnectionException -> IO () 
-    cryerr = caught 
+    cryerr = caught  showrender
     cryerr3 :: IOError -> IO ()
-    cryerr3 = caught 
+    cryerr3 = caught showrender
+    showrender = show . render $ uri

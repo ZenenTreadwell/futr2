@@ -7,7 +7,7 @@ import Monomer as O
 import Monomer.Core.Style
 -- import Monomer.Lens
 import Monomer.Hagrid
-import Nostr.Event
+import Nostr.Event as N
 import Nostr.Pool
 import Control.Concurrent
 
@@ -27,6 +27,9 @@ import Data.Text.Encoding as T
 import Data.Maybe
 import Text.URI
 import Text.Regex.TDFA
+
+reglinks :: Text 
+reglinks = "http.+(jpg|gif|png)"
 
 data AppEvent = 
       AppInit
@@ -52,7 +55,7 @@ buildUI
   -> AppModel
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
-        label " under construction "
+        label " under construction " `styleBasic` [textSize 30]
       , label " under construction "
       , label " under construction "
       , case selectedeid m of 
@@ -60,11 +63,11 @@ buildUI _ m = vstack [
             Nothing -> label "nothing"  
       , hstack [
           vstack $ P.map 
-              (flip label_ labelconfig . decodeUtf8 . encodeUtf8 . mymultiline . content . con) 
+              showMsg
               (msgs m)  
         , vstack $ P.map (label . render) (keys $ pool m)
-        ]]
-
+        ]
+      ]
 handle
   :: SQL.Connection 
   -> TChan Event
@@ -86,7 +89,16 @@ handle db f pool e n m x = case x of
     FreshPool p -> [ Task $ do 
         pure . ReModel $ m { pool = p }
         ]
-    
+
+showMsg :: Event -> WidgetNode AppModel AppEvent
+showMsg (N.Event _ _ (Content{..})) = 
+            case content =~ reglinks :: Text of 
+                "" -> label "false"
+                t -> image_ t [fitWidth, fitHeight]
+
+
+            
+        
 fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
 fresher pool@(Pool p _ _) r = do 
     threadDelay 5000000
@@ -106,6 +118,7 @@ mymultiline t = case T.splitAt 42 t of
     ((<> "\n") -> t, T.null -> True) -> t 
     ((<> "\n") -> t1 , t2) -> t1 <> (mymultiline t2) 
 
+labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline ]
     
 config = [
