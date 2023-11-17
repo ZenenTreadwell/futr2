@@ -1,19 +1,15 @@
--- {-# LANGUAGE TypeSynonymInstances #-}
 
 module Nostr.Gui where 
 
 import Prelude as P
 import Monomer as O 
 import Monomer.Core.Style
--- import Monomer.Lens
 import Monomer.Hagrid
 import Nostr.Event as N
 import Nostr.Pool
 import Nostr.Filter
 import Control.Concurrent
-
 import Control.Concurrent.STM.TVar
--- import Control.Lens
 import Nostr.Beam
 import Nostr.Keys
 import Database.SQLite.Simple as SQL
@@ -21,15 +17,14 @@ import Control.Monad
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
 import Control.Monad.State
--- XXX uses lens
 import Monomer.Widgets.Singles.TextArea
+import Monomer.Widgets.Singles.SeparatorLine
 import Data.Map as M
 import Data.Text as T
 import Data.Text.Encoding as T
 import Data.Maybe
 import Text.URI
 import Text.Regex.TDFA
-
 
 reglinks :: Text 
 reglinks = "http.+(jpg|gif|png)"
@@ -42,7 +37,7 @@ data AppEvent =
     | A Event
     | GetRe Hex32
 
-data AppModel = B {
+data AppModel = AppModel {
         theme :: Theme
       , msgs :: [Event]
       , pool :: Pool'
@@ -50,10 +45,10 @@ data AppModel = B {
       , selectedeid :: Maybe Selecty
     } deriving (Eq)
 
-data Selecty = Selecty Hex32 [Event] deriving (Eq)
+data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
     
 mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = B lightTheme [] p (P.length p) Nothing
+mstart o p = AppModel lightTheme [] p (P.length p) Nothing
 
 buildUI
   :: WidgetEnv AppModel AppEvent
@@ -61,14 +56,13 @@ buildUI
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
         label " under construction " `styleBasic` [textSize 30]
-      , label " under construction "
-      , label " under construction "
       , case selectedeid m of 
             Just (Selecty x ee) -> vstack $ 
                 [ label $ wq x 
                 , vstack (P.map showMsg ee) 
                 ]  
             Nothing -> label "nothing"  
+      , separatorLine
       , hstack [
           vstack $ P.map 
               showMsg
@@ -91,22 +85,24 @@ handle db f pool e n m x = case x of
     A e -> case kind . con $ e of 
         1 -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
         _ -> []
-        
     GetRe i -> [Task $ do 
-        eex <- fetch db (emptyF {etagF = Just (ETagM [i])})
-        pure . ReModel $ m { selectedeid = Just (Selecty i eex) }
+        pure . ReModel $ m { selectedeid = Just (Selecty i []) }
         ]
     SwitchTheme t -> [Model $ m { theme = t }]
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
-        pure . ReModel $ m { pool = p }
+        selly <- case selectedeid m of 
+            Just (Selecty i _) -> Just . Selecty i <$> fetch db (emptyF {etagF = Just (ETagM [i])})
+            Nothing -> pure Nothing
+        pure . ReModel $ m { 
+              selectedeid = selly
+            , pool = p }
         ]
-
 showMsg :: Event -> WidgetNode AppModel AppEvent
 showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
             case evalState extractlinks ("", [], content)  of 
                 (b4, lt, af) -> vstack [
-                      label_ (mymultiline b4) labelconfig
+                      label_ (b4) labelconfig
                     , hstack $ P.map (flip image_ [fitWidth, fitHeight]) lt
                     ]
 extractlinks :: State (Text, [Text], Text) (Text, [Text], Text)
@@ -130,12 +126,6 @@ displayfeed f r = do
         e <- atomically $ readTChan f'
         r . A $ e
     
-
-mymultiline :: Text -> Text 
-mymultiline t = case T.splitAt 42 t of 
-    ((<> "\n") -> t, T.null -> True) -> t 
-    ((<> "\n") -> t1 , t2) -> t1 <> (mymultiline t2) 
-
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline ]
     
