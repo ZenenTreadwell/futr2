@@ -40,7 +40,6 @@ poolParty db kp = do
         , emptyF{ptagF=Just (PTagM [u])}
         ]
     pure pool
-    
 
 type Pool' = M.Map URI Feed 
 

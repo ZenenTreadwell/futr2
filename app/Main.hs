@@ -9,12 +9,6 @@ import Prelude as P
 import Network.WebSockets as WS
 import Control.Monad
 import Database.SQLite.Simple as SQL
-import Nostr.Beam
-import Nostr.Relay
-import Nostr.Event
-import Nostr.Boots
-import Nostr.Direct
-import Nostr.Filter
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
 import Control.Concurrent.STM.TVar
@@ -36,12 +30,19 @@ import Nostr.Wire
 import Data.Time.Clock.POSIX
 import Data.Map as M 
 import Control.Concurrent.STM.TVar
-import Nostr.Pool
 import Control.Exception as E
-import Nostr.Gui
 import System.Directory as D
 import System.IO as S
 import Data.Ini.Config
+
+import Nostr.Beam
+import Nostr.Relay
+import Nostr.Event
+import Nostr.Boots
+import Nostr.Direct
+import Nostr.Filter
+import Nostr.Pool
+import Futr.Gui 
 
 main :: IO ()
 main = do 

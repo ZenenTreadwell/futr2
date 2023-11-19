@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Futr.Gui
       Nostr.Auth
       Nostr.Beam
       Nostr.Boots
@@ -32,7 +33,6 @@ library
       Nostr.Direct
       Nostr.Event
       Nostr.Filter
-      Nostr.Gui
       Nostr.Keys
       Nostr.Pool
       Nostr.Relay
