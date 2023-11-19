@@ -3,6 +3,7 @@ module Futr.Gui where
 
 import Prelude as P
 import Monomer as O 
+import Data.ByteString.Lazy as LB
 import Monomer.Core.Style
 import Monomer.Hagrid
 import Nostr.Event as N
@@ -20,6 +21,7 @@ import Control.Monad.State
 import Monomer.Widgets.Singles.TextArea
 import Monomer.Widgets.Singles.TextField
 import Monomer.Widgets.Singles.SeparatorLine
+import Monomer.Widgets.Singles.NumericField
 import Data.Map as M
 import Data.Text as T
 import Data.Text.Encoding as T
@@ -27,6 +29,7 @@ import Data.Maybe
 import Text.URI
 import Text.Regex.TDFA
 import Monomer.Widgets.Singles.Base.InputField
+import Data.Aeson
 
 reglinks :: Text 
 reglinks = "http.+(jpg|gif|png)"
@@ -34,6 +37,7 @@ reglinks = "http.+(jpg|gif|png)"
 data AppEvent = 
       AppInit
     | Wtf Text 
+    | Wth Int
     | FreshPool Pool'
     | ReModel AppModel
     | SwitchTheme Theme
@@ -43,6 +47,8 @@ data AppEvent =
 data AppModel = AppModel {
         theme :: Theme
       , msgs :: [Event]
+      , imgs :: [Text]
+      , plebs :: Map Hex32 Object
       , pool :: Pool'
       , texts :: Text
       , selectedeid :: Maybe Selecty
@@ -51,7 +57,7 @@ data AppModel = AppModel {
 data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
     
 mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = AppModel lightTheme [] p "futr" Nothing
+mstart o p = AppModel lightTheme [] [] M.empty p "futr" Nothing
 
 buildUI
   :: WidgetEnv AppModel AppEvent
@@ -59,13 +65,14 @@ buildUI
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
         label " under construction " `styleBasic` [textSize 30]
+      , label . T.pack . P.show $ (P.length (imgs m)) 
+      , vstack $ P.map (flip image_ []) (imgs m)  
       , case selectedeid m of 
             Just (Selecty x ee) -> vstack $ 
                 [ label $ wq x 
                 , vstack (P.map showMsg ee) 
                 ]  
             Nothing -> label "nothing"  
-      -- , inputField_ (WidgetType "futr") [] 
       , textFieldV (texts m) Wtf 
       , separatorLine
       , hstack [
@@ -76,8 +83,6 @@ buildUI _ m = vstack [
           , vstack $ P.map showMsg (msgs m)  
           ]
       ]
-
--- onfb :: WidgetEvent e => Text -> e 
 
 handle
   :: SQL.Connection 
@@ -92,7 +97,13 @@ handle db f pool e n m x = case x of
     AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
     Wtf t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
-        1 -> [Model $ m { msgs = e : (P.take 5 $ msgs m)}]
+        1 -> [Task $ do 
+            let (strp, imgx, _) = evalState extractlinks ("", [], (content . con) e)
+            
+            pure . ReModel $ m { 
+                  msgs = e : (P.take 5 $ msgs m)
+                , imgs = (imgs m) <> imgx
+                }]
         _ -> []
     GetRe i -> [Task $ do 
         pure . ReModel $ m { selectedeid = Just (Selecty i []) }
@@ -100,22 +111,40 @@ handle db f pool e n m x = case x of
     SwitchTheme t -> [Model $ m { theme = t }]
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
+        zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
+        let pleap = P.foldr 
+                        (uncurry M.insert) 
+                        (plebs m) 
+                        (catMaybes $ P.map getr zeroes) 
         selly <- case selectedeid m of 
-            Just (Selecty i _) -> Just . Selecty i <$> fetch db (emptyF {etagF = Just (ETagM [i])})
+            Just (Selecty i _) -> Just . Selecty i 
+                <$> fetch db (emptyF {etagF = Just (ETagM [i])})
             Nothing -> pure Nothing
         pure . ReModel $ m { 
-              selectedeid = selly
+              plebs = pleap
+            , selectedeid = selly
             , pool = p }
         ]
-    
+
+getr :: Event -> Maybe (Hex32, Object)
+getr (N.Event _ _ (Content{pubkey, content})) = 
+    (pubkey,) <$> byObjr content
+
+byObjr :: Text -> Maybe Object 
+byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of 
+    Just (Object o) -> Just o
+    _ -> Nothing
     
 showMsg :: Event -> WidgetNode AppModel AppEvent
 showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
             case evalState extractlinks ("", [], content)  of 
                 (b4, lt, af) -> vstack [
                       label_ (b4) labelconfig
-                    , hstack $ P.map (flip image_ [fitWidth, fitHeight]) lt
+                     -- , hstack $ P.map (flip image_ [fitWidth, fitHeight]) lt
                     ]
+
+
+                    
 extractlinks :: State (Text, [Text], Text) (Text, [Text], Text)
 extractlinks = do 
     (tb, tlx, ta) <- get  

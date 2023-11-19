@@ -27,9 +27,9 @@ xnpub t = case BECH.decode t of
         _ -> error "dataPart "
     Left e -> error . show $ e
  
-newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show)
-newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show)
-newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show)
+newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show, Ord)
+newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show, Ord)
+newtype Hex32 = Hex32 { un32 :: ByteString } deriving (Eq, Show, Ord)
 
 instance ToJSON Hex96 where
   toJSON (Hex96 bs) = toHex bs
