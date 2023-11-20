@@ -29,7 +29,7 @@ import Data.Maybe
 import Text.URI
 import Text.Regex.TDFA
 import Monomer.Widgets.Singles.Base.InputField
-import Data.Aeson
+import Data.Aeson as J
 
 reglinks :: Text 
 reglinks = "http.+(jpg|gif|png)"
@@ -43,6 +43,7 @@ data AppEvent =
     | SwitchTheme Theme
     | A Event
     | GetRe Hex32
+    | NextImg
 
 data AppModel = AppModel {
         theme :: Theme
@@ -65,8 +66,8 @@ buildUI
   -> WidgetNode AppModel AppEvent
 buildUI _ m = vstack [
         label " under construction " `styleBasic` [textSize 30]
-      , label . T.pack . P.show $ (P.length (imgs m)) 
-      , vstack $ P.map (flip image_ []) (imgs m)  
+      , box_ [onClick (NextImg)] . label . T.pack . P.show 
+           $ (P.length (imgs m)) 
       , case selectedeid m of 
             Just (Selecty x ee) -> vstack $ 
                 [ label $ wq x 
@@ -74,15 +75,25 @@ buildUI _ m = vstack [
                 ]  
             Nothing -> label "nothing"  
       , textFieldV (texts m) Wtf 
-      , separatorLine
-      , hstack [
-            vstack [
-              vstack $ P.map (label . (T.take 5) . wq . pubkey . con) (msgs m)
-            , vstack $ P.map (label . render) (keys $ pool m)
-            ]
-          , vstack $ P.map showMsg (msgs m)  
+      , hstack [ 
+            vstack [ box_ [onClick (NextImg)] case imgs m of 
+                []    -> separatorLine
+                t : _ -> image_ t [fitEither]
+              , vscroll . vstack $ (P.map (showMsg) (msgs m))
+              ]
+          , vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
+                vstack $ P.map ((ofof (plebs m)) . pubkey . con) (msgs m)
+              , vstack $ P.map (label . render) (keys $ pool m)
+              ]
           ]
       ]
+
+ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
+ofof mp i = case M.lookup i mp of 
+    Just o -> (flip label_ labelconfig) . wq $ o
+    Nothing -> label "nothing"
+ 
+
 
 handle
   :: SQL.Connection 
@@ -105,6 +116,7 @@ handle db f pool e n m x = case x of
                 , imgs = (imgs m) <> imgx
                 }]
         _ -> []
+    NextImg -> [Model $ m { imgs = (P.drop 1 (imgs m)) }]
     GetRe i -> [Task $ do 
         pure . ReModel $ m { selectedeid = Just (Selecty i []) }
         ]
@@ -137,14 +149,9 @@ byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of
     
 showMsg :: Event -> WidgetNode AppModel AppEvent
 showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
-            case evalState extractlinks ("", [], content)  of 
-                (b4, lt, af) -> vstack [
-                      label_ (b4) labelconfig
-                     -- , hstack $ P.map (flip image_ [fitWidth, fitHeight]) lt
-                    ]
+    case evalState extractlinks ("", [], content)  of 
+        (b4, lt, af) -> label_ b4 labelconfig
 
-
-                    
 extractlinks :: State (Text, [Text], Text) (Text, [Text], Text)
 extractlinks = do 
     (tb, tlx, ta) <- get  
