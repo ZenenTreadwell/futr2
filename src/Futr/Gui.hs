@@ -36,8 +36,10 @@ reglinks = "http.+(jpg|gif|png)"
 
 data AppEvent = 
       AppInit
+    | Mode AppMode 
     | Wtf Text 
     | Wth Int
+    | Entuh 
     | FreshPool Pool'
     | ReModel AppModel
     | SwitchTheme Theme
@@ -46,47 +48,58 @@ data AppEvent =
     | NextImg
 
 data AppModel = AppModel {
-        theme :: Theme
+        theme :: Theme -- XXX 
+      , mode :: AppMode      
       , msgs :: [Event]
       , imgs :: [Text]
-      , plebs :: Map Hex32 Object
       , pool :: Pool'
       , texts :: Text
       , selectedeid :: Maybe Selecty
     } deriving (Eq)
 
+data AppMode = Doge | Unicorn | Bull deriving (Eq, Show)
+
+    
 data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
     
 mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = AppModel lightTheme [] [] M.empty p "futr" Nothing
+mstart o p = AppModel darkTheme Unicorn [] [] p "futr" Nothing
 
 buildUI
-  :: WidgetEnv AppModel AppEvent
+  :: SQL.Connection
+  -> WidgetEnv AppModel AppEvent
   -> AppModel
   -> WidgetNode AppModel AppEvent
-buildUI _ m = vstack [
-        label " under construction " `styleBasic` [textSize 30]
-      , box_ [onClick (NextImg)] . label . T.pack . P.show 
-           $ (P.length (imgs m)) 
-      , case selectedeid m of 
-            Just (Selecty x ee) -> vstack $ 
-                [ label $ wq x 
-                , vstack (P.map showMsg ee) 
-                ]  
-            Nothing -> label "nothing"  
-      , textFieldV (texts m) Wtf 
-      , hstack [ 
-            vstack [ box_ [onClick (NextImg)] case imgs m of 
-                []    -> separatorLine
-                t : _ -> image_ t [fitEither]
-              , vscroll . vstack $ (P.map (showMsg) (msgs m))
-              ]
-          , vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
-                vstack $ P.map ((ofof (plebs m)) . pubkey . con) (msgs m)
-              , vstack $ P.map (label . render) (keys $ pool m)
-              ]
-          ]
-      ]
+buildUI db _ m = themeSwitch (theme m) . keystroke [("Enter", Entuh)] $ vstack [
+      hstack [ 
+          box_ [onClick (Mode Doge)] $ label "doge" 
+        , box_ [onClick (Mode Unicorn)] $ 
+            label " under construction " `styleBasic` [textSize 30]
+        , box_ [onClick (Mode Bull)] $ label "bull" 
+        ]
+        -- , textFieldV (texts m) Wtf 
+    , box_ [onClick (NextImg)] . label . T.pack . P.show 
+             $ (P.length (imgs m)) 
+    , hsplit (
+          box_ [onClick (NextImg)] case imgs m of 
+            []    -> separatorLine
+            t : _ -> image_ t [fitEither]
+        , vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
+             vstack $ (P.map (showMsg) (msgs m))
+           ]
+        
+      ) `nodeVisible` (mode m == Unicorn)
+    , vstack  (P.map (label . render) (keys $ pool m))
+            `nodeVisible` (mode m == Bull)
+    , label "doges" `nodeVisible` (mode m == Doge)      
+    
+    ]
+        -- , case selectedeid m of 
+        --       Just (Selecty x ee) -> vstack $ 
+        --           [ label $ wq x 
+        --           , vstack (P.map showMsg ee) 
+        --           ]  
+        --       Nothing -> label "nothing"  
 
 ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
 ofof mp i = case M.lookup i mp of 
@@ -106,7 +119,9 @@ handle
   -> [AppEventResponse AppModel AppEvent]
 handle db f pool e n m x = case x of 
     AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
+    Mode moo -> [Model m {mode=moo}]
     Wtf t -> [ Model m {texts = t} ]
+    Entuh -> [ Model m {texts=""} ]
     A e -> case kind . con $ e of 
         1 -> [Task $ do 
             let (strp, imgx, _) = evalState extractlinks ("", [], (content . con) e)
@@ -124,17 +139,16 @@ handle db f pool e n m x = case x of
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
         zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
-        let pleap = P.foldr 
-                        (uncurry M.insert) 
-                        (plebs m) 
-                        (catMaybes $ P.map getr zeroes) 
+        -- let pleap = P.foldr 
+        --                 (uncurry M.insert) 
+        --                 (plebs m) 
+        --                 (catMaybes $ P.map getr zeroes) 
         selly <- case selectedeid m of 
             Just (Selecty i _) -> Just . Selecty i 
                 <$> fetch db (emptyF {etagF = Just (ETagM [i])})
             Nothing -> pure Nothing
         pure . ReModel $ m { 
-              plebs = pleap
-            , selectedeid = selly
+              selectedeid = selly
             , pool = p }
         ]
 
@@ -165,6 +179,7 @@ fresher :: Pool -> (AppEvent -> IO ()) -> IO ()
 fresher pool@(Pool p _ _) r = do 
     threadDelay 5000000
     readTVarIO p >>= r . FreshPool  
+    r NextImg
     fresher pool r 
         
 displayfeed :: TChan Event -> (AppEvent -> IO ()) -> IO (  )
@@ -175,15 +190,8 @@ displayfeed f r = do
         r . A $ e
     
 labelconfig :: [LabelCfg AppModel AppEvent]
-labelconfig = [ O.multiline ]
+labelconfig = [ O.multiline , trimSpaces]
     
-config = [
-     appWindowTitle "nostr"
-   , appWindowIcon "./assets/images/icon.png"
-   , appTheme darkTheme
-   , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
-   , appInitEvent AppInit
-   ]
 
 start :: SQL.Connection -> TChan Event -> Pool -> IO ThreadId
 start db ff pool@(Pool v _ _) = do 
@@ -192,7 +200,11 @@ start db ff pool@(Pool v _ _) = do
       startApp 
         (mstart db p') 
         (handle db ff pool) 
-        buildUI 
-        config
-
+        (buildUI db) 
+        [ appWindowTitle "nostr"
+        , appWindowIcon "./assets/images/icon.png"
+        , appTheme darkTheme
+        , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
+        , appInitEvent AppInit
+        ]
 
