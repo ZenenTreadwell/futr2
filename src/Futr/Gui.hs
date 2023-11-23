@@ -71,11 +71,11 @@ buildUI
   -> AppModel
   -> WidgetNode AppModel AppEvent
 buildUI db _ m = themeSwitch (theme m) . keystroke [("Enter", Entuh)] $ vstack [
-      hstack [ 
-          box_ [onClick (Mode Doge)] $ label "doge" 
-        , box_ [onClick (Mode Unicorn)] $ 
+      box_ [expandContent] $ hstack [ 
+          box_ [onClick (Mode Doge), alignLeft] $ label "doge" 
+        , box_ [onClick (Mode Unicorn), alignCenter] $ 
             label " under construction " `styleBasic` [textSize 30]
-        , box_ [onClick (Mode Bull)] $ label "bull" 
+        , box_ [onClick (Mode Bull), alignRight] $ label "bull" 
         ]
         -- , textFieldV (texts m) Wtf 
     , box_ [onClick (NextImg)] . label . T.pack . P.show 
