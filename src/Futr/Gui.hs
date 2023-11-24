@@ -45,7 +45,7 @@ data AppEvent =
     | SwitchTheme Theme
     | A Event
     | GetRe Hex32
-    | NextImg
+    | NextImg (Maybe Int)
 
 data AppModel = AppModel {
         theme :: Theme -- XXX 
@@ -80,18 +80,19 @@ buildUI db _ m =
         , box_ [onClick (Mode Bull), alignRight] $ label "bull" 
         ]
         -- , textFieldV (texts m) Wtf 
-    , box_ [onClick (NextImg)] . label . T.pack . P.show 
-             $ (P.length (imgs m)) 
     , hsplit (
-          box_ [onClick (NextImg)] case imgs m of 
-            []    -> label "no imgs yet"
-            (tt : []) -> image_ tt [fitWidth] 
-            (tt : ((P.take 5) -> tx) ) -> hsplit (
+          case imgs m of 
+            []    -> spacer
+            (tt : []) -> box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth] 
+            (tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
                   image_ tt [fitWidth]
-                , vstack $ P.map (\ttt-> 
-                    box_ [onClick NextImg] (image_ ttt [fitWidth])
-                      `styleBasic` [width 33]) tx
-
+                , vstack $
+                    (P.map (\(ii,ttt)-> 
+                        box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
+                        `styleBasic` [width 33]) tx
+                    <> [ box_ [onClick (NextImg (Just 5))] . label . T.pack . P.show  
+                            $ (P.length (imgs m)) 
+                       ])
                 )
                     
         , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
@@ -146,7 +147,7 @@ handle db f pool e n m x = case x of
                 , imgs = (imgs m) <> imgx
                 }]
         _ -> []
-    NextImg -> [Model $ m { imgs = (P.drop 1 (imgs m)) }]
+    NextImg (fromMaybe 1 -> i) -> [Model $ m { imgs = (P.drop i (imgs m)) }]
     GetRe i -> [Task $ do 
         pure . ReModel $ m { selectedeid = Just (Selecty i []) }
         ]
