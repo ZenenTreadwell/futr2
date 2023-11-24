@@ -65,12 +65,11 @@ mstart :: SQL.Connection -> Pool' -> AppModel
 mstart o p = AppModel darkTheme Unicorn [] [] p "futr" Nothing
 
 buildUI
-  :: SQL.Connection
-  -> WidgetEnv AppModel AppEvent
+  :: WidgetEnv AppModel AppEvent
   -> AppModel
   -> WidgetNode AppModel AppEvent
 
-buildUI db _ m = 
+buildUI _ m = 
     themeSwitch (theme m) . keystroke [("Enter", Entuh)] 
     $ vstack [
       box_ [expandContent] $ hstack [ 
@@ -85,14 +84,11 @@ buildUI db _ m =
             []    -> spacer
             (tt : []) -> box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth] 
             (tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
-                  image_ tt [fitWidth]
-                , vstack $
-                    (P.map (\(ii,ttt)-> 
-                        box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
-                        `styleBasic` [width 33]) tx
-                    <> [ box_ [onClick (NextImg (Just 5))] . label . T.pack . P.show  
-                            $ (P.length (imgs m)) 
-                       ])
+                  box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
+                , vstack $ P.map previewI tx 
+                         <> [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
+                              $ (P.length (imgs m)) 
+                            ]
                 )
                     
         , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
@@ -103,7 +99,7 @@ buildUI db _ m =
       ) `nodeVisible` (mode m == Unicorn)
     , vstack  (P.map (label . render) (keys $ pool m))
             `nodeVisible` (mode m == Bull)
-    , getdoges db m 
+    , getdoges m 
          `nodeVisible` (mode m == Doge)      
     
     ]
@@ -114,9 +110,15 @@ buildUI db _ m =
         --           ]  
         --       Nothing -> label "nothing"  
 
+previewI :: (Int, Text) -> WidgetNode AppModel AppEvent
+previewI (ii, ttt) = 
+    box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
+    `styleBasic` [width 33] 
 
-getdoges :: SQL.Connection -> AppModel -> WidgetNode AppModel AppEvent
-getdoges db m = label "test" 
+
+
+getdoges :: AppModel -> WidgetNode AppModel AppEvent
+getdoges m = label "test" 
 
 
 ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
@@ -215,7 +217,7 @@ start db ff pool@(Pool v _ _) = do
       startApp 
         (mstart db p') 
         (handle db ff pool) 
-        (buildUI db) 
+        (buildUI) 
         [ appWindowTitle "nostr"
         , appWindowIcon "./assets/images/icon.png"
         , appTheme darkTheme
