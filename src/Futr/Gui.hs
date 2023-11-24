@@ -59,7 +59,6 @@ data AppModel = AppModel {
 
 data AppMode = Doge | Unicorn | Bull deriving (Eq, Show)
 
-    
 data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
     
 mstart :: SQL.Connection -> Pool' -> AppModel
@@ -70,7 +69,10 @@ buildUI
   -> WidgetEnv AppModel AppEvent
   -> AppModel
   -> WidgetNode AppModel AppEvent
-buildUI db _ m = themeSwitch (theme m) . keystroke [("Enter", Entuh)] $ vstack [
+
+buildUI db _ m = 
+    themeSwitch (theme m) . keystroke [("Enter", Entuh)] 
+    $ vstack [
       box_ [expandContent] $ hstack [ 
           box_ [onClick (Mode Doge), alignLeft] $ label "doge" 
         , box_ [onClick (Mode Unicorn), alignCenter] $ 
@@ -82,16 +84,26 @@ buildUI db _ m = themeSwitch (theme m) . keystroke [("Enter", Entuh)] $ vstack [
              $ (P.length (imgs m)) 
     , hsplit (
           box_ [onClick (NextImg)] case imgs m of 
-            []    -> separatorLine
-            t : _ -> image_ t [fitEither]
-        , vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
+            []    -> label "no imgs yet"
+            (tt : []) -> image_ tt [fitWidth] 
+            (tt : ((P.take 5) -> tx) ) -> hsplit (
+                  image_ tt [fitWidth]
+                , vstack $ P.map (\ttt-> 
+                    box_ [onClick NextImg] (image_ ttt [fitWidth])
+                      `styleBasic` [width 33]) tx
+
+                )
+                    
+        , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
              vstack $ (P.map (showMsg) (msgs m))
-           ]
+           ]) 
+            `styleBasic` [width 330]
         
       ) `nodeVisible` (mode m == Unicorn)
     , vstack  (P.map (label . render) (keys $ pool m))
             `nodeVisible` (mode m == Bull)
-    , label "doges" `nodeVisible` (mode m == Doge)      
+    , getdoges db m 
+         `nodeVisible` (mode m == Doge)      
     
     ]
         -- , case selectedeid m of 
@@ -101,13 +113,16 @@ buildUI db _ m = themeSwitch (theme m) . keystroke [("Enter", Entuh)] $ vstack [
         --           ]  
         --       Nothing -> label "nothing"  
 
+
+getdoges :: SQL.Connection -> AppModel -> WidgetNode AppModel AppEvent
+getdoges db m = label "test" 
+
+
 ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
 ofof mp i = case M.lookup i mp of 
     Just o -> (flip label_ labelconfig) . wq $ o
     Nothing -> label "nothing"
  
-
-
 handle
   :: SQL.Connection 
   -> TChan Event
@@ -179,7 +194,6 @@ fresher :: Pool -> (AppEvent -> IO ()) -> IO ()
 fresher pool@(Pool p _ _) r = do 
     threadDelay 5000000
     readTVarIO p >>= r . FreshPool  
-    r NextImg
     fresher pool r 
         
 displayfeed :: TChan Event -> (AppEvent -> IO ()) -> IO (  )
