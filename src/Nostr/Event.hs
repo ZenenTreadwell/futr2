@@ -203,6 +203,14 @@ instance ToJSON Marker where
     toJSON Root' = String "root"
     toJSON Mention' = String "mention"
 
+data Kind0 = Kind0 Text Text Text
+
+instance FromJSON Kind0 where 
+    parseJSON = withObject "kind0" \o -> 
+        Kind0 <$> (o .: "name")
+              <*> (o .: "about")
+              <*> (o .: "picture")
+
 wq :: ToJSON a => a -> Text 
 wq (toJSON -> a) = case a of 
     String s -> s 

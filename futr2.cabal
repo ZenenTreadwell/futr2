@@ -53,7 +53,8 @@ library
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      QuickCheck
+      JuicyPixels
+    , QuickCheck
     , aeson
     , async
     , base >=4.7 && <5
@@ -111,7 +112,8 @@ executable futr
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      QuickCheck
+      JuicyPixels
+    , QuickCheck
     , aeson
     , async
     , base >=4.7 && <5
@@ -170,7 +172,8 @@ executable relay
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      QuickCheck
+      JuicyPixels
+    , QuickCheck
     , aeson
     , async
     , base >=4.7 && <5
@@ -236,7 +239,8 @@ test-suite futr2-test
   pkgconfig-depends:
       libsecp256k1
   build-depends:
-      QuickCheck
+      JuicyPixels
+    , QuickCheck
     , aeson
     , async
     , base >=4.7 && <5

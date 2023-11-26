@@ -146,7 +146,7 @@ extractURI uri = do
                    
 liveF :: Integer -> Filter 
 liveF sec = emptyF { 
-      sinceF = Just $ Since $ sec 
+      sinceF = Just $ Since $ sec  
     , kindsF = Just $ Kinds [1] 
     , limitF = Just $ Limit 0 
     } 
@@ -172,9 +172,6 @@ gottaCatchemAll uri tv =
         print . (zz <>)
               . ("caught caught... " <>) 
               . P.take 227 . show $ z
-        -- XXX    
-        -- M.lookup uri <$> readTVarIO tv 
-        --     >>= maybe (pure ()) (killThread . activethread) 
     urierr :: URI.ParseException -> IO () 
     urierr = caught  showrender
     tlserr :: TLS.TLSException -> IO () 

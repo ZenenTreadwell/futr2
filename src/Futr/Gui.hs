@@ -32,7 +32,13 @@ import Monomer.Widgets.Singles.Base.InputField
 import Data.Aeson as J
 
 reglinks :: Text 
-reglinks = "http.+(jpg|gif|png)"
+-- reglinks = "http.+(jpg|png)"
+
+reglinks = "http.+(jpg|png)"
+
+
+
+
 
 data AppEvent = 
       AppInit
@@ -103,23 +109,19 @@ buildUI _ m =
          `nodeVisible` (mode m == Doge)      
     
     ]
-        -- , case selectedeid m of 
-        --       Just (Selecty x ee) -> vstack $ 
-        --           [ label $ wq x 
-        --           , vstack (P.map showMsg ee) 
-        --           ]  
-        --       Nothing -> label "nothing"  
 
 previewI :: (Int, Text) -> WidgetNode AppModel AppEvent
 previewI (ii, ttt) = 
     box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
     `styleBasic` [width 33] 
 
-
-
 getdoges :: AppModel -> WidgetNode AppModel AppEvent
-getdoges m = label "test" 
-
+getdoges m = case selectedeid m of 
+    Just (Selecty x ee) -> vstack $ 
+        [ label $ wq x 
+        , vstack (P.map showMsg ee) 
+        ]  
+    Nothing -> label "nothing"  
 
 ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
 ofof mp i = case M.lookup i mp of 
@@ -157,10 +159,6 @@ handle db f pool e n m x = case x of
     ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
         zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
-        -- let pleap = P.foldr 
-        --                 (uncurry M.insert) 
-        --                 (plebs m) 
-        --                 (catMaybes $ P.map getr zeroes) 
         selly <- case selectedeid m of 
             Just (Selecty i _) -> Just . Selecty i 
                 <$> fetch db (emptyF {etagF = Just (ETagM [i])})
@@ -208,7 +206,6 @@ displayfeed f r = do
     
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]
-    
 
 start :: SQL.Connection -> TChan Event -> Pool -> IO ThreadId
 start db ff pool@(Pool v _ _) = do 

@@ -56,6 +56,7 @@ dependencies:
 ## display 
 - monomer
 - monomer-hagrid 
+- JuicyPixels
 
 ## database
 - beam-core
