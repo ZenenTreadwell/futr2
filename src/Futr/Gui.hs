@@ -31,30 +31,10 @@ import Text.Regex.TDFA
 import Monomer.Widgets.Singles.Base.InputField
 import Data.Aeson as J
 
-reglinks :: Text 
--- reglinks = "http.+(jpg|png)"
-
-reglinks = "http.+(jpg|png)"
-
-
-
-
-
-data AppEvent = 
-      AppInit
-    | Mode AppMode 
-    | Wtf Text 
-    | Wth Int
-    | Entuh 
-    | FreshPool Pool'
-    | ReModel AppModel
-    | SwitchTheme Theme
-    | A Event
-    | GetRe Hex32
-    | NextImg (Maybe Int)
-
+type AppNode = WidgetNode AppModel AppEvent
+type AppEnv = WidgetEnv AppModel AppEvent
 data AppModel = AppModel {
-        theme :: Theme -- XXX 
+        theme :: Theme 
       , mode :: AppMode      
       , msgs :: [Event]
       , imgs :: [Text]
@@ -62,21 +42,66 @@ data AppModel = AppModel {
       , texts :: Text
       , selectedeid :: Maybe Selecty
     } deriving (Eq)
-
 data AppMode = Doge | Unicorn | Bull deriving (Eq, Show)
 
 data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
+
+data AppEvent = 
+      AppInit
+    | ReModel AppModel
+    | TextField Text
+    | Mode AppMode 
+    | FreshPool Pool'
+    | SwitchTheme Theme
+    | A Event
+    | GetRe Hex32
+    | NextImg (Maybe Int)
+
+handle
+  :: SQL.Connection 
+  -> TChan Event
+  -> Pool
+  -> WidgetEnv AppModel AppEvent
+  -> WidgetNode AppModel AppEvent
+  -> AppModel
+  -> AppEvent
+  -> [AppEventResponse AppModel AppEvent]
+handle db f pool _ _ m x = case x of 
+    AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
+    Mode moo -> [Model m {mode=moo}]
+    TextField t -> [ Model m {texts = t} ]
+    A e -> case kind . con $ e of 
+        1 -> [Task $ do 
+            let (_, imgx, _) = evalState extractlinks ("", [], (content . con) e)
+            pure . ReModel $ m { 
+                  msgs = e : (P.take 5 $ msgs m)
+                , imgs = (imgs m) <> imgx
+                }]
+        _ -> []
+    NextImg (fromMaybe 1 -> i) -> [Model $ m { imgs = (P.drop i (imgs m)) }]
+    GetRe i -> [Task $ do 
+        pure . ReModel $ m { selectedeid = Just (Selecty i []) }
+        ]
+    SwitchTheme t -> [Model $ m { theme = t }]
+    ReModel m -> [Model m]
+    FreshPool p -> [ Task $ do 
+        zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
+        selly <- case selectedeid m of 
+            Just (Selecty i _) -> Just . Selecty i 
+                <$> fetch db (emptyF {etagF = Just (ETagM [i])})
+            Nothing -> pure Nothing
+        pure . ReModel $ m { 
+              selectedeid = selly
+            , pool = p }
+        ]
+        
     
 mstart :: SQL.Connection -> Pool' -> AppModel
 mstart o p = AppModel darkTheme Unicorn [] [] p "futr" Nothing
 
-buildUI
-  :: WidgetEnv AppModel AppEvent
-  -> AppModel
-  -> WidgetNode AppModel AppEvent
-
+buildUI :: AppEnv  -> AppModel -> AppNode
 buildUI _ m = 
-    themeSwitch (theme m) . keystroke [("Enter", Entuh)] 
+    themeSwitch (theme m) -- . keystroke [("Enter", Entuh)] 
     $ vstack [
       box_ [expandContent] $ hstack [ 
           box_ [onClick (Mode Doge), alignLeft] $ label "doge" 
@@ -84,7 +109,7 @@ buildUI _ m =
             label " under construction " `styleBasic` [textSize 30]
         , box_ [onClick (Mode Bull), alignRight] $ label "bull" 
         ]
-        -- , textFieldV (texts m) Wtf 
+    , textFieldV (texts m) TextField 
     , hsplit (
           case imgs m of 
             []    -> spacer
@@ -98,7 +123,7 @@ buildUI _ m =
                 )
                     
         , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
-             vstack $ (P.map (showMsg) (msgs m))
+             vstack $ P.map (showMsg) (msgs m)
            ]) 
             `styleBasic` [width 330]
         
@@ -128,45 +153,7 @@ ofof mp i = case M.lookup i mp of
     Just o -> (flip label_ labelconfig) . wq $ o
     Nothing -> label "nothing"
  
-handle
-  :: SQL.Connection 
-  -> TChan Event
-  -> Pool
-  -> WidgetEnv AppModel AppEvent
-  -> WidgetNode AppModel AppEvent
-  -> AppModel
-  -> AppEvent
-  -> [AppEventResponse AppModel AppEvent]
-handle db f pool e n m x = case x of 
-    AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
-    Mode moo -> [Model m {mode=moo}]
-    Wtf t -> [ Model m {texts = t} ]
-    Entuh -> [ Model m {texts=""} ]
-    A e -> case kind . con $ e of 
-        1 -> [Task $ do 
-            let (strp, imgx, _) = evalState extractlinks ("", [], (content . con) e)
-            
-            pure . ReModel $ m { 
-                  msgs = e : (P.take 5 $ msgs m)
-                , imgs = (imgs m) <> imgx
-                }]
-        _ -> []
-    NextImg (fromMaybe 1 -> i) -> [Model $ m { imgs = (P.drop i (imgs m)) }]
-    GetRe i -> [Task $ do 
-        pure . ReModel $ m { selectedeid = Just (Selecty i []) }
-        ]
-    SwitchTheme t -> [Model $ m { theme = t }]
-    ReModel m -> [Model m]
-    FreshPool p -> [ Task $ do 
-        zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
-        selly <- case selectedeid m of 
-            Just (Selecty i _) -> Just . Selecty i 
-                <$> fetch db (emptyF {etagF = Just (ETagM [i])})
-            Nothing -> pure Nothing
-        pure . ReModel $ m { 
-              selectedeid = selly
-            , pool = p }
-        ]
+    
 
 getr :: Event -> Maybe (Hex32, Object)
 getr (N.Event _ _ (Content{pubkey, content})) = 
@@ -182,14 +169,21 @@ showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $
     case evalState extractlinks ("", [], content)  of 
         (b4, lt, af) -> label_ b4 labelconfig
 
-extractlinks :: State (Text, [Text], Text) (Text, [Text], Text)
-extractlinks = do 
+type RegT = State (Text, [Text], Text) (Text, [Text], Text)
+
+extractReg :: Text -> RegT  
+extractReg reg  = do 
     (tb, tlx, ta) <- get  
-    case ta =~ reglinks :: (Text, Text, Text) of 
+    case ta =~ reg :: (Text, Text, Text) of 
         (t, "", "") -> pure (tb <> t, tlx, "")
         (t, ll, "") -> pure (tb <> t, ll : tlx, "")
-        (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) >> extractlinks
+        (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) 
+                              >> extractReg reg
     
+extractlinks :: RegT
+extractlinks = extractReg reglinks        
+    where reglinks :: Text 
+          reglinks = "http.+(jpg|png)"
         
 fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
 fresher pool@(Pool p _ _) r = do 
