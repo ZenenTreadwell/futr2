@@ -26,7 +26,6 @@ import Data.Map as M
 import Data.Foldable
 import Data.Time.Clock.POSIX
 import Nostr.Boots
-import Control.Monad.STM
 
 poolParty :: SQL.Connection -> Hex96 -> IO Pool 
 poolParty db kp = do 
@@ -46,7 +45,7 @@ type Pool' = M.Map URI Feed
 data Pool = Pool (TVar Pool') SQL.Connection Hex96
 
 instance Eq Pool where 
-    (==) x y = False
+    (==) _ _ = False
     
 data Feed = Feed {
       sendchan :: (TChan Up) 
@@ -59,7 +58,7 @@ addRelay (Pool p db kp) uri = do
         Just socker -> pure socker 
         _ -> error "invalid uri?"
     ch <- newTChanIO
-    trd <- forkIO . (gottaCatchemAll uri p) . skr $ feeder kp uri ch db
+    trd <- forkIO . gottaCatchemAll uri p . skr $ feeder kp uri ch db
     atomically $ modifyTVar p (M.insert uri (Feed ch trd))
     
 feeder :: Hex96 -> URI -> TChan Up -> SQL.Connection -> ClientApp ()  
@@ -70,7 +69,8 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
 
     acceptcast = receiveData ws >>= \c -> case decode c of 
         Just dow -> downer dow  
-        _ -> print "decode failed" >> print c
+        _ -> error "acceptcast decode failed" 
+             --print "decode failed" >> print c >> print (render uri)
     
     downer :: Down -> IO ()
     downer = \case  

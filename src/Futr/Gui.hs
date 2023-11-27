@@ -57,17 +57,27 @@ data AppEvent =
     | GetRe Hex32
     | NextImg (Maybe Int)
 
-handle
-  :: SQL.Connection 
-  -> TChan Event
-  -> Pool
-  -> WidgetEnv AppModel AppEvent
-  -> WidgetNode AppModel AppEvent
+handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
   -> AppModel
   -> AppEvent
   -> [AppEventResponse AppModel AppEvent]
-handle db f pool _ _ m x = case x of 
-    AppInit -> [Producer (fresher pool), Producer (displayfeed f)]
+handle db f (Pool p _ _) _ _ m x = case x of 
+    AppInit -> [Producer fresher, Producer displayfeed]
+        where 
+        fresher :: (AppEvent -> IO ()) -> IO () 
+        fresher r = do 
+            threadDelay 5000000
+            readTVarIO p >>= r . FreshPool  
+            fresher r 
+                
+        displayfeed :: (AppEvent -> IO ()) -> IO (  )
+        displayfeed r = do 
+            f' <- atomically . dupTChan $ f
+            forever do 
+                e <- atomically $ readTChan f'
+                r . A $ e
+                    
+    ReModel n -> [Model n]
     Mode moo -> [Model m {mode=moo}]
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
@@ -83,9 +93,8 @@ handle db f pool _ _ m x = case x of
         pure . ReModel $ m { selectedeid = Just (Selecty i []) }
         ]
     SwitchTheme t -> [Model $ m { theme = t }]
-    ReModel m -> [Model m]
     FreshPool p -> [ Task $ do 
-        zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
+        -- zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
         selly <- case selectedeid m of 
             Just (Selecty i _) -> Just . Selecty i 
                 <$> fetch db (emptyF {etagF = Just (ETagM [i])})
@@ -113,7 +122,11 @@ buildUI _ m =
     , hsplit (
           case imgs m of 
             []    -> spacer
-            (tt : []) -> box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth] 
+            (tt : []) -> box_ [onClick (NextImg Nothing)] . vstack $ [ 
+                  image_ tt [fitWidth] 
+                , spacer
+                , separatorLine 
+                ]
             (tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
                   box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
                 , vstack $ P.map previewI tx 
@@ -123,7 +136,7 @@ buildUI _ m =
                 )
                     
         , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
-             vstack $ P.map (showMsg) (msgs m)
+               vstack $ P.map (showMsg) (msgs m)
            ]) 
             `styleBasic` [width 330]
         
@@ -135,12 +148,12 @@ buildUI _ m =
     
     ]
 
-previewI :: (Int, Text) -> WidgetNode AppModel AppEvent
+previewI :: (Int, Text) -> AppNode
 previewI (ii, ttt) = 
     box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
     `styleBasic` [width 33] 
 
-getdoges :: AppModel -> WidgetNode AppModel AppEvent
+getdoges :: AppModel -> AppNode
 getdoges m = case selectedeid m of 
     Just (Selecty x ee) -> vstack $ 
         [ label $ wq x 
@@ -148,13 +161,11 @@ getdoges m = case selectedeid m of
         ]  
     Nothing -> label "nothing"  
 
-ofof :: Map Hex32 Object -> Hex32 -> WidgetNode AppModel AppEvent 
+ofof :: Map Hex32 Object -> Hex32 -> AppNode
 ofof mp i = case M.lookup i mp of 
     Just o -> (flip label_ labelconfig) . wq $ o
     Nothing -> label "nothing"
  
-    
-
 getr :: Event -> Maybe (Hex32, Object)
 getr (N.Event _ _ (Content{pubkey, content})) = 
     (pubkey,) <$> byObjr content
@@ -164,10 +175,14 @@ byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of
     Just (Object o) -> Just o
     _ -> Nothing
     
-showMsg :: Event -> WidgetNode AppModel AppEvent
+showMsg :: Event -> AppNode
 showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
     case evalState extractlinks ("", [], content)  of 
-        (b4, lt, af) -> label_ b4 labelconfig
+        (b4, _, _) -> label_ b5 labelconfig
+            where 
+            b5 = case evalState ( extractReg "#[^:space:]+" ) ("",[], b4) of 
+                (b6, bx, a4) -> T.intercalate ", " bx 
+                    
 
 type RegT = State (Text, [Text], Text) (Text, [Text], Text)
 
@@ -185,28 +200,17 @@ extractlinks = extractReg reglinks
     where reglinks :: Text 
           reglinks = "http.+(jpg|png)"
         
-fresher :: Pool -> (AppEvent -> IO ()) -> IO () 
-fresher pool@(Pool p _ _) r = do 
-    threadDelay 5000000
-    readTVarIO p >>= r . FreshPool  
-    fresher pool r 
-        
-displayfeed :: TChan Event -> (AppEvent -> IO ()) -> IO (  )
-displayfeed f r = do 
-    f' <- atomically . dupTChan $ f
-    forever do 
-        e <- atomically $ readTChan f'
-        r . A $ e
     
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]
 
 start :: SQL.Connection -> TChan Event -> Pool -> IO ThreadId
-start db ff pool@(Pool v _ _) = do 
-    p' <- readTVarIO v 
+start db ff pool@(Pool (readTVarIO -> p') _ _) = do 
+    -- p' <- readTVarIO v 
+    p'' <- p'
     forkOS $
       startApp 
-        (mstart db p') 
+        (mstart db p'') 
         (handle db ff pool) 
         (buildUI) 
         [ appWindowTitle "nostr"
