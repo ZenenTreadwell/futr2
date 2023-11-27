@@ -83,6 +83,5 @@ main = do
             print conf
             void . forkIO $ runRelay conf o f  
             pool <- poolParty o kp
-            void (start o f pool)
-            threadDelay maxBound
+            start o f pool
 

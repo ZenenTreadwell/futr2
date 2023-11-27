@@ -32,7 +32,7 @@ kind0 (Event _ _ (Content {..})) =
 kind1 :: Event -> Kind
 kind1 (Event _ _ (Content {..})) =
     let 
-    (nolinks, links) = content ~=~ reglinks 
+    (nolinks, links) = content ~=~ "http.+(jpg|png)" 
     (_, hashtags)  = nolinks ~=~ "#[^:space:]+" 
     in Kind1 links hashtags nolinks
     
@@ -45,6 +45,7 @@ instance FromJSON Profile where
                 <*> (o .: "about")
                 <*> (o .: "picture")
                 
+
 type RegT = State (Text, [Text], Text) (Text, [Text], Text)
 
 extractReg :: Text -> RegT  
@@ -55,12 +56,7 @@ extractReg reg  = do
         (t, ll, "") -> pure (tb <> t, ll : tlx, "")
         (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) 
                               >> extractReg reg
-
 (~=~) :: Text -> Text -> (Text, [Text])
 star ~=~ reg = x $ evalState (extractReg reg) ("", [], star) 
     where 
     x (a,b,_) = (a,b)
-    
-    
-reglinks :: Text 
-reglinks = "http.+(jpg|png)"

@@ -212,12 +212,11 @@ showMsg e = case kindE e of
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]
 
-start :: SQL.Connection -> TChan Event -> Pool -> IO ThreadId
+start :: SQL.Connection -> TChan Event -> Pool -> IO ()
 start db ff pool@(Pool (readTVarIO -> p') _ _) = do 
     -- p' <- readTVarIO v 
     p'' <- p'
-    forkOS $
-      startApp 
+    startApp 
         (mstart db p'') 
         (handle db ff pool) 
         (buildUI) 
