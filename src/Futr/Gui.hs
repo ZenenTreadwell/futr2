@@ -84,7 +84,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
     A e -> case kind . con $ e of 
         0 -> [Model m { msgs = e : msgs m }]
         1 -> [Task $ do 
-            let (_, imgx, _) = evalState extractlinks ("", [], (content . con) e)
+            let (Kind1 imgx _ _) = kind1 e
             pure . ReModel $ m { 
                   msgs = e : (P.take 5 $ msgs m)
                 , imgs = (imgs m) <> imgx
@@ -150,6 +150,12 @@ buildUI _ m =
     
     ]
 
+
+previewJ :: Text -> AppNode
+previewJ ttt = 
+    box (image_ ttt [fitWidth])
+    `styleBasic` [width 33] 
+
 previewI :: (Int, Text) -> AppNode
 previewI (ii, ttt) = 
     box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
@@ -186,31 +192,21 @@ showMsg e = case kindE e of
         , image picture
         , label about
         ]
-    _ -> showMsgOG e
+    Kind1 memex hashx txt -> vstack [
+          label txt
+        , hstack (P.map previewJ memex)
+        , label (T.intercalate ", " hashx)
+        ]
+    _ -> label "unexpected"
 
-showMsgOG (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
-    case evalState extractlinks ("", [], content)  of 
-        (b4, _, _) -> label_ b5 labelconfig
-            where 
-            b5 = case evalState ( extractReg "#[^:space:]+" ) ("",[], b4) of 
-                (b6, bx, _) -> T.intercalate ", " bx 
+-- showMsgOG (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
+--     case evalState extractlinks ("", [], content)  of 
+--         (b4, _, _) -> label_ b5 labelconfig
+--             where 
+--             b5 = case evalState ( extractReg "#[^:space:]+" ) ("",[], b4) of 
+--                 (b6, bx, _) -> T.intercalate ", " bx 
                     
 
-type RegT = State (Text, [Text], Text) (Text, [Text], Text)
-
-extractReg :: Text -> RegT  
-extractReg reg  = do 
-    (tb, tlx, ta) <- get  
-    case ta =~ reg :: (Text, Text, Text) of 
-        (t, "", "") -> pure (tb <> t, tlx, "")
-        (t, ll, "") -> pure (tb <> t, ll : tlx, "")
-        (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) 
-                              >> extractReg reg
-    
-extractlinks :: RegT
-extractlinks = extractReg reglinks        
-    where reglinks :: Text 
-          reglinks = "http.+(jpg|png)"
         
     
 labelconfig :: [LabelCfg AppModel AppEvent]

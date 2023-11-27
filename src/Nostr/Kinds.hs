@@ -9,6 +9,9 @@ import Data.Text.Lazy (fromStrict)
 import Data.Text.Lazy.Encoding (encodeUtf8)
 import Data.Text (Text)
 
+import Text.Regex.TDFA
+import Control.Monad.State
+
 kindE :: Event -> Kind
 kindE e = case kind . con $ e of 
     0 -> kind0 e
@@ -17,7 +20,7 @@ kindE e = case kind . con $ e of
 
 data Kind = 
       Kind0 Text Text Text
-    | Kind1
+    | Kind1 [Text] [Text] Text
     | Rest Event
 
 kind0 :: Event -> Kind
@@ -27,8 +30,13 @@ kind0 (Event _ _ (Content {..})) =
         _ -> error "zero"
 
 kind1 :: Event -> Kind
-kind1 (Event _ _ (Content {..})) = Kind1
-
+kind1 (Event _ _ (Content {..})) =
+    let 
+    (nolinks, links) = content ~=~ reglinks 
+    (_, hashtags)  = nolinks ~=~ "#[^:space:]+" 
+    in Kind1 links hashtags nolinks
+    
+        
 data Profile = Profile Text Text Text
 
 instance FromJSON Profile where 
@@ -36,3 +44,23 @@ instance FromJSON Profile where
         Profile <$> (o .: "name")
                 <*> (o .: "about")
                 <*> (o .: "picture")
+                
+type RegT = State (Text, [Text], Text) (Text, [Text], Text)
+
+extractReg :: Text -> RegT  
+extractReg reg  = do 
+    (tb, tlx, ta) <- get  
+    case ta =~ reg :: (Text, Text, Text) of 
+        (t, "", "") -> pure (tb <> t, tlx, "")
+        (t, ll, "") -> pure (tb <> t, ll : tlx, "")
+        (blt, ll, btl) -> put (tb <> blt, ll : tlx, btl) 
+                              >> extractReg reg
+
+(~=~) :: Text -> Text -> (Text, [Text])
+star ~=~ reg = x $ evalState (extractReg reg) ("", [], star) 
+    where 
+    x (a,b,_) = (a,b)
+    
+    
+reglinks :: Text 
+reglinks = "http.+(jpg|png)"
