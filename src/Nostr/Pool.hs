@@ -147,7 +147,7 @@ extractURI uri = do
 liveF :: Integer -> Filter 
 liveF sec = emptyF { 
       sinceF = Just $ Since $ sec  
-    , kindsF = Just $ Kinds [1] 
+    , kindsF = Just $ Kinds [0, 1] 
     , limitF = Just $ Limit 0 
     } 
 

@@ -34,6 +34,7 @@ library
       Nostr.Event
       Nostr.Filter
       Nostr.Keys
+      Nostr.Kinds
       Nostr.Pool
       Nostr.Relay
       Nostr.Wire

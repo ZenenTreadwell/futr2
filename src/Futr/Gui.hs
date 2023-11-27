@@ -13,6 +13,7 @@ import Control.Concurrent
 import Control.Concurrent.STM.TVar
 import Nostr.Beam
 import Nostr.Keys
+import Nostr.Kinds
 import Database.SQLite.Simple as SQL
 import Control.Monad
 import Control.Concurrent.STM.TChan
@@ -81,6 +82,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
     Mode moo -> [Model m {mode=moo}]
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
+        0 -> [Model m { msgs = e : msgs m }]
         1 -> [Task $ do 
             let (_, imgx, _) = evalState extractlinks ("", [], (content . con) e)
             pure . ReModel $ m { 
@@ -174,14 +176,24 @@ byObjr :: Text -> Maybe Object
 byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of 
     Just (Object o) -> Just o
     _ -> Nothing
+
+
     
 showMsg :: Event -> AppNode
-showMsg (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
+showMsg e = case kindE e of 
+    Kind0 name about picture -> vstack [
+          label $ name 
+        , image picture
+        , label about
+        ]
+    _ -> showMsgOG e
+
+showMsgOG (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
     case evalState extractlinks ("", [], content)  of 
         (b4, _, _) -> label_ b5 labelconfig
             where 
             b5 = case evalState ( extractReg "#[^:space:]+" ) ("",[], b4) of 
-                (b6, bx, a4) -> T.intercalate ", " bx 
+                (b6, bx, _) -> T.intercalate ", " bx 
                     
 
 type RegT = State (Text, [Text], Text) (Text, [Text], Text)

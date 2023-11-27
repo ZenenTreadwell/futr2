@@ -34,7 +34,6 @@ import Control.Exception as E
 import System.Directory as D
 import System.IO as S
 import Data.Ini.Config
-
 import Nostr.Beam
 import Nostr.Relay
 import Nostr.Event
@@ -55,7 +54,9 @@ main = do
   
     idents <- getIdentities o
     kp <- case idents of 
-        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+        [] -> genKeyPair >>= (\me -> 
+                 (insertId o . un96 $ me) 
+                   >> pure me)
         me : _ -> pure me
     localIdentity <- exportPub kp
     
