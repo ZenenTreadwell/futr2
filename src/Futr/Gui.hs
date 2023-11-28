@@ -32,6 +32,7 @@ import Text.Regex.TDFA
 import Monomer.Widgets.Singles.Base.InputField
 import Data.Aeson as J
 
+
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
 data AppModel = AppModel {
@@ -153,7 +154,7 @@ buildUI _ m =
 
 previewJ :: Text -> AppNode
 previewJ ttt = 
-    box (image_ ttt [fitWidth])
+    box (image_ "" [fitWidth])
     `styleBasic` [width 33] 
 
 previewI :: (Int, Text) -> AppNode
@@ -182,32 +183,21 @@ byObjr :: Text -> Maybe Object
 byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of 
     Just (Object o) -> Just o
     _ -> Nothing
-
-
-    
+ 
 showMsg :: Event -> AppNode
 showMsg e = case kindE e of 
-    Kind0 name about picture -> vstack [
-          label $ name 
-        , image picture
+    Kind0 name about picture -> hstack [
+          image picture
+        , label name 
         , label about
         ]
-    Kind1 memex hashx txt -> vstack [
+    Kind1 _ hashx txt -> hstack [
           label txt
-        , hstack (P.map previewJ memex)
+        -- , hstack (P.map previewJ memex)
         , label (T.intercalate ", " hashx)
         ]
     _ -> label "unexpected"
-
--- showMsgOG (N.Event i _ (Content{..})) = box_ [onClick (GetRe i)] $ 
---     case evalState extractlinks ("", [], content)  of 
---         (b4, _, _) -> label_ b5 labelconfig
---             where 
---             b5 = case evalState ( extractReg "#[^:space:]+" ) ("",[], b4) of 
---                 (b6, bx, _) -> T.intercalate ", " bx 
-                    
-
-        
+       
     
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]

@@ -93,7 +93,6 @@ decryptMsg (AesCtx xo ox _) t = do
     case decodeUtf8' . unpad  . cbcDecrypt xo ox $ msg of 
         Left _ -> Nothing
         Right m -> Just m
-        -- XXX paddings
         
 pad :: ByteString -> ByteString
 pad m = m <> BS.replicate (16 - mod (BS.length m) 16) 10
