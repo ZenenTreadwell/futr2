@@ -24,8 +24,8 @@ xnpub :: Text -> Maybe Hex32
 xnpub t = case BECH.decode t of 
     Right (_, d) -> case dataPartToBytes d of 
         Just s -> J.decode . J.encode $ Hex32 s 
-        _ -> error "dataPart "
-    Left e -> error . show $ e
+        _ -> Nothing
+    Left _ -> Nothing
  
 newtype Hex96 = Hex96 { un96 :: ByteString } deriving (Eq, Show, Ord)
 newtype Hex64 = Hex64 { un64 :: ByteString } deriving (Eq, Show, Ord)
@@ -71,8 +71,6 @@ genKeyPair = do
     case ret of 
         1 -> Hex96 <$> packPtr (keypair, 96)
         _ -> undefined 
-
-
 
 exportPub :: Hex96 -> IO Hex32 
 exportPub (Hex96 bs) = do 

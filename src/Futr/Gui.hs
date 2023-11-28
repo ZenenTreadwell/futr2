@@ -23,7 +23,6 @@ import Monomer.Widgets.Singles.TextArea
 import Monomer.Widgets.Singles.TextField
 import Monomer.Widgets.Singles.SeparatorLine
 import Monomer.Widgets.Singles.NumericField
-import Data.Map as M
 import Data.Text as T
 import Data.Text.Encoding as T
 import Data.Maybe
@@ -31,6 +30,8 @@ import Text.URI
 import Text.Regex.TDFA
 import Monomer.Widgets.Singles.Base.InputField
 import Data.Aeson as J
+import qualified Data.Map as M 
+import Data.Map (Map, keys)
 
 
 type AppNode = WidgetNode AppModel AppEvent
@@ -38,8 +39,9 @@ type AppEnv = WidgetEnv AppModel AppEvent
 data AppModel = AppModel {
         theme :: Theme 
       , mode :: AppMode      
-      , msgs :: [Event]
-      , imgs :: [Text]
+      , msgs :: [Event] -- Graph
+      , imgs :: [URI]
+      , imgl :: M.Map URI ByteString 
       , pool :: Pool'
       , texts :: Text
       , selectedeid :: Maybe Selecty
@@ -109,7 +111,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
         
     
 mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = AppModel darkTheme Unicorn [] [] p "futr" Nothing
+mstart o p = AppModel darkTheme Unicorn [] [] M.empty p "futr" Nothing
 
 buildUI :: AppEnv  -> AppModel -> AppNode
 buildUI _ m = 
@@ -125,23 +127,23 @@ buildUI _ m =
     , hsplit (
           case imgs m of 
             []    -> spacer
-            (tt : []) -> box_ [onClick (NextImg Nothing)] . vstack $ [ 
+            ((render -> tt) : _) -> box_ [onClick (NextImg Nothing)] . vstack $ [ 
                   image_ tt [fitWidth] 
                 , spacer
                 , separatorLine 
                 ]
-            (tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
-                  box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
-                , vstack $ P.map previewI tx 
-                         <> [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
-                              $ (P.length (imgs m)) 
-                            ]
-                )
+            -- ( tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
+            --       box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
+            --     , vstack $ P.map previewI tx 
+            --              <> [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
+            --                   $ (P.length (imgs m)) 
+            --                 ]
+            --     )
                     
         , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
                vstack $ P.map (showMsg) (msgs m)
            ]) 
-            `styleBasic` [width 330]
+            `styleBasic` [width 420]
         
       ) `nodeVisible` (mode m == Unicorn)
     , vstack  (P.map (label . render) (keys $ pool m))
@@ -150,7 +152,24 @@ buildUI _ m =
          `nodeVisible` (mode m == Doge)      
     
     ]
-
+showMsg :: Event -> AppNode
+showMsg e = case kindE e of 
+    Kind0 (Just (Profile name about picture)) -> hstack [
+          image picture `styleBasic` [width 33]
+        , label name
+        , label about
+        ]
+    Kind0 Nothing -> label (content . con $ e)
+    Kind1 _ txt (mapMaybe isIs -> mx) -> hstack [
+          label txt `styleBasic` [textSize 21]
+        -- , hstack (P.map previewJ memex)
+        , label (T.intercalate ", " mx)
+        ]
+    _ -> label "unexpected"
+       
+isIs :: Tag -> Maybe Text 
+isIs (AZTag 't' x) = Just x
+isIs _ = Nothing  
 
 previewJ :: Text -> AppNode
 previewJ ttt = 
@@ -184,20 +203,6 @@ byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of
     Just (Object o) -> Just o
     _ -> Nothing
  
-showMsg :: Event -> AppNode
-showMsg e = case kindE e of 
-    Kind0 name about picture -> hstack [
-          image picture
-        , label name 
-        , label about
-        ]
-    Kind1 _ hashx txt -> hstack [
-          label txt
-        -- , hstack (P.map previewJ memex)
-        , label (T.intercalate ", " hashx)
-        ]
-    _ -> label "unexpected"
-       
     
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]
