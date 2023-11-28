@@ -5,8 +5,10 @@ import Nostr.Event
 import Nostr.Direct 
 import Nostr.Keys
 import Data.Aeson
-import Data.Text.Lazy (fromStrict)
-import Data.Text.Lazy.Encoding (encodeUtf8)
+import Data.Aeson.Key (toText)
+import Data.Aeson.KeyMap (delete, toList)
+import Data.Text.Lazy (fromStrict, toStrict)
+import Data.Text.Lazy.Encoding (encodeUtf8, decodeUtf8)
 import Data.Text (Text)
 import Text.Regex.TDFA
 import Text.URI
@@ -36,13 +38,22 @@ kind0 :: Event -> Kind
 kind0 (Event _ _ (Content {..})) = Kind0 
     ((decode . encodeUtf8 . fromStrict) content :: Maybe Profile)
 
-data Profile = Profile Text Text Text
+data Profile = Profile Text Text Text [(Text, Text)]
 
 instance FromJSON Profile where 
-    parseJSON = withObject "kind0" \o -> 
+    parseJSON = withObject "kind0" \o ->  
+    
+        let toT (toText -> t, (toStrict . decodeUtf8 . encode) -> t2) = (t,t2) 
+            additional = map toT . toList 
+                             . delete "picture" 
+                             . delete "about" 
+                             . delete "name"
+                             $ o
+        in
         Profile <$> (o .: "name")
                 <*> (o .: "about")
                 <*> (o .: "picture")
+                <*> pure additional
 
 kind1 :: Event -> Kind 
 kind1 (Event _ _ (Content {..})) =

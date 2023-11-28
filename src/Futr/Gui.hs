@@ -154,10 +154,14 @@ buildUI _ m =
     ]
 showMsg :: Event -> AppNode
 showMsg e = case kindE e of 
-    Kind0 (Just (Profile name about picture)) -> hstack [
-          image picture `styleBasic` [width 33]
-        , label name
-        , label about
+    Kind0 (Just (Profile name about picture addies)) -> vstack [
+          hstack [
+                box (label name) `styleBasic` [padding 22]
+              , box (image_ picture [fitWidth]) 
+                `styleBasic` [height 53, width 53]
+              , label_ about labelconfig
+              ]
+        , vstack $ flip P.map addies \(t,tt) -> label (t <> " : " <> tt) 
         ]
     Kind0 Nothing -> label (content . con $ e)
     Kind1 _ txt (mapMaybe isIs -> mx) -> hstack [
