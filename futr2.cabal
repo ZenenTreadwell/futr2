@@ -80,6 +80,7 @@ library
     , monomer-hagrid
     , mtl
     , regex-tdfa
+    , req
     , servant
     , servant-server
     , sqlite-simple
@@ -140,6 +141,7 @@ executable futr
     , monomer-hagrid
     , mtl
     , regex-tdfa
+    , req
     , servant
     , servant-server
     , sqlite-simple
@@ -200,6 +202,7 @@ executable relay
     , monomer-hagrid
     , mtl
     , regex-tdfa
+    , req
     , servant
     , servant-server
     , sqlite-simple
@@ -267,6 +270,7 @@ test-suite futr2-test
     , monomer-hagrid
     , mtl
     , regex-tdfa
+    , req
     , servant
     , servant-server
     , sqlite-simple

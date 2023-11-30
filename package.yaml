@@ -45,6 +45,7 @@ dependencies:
 - wai-websockets
 - servant 
 - servant-server
+- req
 - modern-uri
 - connection
 - tls 

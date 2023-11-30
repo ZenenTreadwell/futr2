@@ -3,7 +3,10 @@ module Futr.Gui where
 
 import Prelude as P
 import Monomer as O 
+
+import qualified Data.ByteString as B
 import Data.ByteString.Lazy as LB
+
 import Monomer.Core.Style
 import Monomer.Hagrid
 import Nostr.Event as N
@@ -32,7 +35,10 @@ import Monomer.Widgets.Singles.Base.InputField
 import Data.Aeson as J
 import qualified Data.Map as M 
 import Data.Map (Map, keys)
-
+import Network.HTTP.Req 
+import Data.Proxy
+import Codec.Picture
+import GHC.Float
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
@@ -41,7 +47,7 @@ data AppModel = AppModel {
       , mode :: AppMode      
       , msgs :: [Event] -- Graph
       , imgs :: [URI]
-      , imgl :: M.Map URI ByteString 
+      , imgl :: M.Map URI (Image PixelRGBA8) 
       , pool :: Pool'
       , texts :: Text
       , selectedeid :: Maybe Selecty
@@ -60,6 +66,7 @@ data AppEvent =
     | A Event
     | GetRe Hex32
     | NextImg (Maybe Int)
+    | LoadImg URI 
 
 handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
   -> AppModel
@@ -82,6 +89,11 @@ handle db f (Pool p _ _) _ _ m x = case x of
                 r . A $ e
                     
     ReModel n -> [Model n]
+
+    LoadImg uri -> [ Task $ do 
+        bs <- fetchImg uri 
+        pure $ ReModel m { imgl = M.insert uri bs (imgl m) } ]
+    
     Mode moo -> [Model m {mode=moo}]
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
@@ -93,7 +105,11 @@ handle db f (Pool p _ _) _ _ m x = case x of
                 , imgs = (imgs m) <> imgx
                 }]
         _ -> []
-    NextImg (fromMaybe 1 -> i) -> [Model $ m { imgs = (P.drop i (imgs m)) }]
+    NextImg (fromMaybe 1 -> i) -> 
+        let imp = P.drop i (imgs m)
+            fiv = P.map (Task . pure . LoadImg) $ P.take 1 imp  
+        in fiv <> [
+        Model $ m { imgs = imp }]
     GetRe i -> [Task $ do 
         pure . ReModel $ m { selectedeid = Just (Selecty i []) }
         ]
@@ -108,6 +124,27 @@ handle db f (Pool p _ _) _ _ m x = case x of
               selectedeid = selly
             , pool = p }
         ]
+        
+fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
+fetchImg uri = 
+    let ocd urri = req GET urri NoReqBody bsResponse mempty 
+        ree :: HttpResponseBody BsResponse -> B.ByteString
+        ree = id
+        -- imgee :: B.ByteString -> 
+    in do 
+    (ree . responseBody -> bs) <- runReq defaultHttpConfig $  
+        case useURI uri of 
+            Just (Right (fst -> r)) -> ocd r
+            Just (Left (fst -> l)) -> ocd l -- error "what"
+            Nothing -> error "bad uri?"
+    
+    -- pure 
+    pure case decodeImage bs of 
+        Left l -> error l 
+        Right r -> convertRGBA8 r 
+        -- case encodeDynamicBitmap $ ImageRGBA8 (convertRGBA8 r) of 
+        --     Left l -> error l
+        --     Right reee -> reee
         
     
 mstart :: SQL.Connection -> Pool' -> AppModel
@@ -127,11 +164,15 @@ buildUI _ m =
     , hsplit (
           case imgs m of 
             []    -> spacer
-            ((render -> tt) : _) -> box_ [onClick (NextImg Nothing)] . vstack $ [ 
-                  image_ tt [fitWidth] 
-                , spacer
-                , separatorLine 
-                ]
+            (tt : _) -> box_ [onClick (NextImg Nothing)] case M.lookup tt (imgl m) of 
+                Just rgba -> 
+                    vstack $ [ 
+                      imageMem "mainy" 
+                               (toStrict $ encodeBitmap rgba) 
+                               (Size (int2Double $ imageWidth rgba) 
+                                     (int2Double $ imageHeight rgba))  --[fitWidth] 
+                    ]
+                Nothing -> label "tt"
             -- ( tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
             --       box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
             --     , vstack $ P.map previewI tx 
@@ -174,6 +215,7 @@ showMsg e = case kindE e of
 isIs :: Tag -> Maybe Text 
 isIs (AZTag 't' x) = Just x
 isIs _ = Nothing  
+
 
 previewJ :: Text -> AppNode
 previewJ ttt = 
