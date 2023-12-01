@@ -39,6 +39,7 @@ import Network.HTTP.Req
 import Data.Proxy
 import Codec.Picture
 import GHC.Float
+import Control.Concurrent.Async
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
@@ -49,19 +50,16 @@ data AppModel = AppModel {
       , imgl :: M.Map URI (Image PixelRGBA8) 
       , pool :: Pool'
       , texts :: Text
-      , selectedeid :: Maybe Selecty
     } deriving (Eq)
-
-data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
 
 data AppEvent = 
       AppInit
+    | Nada
     | ReModel AppModel
     | TextField Text
     | FreshPool Pool'
     | SwitchTheme Theme
     | A Event
-    | GetRe Hex32
     | NextImg (Maybe Int)
     | LoadImg URI 
 
@@ -87,48 +85,41 @@ handle db f (Pool p _ _) _ _ m x = case x of
                     
     ReModel n -> [Model n]
 
+    Nada -> []
+
     LoadImg uri -> 
         if M.member uri (imgl m) 
-        then []
+        then [Model m]
         else [ Task do 
-            bs <- fetchImg uri 
-            pure $ ReModel m { imgl = M.insert uri bs (imgl m) } 
+            bs <- race (fetchImg uri) 
+                       (threadDelay 30000000) 
+            case bs of 
+                Left b -> pure $ ReModel m { imgl = M.insert uri b (imgl m) } 
+                Right _ -> pure Nada
             ]
     
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
-        0 -> [Model m { msgs = e : msgs m }]
-        1 -> 
-            case P.length $ imgs m of
-                 ((< 7) -> True) ->  P.map (Task . pure . LoadImg) (imgs m) 
-                 _ -> []
-            <>
-            [ Task $ do 
+        1 ->  
             let (Kind1 imgx _ _) = kind1 e
-            pure . ReModel $ m { 
+                newi = imgs m <> imgx 
+            in [ Model $ m { 
                   msgs = e : (P.take 5 $ msgs m)
-                , imgs = (imgs m) <> imgx
-                }]
+                , imgs = newi
+                }] 
         _ -> []
     NextImg (fromMaybe 1 -> i) -> 
         let imp = P.drop i (imgs m)
             fiv = P.map (Task . pure . LoadImg) $ P.take 5 imp  
-        in fiv <> [
-        Model $ m { imgs = imp }]
-    GetRe i -> [Task $ do 
-        pure . ReModel $ m { selectedeid = Just (Selecty i []) }
-        ]
+        in [Model $ m { imgs = imp }] <> fiv
     SwitchTheme t -> [Model $ m { theme = t }]
-    FreshPool p -> [ Task $ do 
-        -- zeroes <- fetch db emptyF { kindsF = Just (Kinds [0]) } 
-        selly <- case selectedeid m of 
-            Just (Selecty i _) -> Just . Selecty i 
-                <$> fetch db (emptyF {etagF = Just (ETagM [i])})
-            Nothing -> pure Nothing
-        pure . ReModel $ m { 
-              selectedeid = selly
-            , pool = p }
-        ]
+    FreshPool p -> 
+        let fiv = mapMaybe fivy $ P.take 6 (imgs m)
+            -- fivy :: URI -> Maybe _
+            fivy u = if M.member u (imgl m)
+                     then Nothing 
+                     else Just (Task . pure . LoadImg $ u) 
+        in [ Model $ m { pool = p } , Task (pure $ NextImg (Just 0)) ] 
         
 fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
 fetchImg uri = 
@@ -142,7 +133,7 @@ fetchImg uri =
             Just (Right (fst -> r)) -> ocd r
             Just (Left (fst -> l)) -> ocd l -- error "what"
             Nothing -> error "bad uri?"
-    
+            
     pure case decodeImage bs of 
         Left l -> error l 
         Right r -> convertRGBA8 r 
@@ -155,8 +146,8 @@ showImg l r = imageMem_ l
                         [fitWidth]
         
     
-mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = AppModel darkTheme [] [] M.empty p "futr" Nothing
+mstart :: Pool' -> AppModel
+mstart p = AppModel darkTheme [] [] M.empty p "futr" 
 
 showgg :: Text -> Maybe (Image PixelRGBA8) -> AppNode
 showgg t = \case 
@@ -169,9 +160,10 @@ okup m u = showgg (render u) (M.lookup u m)
 
 buildUI :: AppEnv  -> AppModel -> AppNode
 buildUI _ m = 
-    themeSwitch (theme m) -- . keystroke [("Enter", Entuh)] 
-    $ vstack [
+    -- themeSwitch (theme m) $ -- . keystroke [("Enter", Entuh)] 
+    vstack [
       textFieldV (texts m) TextField 
+    -- , vstack . P.map showMsg $ msgs m 
     , case imgs m of 
             []    -> spacer
             (tt : (P.take 5 -> tx) ) -> hsplit (
@@ -179,11 +171,10 @@ buildUI _ m =
                 , vstack $ 
                     P.map 
                         (\(ii, ur) -> 
-                            box_ [onClick (NextImg (Just (ii + 1) ))] (showgg (render ur) (M.lookup ur (imgl m)))  
+                            box_ [onClick (NextImg (Just ii))] (showgg (render ur) (M.lookup ur (imgl m)))  
                             `styleBasic` [width 100]
                             )
-                        (P.zipWith (,) [0..] tx) 
-                    
+                        (P.zipWith (,) [1..] tx) 
                    
                         <> 
                         [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
@@ -204,50 +195,25 @@ showMsg e = case kindE e of
               ]
         , vstack $ flip P.map addies \(t,tt) -> label (t <> " : " <> tt) 
         ]
-    Kind0 Nothing -> label (content . con $ e)
-    Kind1 _ txt (mapMaybe isIs -> mx) -> hstack [
+    Kind0 Nothing -> label_ (content . con $ e) labelconfig 
+    Kind1 _ txt (mapMaybe isIs -> mx) -> vstack [
           label_ txt labelconfig `styleBasic` [textSize 21]
-        -- , hstack (P.map previewJ memex)
-        , label (T.intercalate ", " mx)
+        , label_ (T.intercalate ", " mx) labelconfig
         ]
     _ -> label "unexpected"
        
 isIs :: Tag -> Maybe Text 
 isIs (AZTag 't' x) = Just x
 isIs _ = Nothing  
-
-getdoges :: AppModel -> AppNode
-getdoges m = case selectedeid m of 
-    Just (Selecty x ee) -> vstack $ 
-        [ label $ wq x 
-        , vstack (P.map showMsg ee) 
-        ]  
-    Nothing -> label "nothing"  
-
-ofof :: Map Hex32 Object -> Hex32 -> AppNode
-ofof mp i = case M.lookup i mp of 
-    Just o -> (flip label_ labelconfig) . wq $ o
-    Nothing -> label "nothing"
- 
-getr :: Event -> Maybe (Hex32, Object)
-getr (N.Event _ _ (Content{pubkey, content})) = 
-    (pubkey,) <$> byObjr content
-
-byObjr :: Text -> Maybe Object 
-byObjr (encodeUtf8 -> t) = case decode . LB.fromStrict $ t of 
-    Just (Object o) -> Just o
-    _ -> Nothing
- 
     
 labelconfig :: [LabelCfg AppModel AppEvent]
 labelconfig = [ O.multiline , trimSpaces]
 
 start :: SQL.Connection -> TChan Event -> Pool -> IO ()
-start db ff pool@(Pool (readTVarIO -> p') _ _) = do 
-    -- p' <- readTVarIO v 
-    p'' <- p'
+start db ff pool@(Pool (readTVarIO -> pio) _ _) = do 
+    p <- pio
     startApp 
-        (mstart db p'') 
+        (mstart p) 
         (handle db ff pool) 
         (buildUI) 
         [ appWindowTitle "nostr"
