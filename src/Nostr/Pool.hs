@@ -69,7 +69,7 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
 
     acceptcast = receiveData ws >>= \c -> case decode c of 
         Just dow -> downer dow  
-        _ -> error "acceptcast decode failed" 
+        _ -> error " " -- print $ "test" <> show c 
              --print "decode failed" >> print c >> print (render uri)
     
     downer :: Down -> IO ()

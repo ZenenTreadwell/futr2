@@ -1,86 +1,51 @@
 
 module Futr.Gui where 
+import Futr.App
+import Futr.Imgs
 
 import Prelude as P
 import Monomer as O 
-
 import qualified Data.ByteString as B
 import Data.ByteString.Lazy as LB
-
-import Monomer.Core.Style
-import Monomer.Hagrid
 import Nostr.Event as N
 import Nostr.Pool
-import Nostr.Filter
 import Control.Concurrent
 import Control.Concurrent.STM.TVar
-import Nostr.Beam
-import Nostr.Keys
 import Nostr.Kinds
 import Database.SQLite.Simple as SQL
 import Control.Monad
 import Control.Concurrent.STM.TChan
 import Control.Monad.STM
-import Control.Monad.State
-import Monomer.Widgets.Singles.TextArea
-import Monomer.Widgets.Singles.TextField
-import Monomer.Widgets.Singles.SeparatorLine
-import Monomer.Widgets.Singles.NumericField
 import Data.Text as T
-import Data.Text.Encoding as T
 import Data.Maybe
 import Text.URI
-import Text.Regex.TDFA
-import Monomer.Widgets.Singles.Base.InputField
-import Data.Aeson as J
 import qualified Data.Map as M 
-import Data.Map (Map, keys)
 import Network.HTTP.Req 
-import Data.Proxy
 import Codec.Picture
 import GHC.Float
 import Control.Concurrent.Async
-
-type AppNode = WidgetNode AppModel AppEvent
-type AppEnv = WidgetEnv AppModel AppEvent
-data AppModel = AppModel {
-        theme :: Theme 
-      , msgs :: [Event] -- Graph
-      , imgs :: [URI]
-      , imgl :: M.Map URI (Image PixelRGBA8) 
-      , pool :: Pool'
-      , texts :: Text
-    } deriving (Eq)
-
-data AppEvent = 
-      AppInit
-    | Nada
-    | ReModel AppModel
-    | TextField Text
-    | FreshPool Pool'
-    | SwitchTheme Theme
-    | A Event
-    | NextImg (Maybe Int)
-    | LoadImg URI 
 
 handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
   -> AppModel
   -> AppEvent
   -> [AppEventResponse AppModel AppEvent]
 handle db f (Pool p _ _) _ _ m x = case x of 
-    AppInit -> [Producer fresher, Producer displayfeed]
+    AppInit -> [
+    -- Producer fresher, i
+          Producer displayfeed]
         where 
-        fresher :: (AppEvent -> IO ()) -> IO () 
-        fresher r = do 
-            threadDelay 5000000
-            readTVarIO p >>= r . FreshPool  
-            fresher r 
+        -- fresher :: (AppEvent -> IO ()) -> IO () 
+        -- fresher r = do 
+        --     threadDelay 5000000
+        --     readTVarIO p >>= r . FreshPool  
+        --     fresher r 
                 
         displayfeed :: (AppEvent -> IO ()) -> IO (  )
         displayfeed r = do 
             f' <- atomically . dupTChan $ f
             forever do 
                 e <- atomically $ readTChan f'
+                threadDelay 1000000
                 r . A $ e
                     
     ReModel n -> [Model n]
@@ -89,7 +54,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
 
     LoadImg uri -> 
         if M.member uri (imgl m) 
-        then [Model m]
+        then []
         else [ Task do 
             bs <- race (fetchImg uri) 
                        (threadDelay 30000000) 
@@ -106,7 +71,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
             in [ Model $ m { 
                   msgs = e : (P.take 5 $ msgs m)
                 , imgs = newi
-                }] 
+                }] <> (P.map (Task . pure . LoadImg) . P.take 5) newi 
         _ -> []
     NextImg (fromMaybe 1 -> i) -> 
         let imp = P.drop i (imgs m)
@@ -121,29 +86,6 @@ handle db f (Pool p _ _) _ _ m x = case x of
                      else Just (Task . pure . LoadImg $ u) 
         in [ Model $ m { pool = p } , Task (pure $ NextImg (Just 0)) ] 
         
-fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
-fetchImg uri = 
-    let ocd u = req GET u NoReqBody bsResponse mempty 
-        ree :: HttpResponseBody BsResponse -> B.ByteString
-        ree = id
-        -- imgee :: B.ByteString -> 
-    in do 
-    (ree . responseBody -> bs) <- runReq defaultHttpConfig $  
-        case useURI uri of 
-            Just (Right (fst -> r)) -> ocd r
-            Just (Left (fst -> l)) -> ocd l -- error "what"
-            Nothing -> error "bad uri?"
-            
-    pure case decodeImage bs of 
-        Left l -> error l 
-        Right r -> convertRGBA8 r 
-
-showImg :: Text -> Image PixelRGBA8 -> AppNode 
-showImg l r = imageMem_ l 
-                        (toStrict $ encodeBitmap r) 
-                        (Size (int2Double $ imageWidth r) 
-                              (int2Double $ imageHeight r))  --[fitWidth] 
-                        [fitWidth]
         
     
 mstart :: Pool' -> AppModel
