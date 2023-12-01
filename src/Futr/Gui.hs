@@ -98,7 +98,10 @@ handle db f (Pool p _ _) _ _ m x = case x of
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
         0 -> [Model m { msgs = e : msgs m }]
-        1 -> P.map (Task . pure . LoadImg) (imgs m) 
+        1 -> 
+            case P.length $ imgs m of
+                 ((< 7) -> True) ->  P.map (Task . pure . LoadImg) (imgs m) 
+                 _ -> []
             <>
             [ Task $ do 
             let (Kind1 imgx _ _) = kind1 e
@@ -129,7 +132,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
         
 fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
 fetchImg uri = 
-    let ocd urri = req GET urri NoReqBody bsResponse mempty 
+    let ocd u = req GET u NoReqBody bsResponse mempty 
         ree :: HttpResponseBody BsResponse -> B.ByteString
         ree = id
         -- imgee :: B.ByteString -> 
@@ -140,31 +143,22 @@ fetchImg uri =
             Just (Left (fst -> l)) -> ocd l -- error "what"
             Nothing -> error "bad uri?"
     
-    -- pure 
     pure case decodeImage bs of 
         Left l -> error l 
         Right r -> convertRGBA8 r 
-        -- case encodeDynamicBitmap $ ImageRGBA8 (convertRGBA8 r) of 
-        --     Left l -> error l
-        --     Right reee -> reee
 
 showImg :: Text -> Image PixelRGBA8 -> AppNode 
-showImg label rgba = imageMem_ label 
-                               (toStrict $ encodeBitmap rgba) 
-                               (Size (int2Double $ imageWidth rgba) 
-                                     (int2Double $ imageHeight rgba))  --[fitWidth] 
-                               [fitWidth]
+showImg l r = imageMem_ l 
+                        (toStrict $ encodeBitmap r) 
+                        (Size (int2Double $ imageWidth r) 
+                              (int2Double $ imageHeight r))  --[fitWidth] 
+                        [fitWidth]
         
     
 mstart :: SQL.Connection -> Pool' -> AppModel
 mstart o p = AppModel darkTheme [] [] M.empty p "futr" Nothing
 
-
--- lookupImg :: M.Map URI (Image PixelRGBA8) -> URI -> Maybe (Image PixelRGBA8) 
--- lookupImg loa uri = M.lookup uri loa
-
--- lookImg 
-
+showgg :: Text -> Maybe (Image PixelRGBA8) -> AppNode
 showgg t = \case 
     Just a -> showImg t a
     _ -> label "xd"
@@ -180,7 +174,7 @@ buildUI _ m =
       textFieldV (texts m) TextField 
     , case imgs m of 
             []    -> spacer
-            (tt : tx) -> hsplit (
+            (tt : (P.take 5 -> tx) ) -> hsplit (
                   box_ [onClick (NextImg Nothing)] $ showgg (render tt) (M.lookup tt (imgl m))  
                 , vstack $ 
                     P.map 
