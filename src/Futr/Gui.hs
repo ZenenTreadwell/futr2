@@ -44,7 +44,6 @@ type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
 data AppModel = AppModel {
         theme :: Theme 
-      , mode :: AppMode      
       , msgs :: [Event] -- Graph
       , imgs :: [URI]
       , imgl :: M.Map URI (Image PixelRGBA8) 
@@ -52,7 +51,6 @@ data AppModel = AppModel {
       , texts :: Text
       , selectedeid :: Maybe Selecty
     } deriving (Eq)
-data AppMode = Doge | Unicorn | Bull deriving (Eq, Show)
 
 data Selecty = Selecty Hex32 [Event] deriving (Eq, Show)
 
@@ -60,7 +58,6 @@ data AppEvent =
       AppInit
     | ReModel AppModel
     | TextField Text
-    | Mode AppMode 
     | FreshPool Pool'
     | SwitchTheme Theme
     | A Event
@@ -90,15 +87,20 @@ handle db f (Pool p _ _) _ _ m x = case x of
                     
     ReModel n -> [Model n]
 
-    LoadImg uri -> [ Task $ do 
-        bs <- fetchImg uri 
-        pure $ ReModel m { imgl = M.insert uri bs (imgl m) } ]
+    LoadImg uri -> 
+        if M.member uri (imgl m) 
+        then []
+        else [ Task do 
+            bs <- fetchImg uri 
+            pure $ ReModel m { imgl = M.insert uri bs (imgl m) } 
+            ]
     
-    Mode moo -> [Model m {mode=moo}]
     TextField t -> [ Model m {texts = t} ]
     A e -> case kind . con $ e of 
         0 -> [Model m { msgs = e : msgs m }]
-        1 -> [Task $ do 
+        1 -> P.map (Task . pure . LoadImg) (imgs m) 
+            <>
+            [ Task $ do 
             let (Kind1 imgx _ _) = kind1 e
             pure . ReModel $ m { 
                   msgs = e : (P.take 5 $ msgs m)
@@ -107,7 +109,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
         _ -> []
     NextImg (fromMaybe 1 -> i) -> 
         let imp = P.drop i (imgs m)
-            fiv = P.map (Task . pure . LoadImg) $ P.take 1 imp  
+            fiv = P.map (Task . pure . LoadImg) $ P.take 5 imp  
         in fiv <> [
         Model $ m { imgs = imp }]
     GetRe i -> [Task $ do 
@@ -145,54 +147,58 @@ fetchImg uri =
         -- case encodeDynamicBitmap $ ImageRGBA8 (convertRGBA8 r) of 
         --     Left l -> error l
         --     Right reee -> reee
+
+showImg :: Text -> Image PixelRGBA8 -> AppNode 
+showImg label rgba = imageMem_ label 
+                               (toStrict $ encodeBitmap rgba) 
+                               (Size (int2Double $ imageWidth rgba) 
+                                     (int2Double $ imageHeight rgba))  --[fitWidth] 
+                               [fitWidth]
         
     
 mstart :: SQL.Connection -> Pool' -> AppModel
-mstart o p = AppModel darkTheme Unicorn [] [] M.empty p "futr" Nothing
+mstart o p = AppModel darkTheme [] [] M.empty p "futr" Nothing
+
+
+-- lookupImg :: M.Map URI (Image PixelRGBA8) -> URI -> Maybe (Image PixelRGBA8) 
+-- lookupImg loa uri = M.lookup uri loa
+
+-- lookImg 
+
+showgg t = \case 
+    Just a -> showImg t a
+    _ -> label "xd"
+    
+
+-- okup :: M.Map URI -> URI -> AppNode
+okup m u = showgg (render u) (M.lookup u m)
 
 buildUI :: AppEnv  -> AppModel -> AppNode
 buildUI _ m = 
     themeSwitch (theme m) -- . keystroke [("Enter", Entuh)] 
     $ vstack [
-      box_ [expandContent] $ hstack [ 
-          box_ [onClick (Mode Doge), alignLeft] $ label "doge" 
-        , box_ [onClick (Mode Unicorn), alignCenter] $ 
-            label " under construction " `styleBasic` [textSize 30]
-        , box_ [onClick (Mode Bull), alignRight] $ label "bull" 
-        ]
-    , textFieldV (texts m) TextField 
-    , hsplit (
-          case imgs m of 
+      textFieldV (texts m) TextField 
+    , case imgs m of 
             []    -> spacer
-            (tt : _) -> box_ [onClick (NextImg Nothing)] case M.lookup tt (imgl m) of 
-                Just rgba -> 
-                    vstack $ [ 
-                      imageMem "mainy" 
-                               (toStrict $ encodeBitmap rgba) 
-                               (Size (int2Double $ imageWidth rgba) 
-                                     (int2Double $ imageHeight rgba))  --[fitWidth] 
-                    ]
-                Nothing -> label "tt"
-            -- ( tt : ((P.take 5) . (P.zipWith (,) [1..]) -> tx) ) -> hsplit (
-            --       box_ [onClick (NextImg Nothing)] $ image_ tt [fitWidth]
-            --     , vstack $ P.map previewI tx 
-            --              <> [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
-            --                   $ (P.length (imgs m)) 
-            --                 ]
-            --     )
+            (tt : tx) -> hsplit (
+                  box_ [onClick (NextImg Nothing)] $ showgg (render tt) (M.lookup tt (imgl m))  
+                , vstack $ 
+                    P.map 
+                        (\(ii, ur) -> 
+                            box_ [onClick (NextImg (Just (ii + 1) ))] (showgg (render ur) (M.lookup ur (imgl m)))  
+                            `styleBasic` [width 100]
+                            )
+                        (P.zipWith (,) [0..] tx) 
                     
-        , (vscroll . vstack $ P.map (box_ [alignRight]) $ [ 
-               vstack $ P.map (showMsg) (msgs m)
-           ]) 
-            `styleBasic` [width 420]
-        
-      ) `nodeVisible` (mode m == Unicorn)
-    , vstack  (P.map (label . render) (keys $ pool m))
-            `nodeVisible` (mode m == Bull)
-    , getdoges m 
-         `nodeVisible` (mode m == Doge)      
+                   
+                        <> 
+                        [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
+                              $ (P.length (imgs m)) 
+                        ]
+                )
     
     ]
+    
 showMsg :: Event -> AppNode
 showMsg e = case kindE e of 
     Kind0 (Just (Profile name about picture addies)) -> vstack [
@@ -206,7 +212,7 @@ showMsg e = case kindE e of
         ]
     Kind0 Nothing -> label (content . con $ e)
     Kind1 _ txt (mapMaybe isIs -> mx) -> hstack [
-          label txt `styleBasic` [textSize 21]
+          label_ txt labelconfig `styleBasic` [textSize 21]
         -- , hstack (P.map previewJ memex)
         , label (T.intercalate ", " mx)
         ]
@@ -215,17 +221,6 @@ showMsg e = case kindE e of
 isIs :: Tag -> Maybe Text 
 isIs (AZTag 't' x) = Just x
 isIs _ = Nothing  
-
-
-previewJ :: Text -> AppNode
-previewJ ttt = 
-    box (image_ "" [fitWidth])
-    `styleBasic` [width 33] 
-
-previewI :: (Int, Text) -> AppNode
-previewI (ii, ttt) = 
-    box_ [onClick (NextImg (Just ii))] (image_ ttt [fitWidth])
-    `styleBasic` [width 33] 
 
 getdoges :: AppModel -> AppNode
 getdoges m = case selectedeid m of 
