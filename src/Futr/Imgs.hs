@@ -5,9 +5,8 @@ import Network.HTTP.Req
 import Codec.Picture
 import Data.Text
 import Text.URI
-import Data.ByteString
 import Monomer
-import GHC.Float (int2Double)
+import Data.Vector.Storable.ByteString
 
 fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
 fetchImg uri = 
@@ -26,7 +25,7 @@ fetchImg uri =
         
 showImg :: Text -> Image PixelRGBA8 -> AppNode 
 showImg l r = imageMem_ l 
-                        (toStrict $ encodeBitmap r) 
-                        (Size (int2Double $ imageWidth r) 
-                              (int2Double $ imageHeight r))  --[fitWidth] 
+                        (vectorToByteString . imageData $ r) 
+                        (Size (fromIntegral $ imageWidth r) 
+                              (fromIntegral $ imageHeight r))  --[fitWidth] 
                         [fitWidth]

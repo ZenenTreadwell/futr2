@@ -24,6 +24,7 @@ import Network.HTTP.Req
 import Codec.Picture
 import GHC.Float
 import Control.Concurrent.Async
+import Control.Monad.State
 
 handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
   -> AppModel
@@ -32,7 +33,7 @@ handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
 handle db f (Pool p _ _) _ _ m x = case x of 
     AppInit -> [
     -- Producer fresher, i
-          Producer displayfeed]
+          Producer (\r -> evalStateT (displayfeed r) []) ]
         where 
         -- fresher :: (AppEvent -> IO ()) -> IO () 
         -- fresher r = do 
@@ -40,13 +41,15 @@ handle db f (Pool p _ _) _ _ m x = case x of
         --     readTVarIO p >>= r . FreshPool  
         --     fresher r 
                 
-        displayfeed :: (AppEvent -> IO ()) -> IO (  )
-        displayfeed r = do 
-            f' <- atomically . dupTChan $ f
-            forever do 
-                e <- atomically $ readTChan f'
-                threadDelay 1000000
-                r . A $ e
+        displayfeed :: (AppEvent -> IO ()) 
+                    -> StateT ( [Event]) IO ()
+        displayfeed r = forever do 
+            e <- liftIO $ atomically $ readTChan f
+            ex <- get 
+            if P.length ex < 11 
+            then modify (e:)
+            else do put [] 
+                    liftIO $ r . A $ e:ex
                     
     ReModel n -> [Model n]
 
@@ -64,15 +67,13 @@ handle db f (Pool p _ _) _ _ m x = case x of
             ]
     
     TextField t -> [ Model m {texts = t} ]
-    A e -> case kind . con $ e of 
-        1 ->  
-            let (Kind1 imgx _ _) = kind1 e
+    A e -> 
+            let imgx = P.concatMap (getImgs . kindE) e
                 newi = imgs m <> imgx 
             in [ Model $ m { 
-                  msgs = e : (P.take 5 $ msgs m)
-                , imgs = newi
+                  -- msgs = e : (P.take 5 $ msgs m)
+                  imgs = newi
                 }] <> (P.map (Task . pure . LoadImg) . P.take 5) newi 
-        _ -> []
     NextImg (fromMaybe 1 -> i) -> 
         let imp = P.drop i (imgs m)
             fiv = P.map (Task . pure . LoadImg) $ P.take 5 imp  
@@ -86,7 +87,10 @@ handle db f (Pool p _ _) _ _ m x = case x of
                      else Just (Task . pure . LoadImg $ u) 
         in [ Model $ m { pool = p } , Task (pure $ NextImg (Just 0)) ] 
         
-        
+getImgs :: Kind -> [URI]
+getImgs (Kind1 u _ _) = u
+getImgs _ = []
+
     
 mstart :: Pool' -> AppModel
 mstart p = AppModel darkTheme [] [] M.empty p "futr" 

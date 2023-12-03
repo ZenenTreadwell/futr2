@@ -27,6 +27,6 @@ data AppEvent =
     | TextField Text
     | FreshPool Pool'
     | SwitchTheme Theme
-    | A Event
+    | A [Event]
     | NextImg (Maybe Int)
     | LoadImg URI 

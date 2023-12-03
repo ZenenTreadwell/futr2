@@ -29,13 +29,15 @@ dependencies:
 
 ## data
 - text
-- vector 
+- vector
+- bytestring-to-vector 
 - bytestring
 - containers
 - aeson
 - base16-bytestring
 - base64-bytestring
 - bech32
+  
 
 ## network 
 - wuss

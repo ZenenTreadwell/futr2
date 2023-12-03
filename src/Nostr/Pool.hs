@@ -32,7 +32,7 @@ poolParty db kp = do
     p <- Pool <$>  newTVarIO M.empty
     let pool = p db kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelay pool) defaultRelay
+    mapM_ (addRelay pool) (defaultRelay)
     u <- exportPub kp
     castAll pool $ Subscribe "a" [ 
           liveF sec 
@@ -64,6 +64,8 @@ addRelay (Pool p db kp) uri = do
 feeder :: Hex96 -> URI -> TChan Up -> SQL.Connection -> ClientApp ()  
 feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)   
     where 
+    pri x = print $ render uri <> x
+    
     broadcast =  atomically (readTChan ch) 
                      >>= WS.sendTextData ws . encode
 
@@ -76,10 +78,12 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
     downer = \case  
         See _ e -> do  
             trust <- verifyE e 
-            when trust (void $ insertEv db e)
+            when trust do 
+                pri "e"
+                void $ insertEv db e
         Live l -> print $ "--------live " <> l
-        Ok _ b c  -> print $ "ok? " <> show b <> (show.toJSON) c
-        Notice note -> print $ "note:" <> note 
+        Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
+        Notice note -> pri $ "note:" <> note 
         Challenge t -> do
             e <- authenticate kp uri t
             atomically $ writeTChan ch (Auth e)  

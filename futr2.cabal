@@ -68,6 +68,7 @@ library
     , beam-sqlite
     , bech32
     , bytestring
+    , bytestring-to-vector
     , config-ini
     , connection
     , containers
@@ -128,6 +129,7 @@ executable futr
     , beam-sqlite
     , bech32
     , bytestring
+    , bytestring-to-vector
     , config-ini
     , connection
     , containers
@@ -189,6 +191,7 @@ executable relay
     , beam-sqlite
     , bech32
     , bytestring
+    , bytestring-to-vector
     , config-ini
     , connection
     , containers
@@ -257,6 +260,7 @@ test-suite futr2-test
     , beam-sqlite
     , bech32
     , bytestring
+    , bytestring-to-vector
     , config-ini
     , connection
     , containers
