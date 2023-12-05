@@ -37,17 +37,6 @@ data Db f = Db {
       , _identities :: f (T IdT)
       } deriving (Generic, Database Sqlite)
 
-data AzRefT f = AzRef {
-        _tagzrid :: C f Int32
-      , _azref :: C f ByteString
-      , _iieid :: PrimaryKey EvT f 
-      } deriving (Generic, Beamable)
-type AzRef = AzRefT
-type AzRefId = PrimaryKey AzRefT Identity 
-instance Table AzRefT where 
-      data PrimaryKey AzRefT f = AzRefId (C f Int32) deriving (Generic, Beamable)
-      primaryKey = AzRefId . _tagzrid 
-      
 data EvT f = Ev {
         _eid :: C f Text 
       , _pub :: PrimaryKey PlebT f
@@ -63,34 +52,31 @@ instance Table EvT where
       primaryKey = EvId . _eid
 
 data IdT f = Id {
-      _priv :: C f ByteString
+      _priv :: C f Text
       } deriving (Generic, Beamable)
 type Id = IdT
 type IdId = PrimaryKey IdT Identity
 instance Table IdT where 
-      data PrimaryKey IdT f = IdId (C f ByteString) deriving (Generic, Beamable)
+      data PrimaryKey IdT f = IdId (C f Text) deriving (Generic, Beamable)
       primaryKey = IdId . _priv
-
-data RelayT f = Relay {
-        _rid :: C f Int64
-      , _uri :: C f Text
-      , _actr :: C f Bool
-      } deriving (Generic, Beamable)
-type Relay = RelayT
-type RelayId = PrimaryKey RelayT Identity 
-instance Table RelayT where 
-      data PrimaryKey RelayT f = RelayId (C f Int64) deriving (Generic, Beamable)
-      primaryKey = RelayId . _rid
 
 data PlebT f = Pleb {
           _pubp :: C f Text 
-        , _conp :: C f (Maybe Text)
       } deriving (Generic, Beamable)
 type Pleb = PlebT 
 type PlebId = PrimaryKey PlebT Identity 
 instance Table PlebT where 
       data PrimaryKey PlebT f = PlebId (C f Text) deriving (Generic, Beamable)
       primaryKey = PlebId . _pubp
+
+data RelayT f = Relay {
+        _uri :: C f Text
+      } deriving (Generic, Beamable)
+type Relay = RelayT
+type RelayId = PrimaryKey RelayT Identity 
+instance Table RelayT where 
+      data PrimaryKey RelayT f = RelayId (C f Text) deriving (Generic, Beamable)
+      primaryKey = RelayId . _uri
 
 data ReplyT f = Reply {
         _idxr :: C f Int32
@@ -115,6 +101,18 @@ instance Table MentionT where
       data PrimaryKey MentionT f = MentionId (C f Int32) deriving (Generic, Beamable)
       primaryKey = MentionId . _idxm
 
+data AzRefT f = AzRef {
+        _tagzrid :: C f Int32
+      , _azref :: C f ByteString
+      , _iieid :: PrimaryKey EvT f 
+      } deriving (Generic, Beamable)
+type AzRef = AzRefT
+type AzRefId = PrimaryKey AzRefT Identity 
+instance Table AzRefT where 
+      data PrimaryKey AzRefT f = AzRefId (C f Int32) deriving (Generic, Beamable)
+      primaryKey = AzRefId . _tagzrid 
+
+      
 instance HasDefaultSqlDataType Sqlite Marker where 
     defaultSqlDataType _ _ _ = sqliteTextType 
 

@@ -20,7 +20,7 @@ kindE e = case kind . con $ e of
     0 -> kind0 e 
     1 -> kind1 e
     4 -> Kind4 $ flip decryptE e 
-    _ -> Rest e 
+    _ -> Rest . con $ e 
 
 data Kind = 
       Kind0 (Maybe Profile) 
@@ -31,7 +31,7 @@ data Kind =
             --  
             }
     | Kind4 (Hex96 -> IO (Maybe Text))
-    | Rest Event
+    | Rest Content
     -- deriving (Eq) can't for function pointers
 
 kind0 :: Event -> Kind

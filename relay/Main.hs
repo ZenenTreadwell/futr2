@@ -26,8 +26,9 @@ main = do
     f <- createDb o
     idents <- getIdentities o
     kp <- case idents of 
-        [] -> genKeyPair >>= (\me -> (insertId o . un96 $ me) >> pure me)
+        [] -> genKeyPair >>= (\me -> (insertId o me) >> pure me)
         me : _ -> pure me
+        
     localIdentity <- exportPub kp
     ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
     case parseIniFile ctxt $ section "d" do 

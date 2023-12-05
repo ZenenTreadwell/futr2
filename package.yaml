@@ -74,7 +74,7 @@ dependencies:
 pkg-config-dependencies:
 - libsecp256k1
 
-language: GHC2021
+language: Haskell98
 
 default-extensions: 
 - RecordWildCards
@@ -83,6 +83,17 @@ default-extensions:
 - OverloadedStrings
 - LambdaCase
 - DataKinds
+- DeriveGeneric 
+- MultiParamTypeClasses
+- FlexibleInstances
+- FlexibleContexts
+- NamedFieldPuns
+- ScopedTypeVariables 
+- TypeApplications
+- RankNTypes
+- ForeignFunctionInterface
+- EmptyDataDecls
+- DoAndIfThenElse
 
 ghc-options:
 - -Wall

@@ -25,6 +25,9 @@ import Codec.Picture
 import GHC.Float
 import Control.Concurrent.Async
 import Control.Monad.State
+import Data.Time.Clock
+
+
 
 handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
   -> AppModel
@@ -33,59 +36,68 @@ handle :: SQL.Connection  -> TChan Event -> Pool -> AppEnv -> AppNode
 handle db f (Pool p _ _) _ _ m x = case x of 
     AppInit -> [
     -- Producer fresher, i
-          Producer (\r -> evalStateT (displayfeed r) []) ]
+          Producer (\r -> do 
+                d <- getCurrentTime
+                evalStateT (displayfeed r) (d, [])) 
+        ]
         where 
         -- fresher :: (AppEvent -> IO ()) -> IO () 
         -- fresher r = do 
         --     threadDelay 5000000
         --     readTVarIO p >>= r . FreshPool  
         --     fresher r 
-                
+        buffer :: NominalDiffTime
+        buffer = secondsToNominalDiffTime 60
+        
         displayfeed :: (AppEvent -> IO ()) 
-                    -> StateT ( [Event]) IO ()
+                    -> StateT (UTCTime, [Event]) IO ()
         displayfeed r = forever do 
             e <- liftIO $ atomically $ readTChan f
-            ex <- get 
-            if P.length ex < 11 
-            then modify (e:)
-            else do put [] 
+            (last, ex) <- get 
+            curr <- liftIO getCurrentTime 
+            let passed = diffUTCTime curr last
+            if P.length ex > 11 && passed > buffer
+            then do put (curr, []) 
                     liftIO $ r . A $ e:ex
-                    
+            else put (last, e:ex)
+
+            
     ReModel n -> [Model n]
 
     Nada -> []
 
-    LoadImg uri -> 
-        if M.member uri (imgl m) 
-        then []
-        else [ Task do 
-            bs <- race (fetchImg uri) 
-                       (threadDelay 30000000) 
-            case bs of 
-                Left b -> pure $ ReModel m { imgl = M.insert uri b (imgl m) } 
-                Right _ -> pure Nada
-            ]
+    LoadImg _ -> []
+    --     [ Model m { imgl = M.insert uri mem (imgl m) } ] 
+         
+        -- if M.member uri (imgl m) 
+        -- then []
+        -- else [ Model m {imgl = M.insert uri Nothing (imgl m)}, Task do 
+        --     bs <- race (fetchImg uri) 
+        --                (threadDelay 30000000) 
+        --     case bs of 
+        --         Right _ -> pure Nada
+        --     ]
     
     TextField t -> [ Model m {texts = t} ]
     A e -> 
             let imgx = P.concatMap (getImgs . kindE) e
                 newi = imgs m <> imgx 
             in [ Model $ m { 
-                  -- msgs = e : (P.take 5 $ msgs m)
-                  imgs = newi
+                    msgs = e 
+                  , imgs = newi
                 }] <> (P.map (Task . pure . LoadImg) . P.take 5) newi 
     NextImg (fromMaybe 1 -> i) -> 
         let imp = P.drop i (imgs m)
-            fiv = P.map (Task . pure . LoadImg) $ P.take 5 imp  
-        in [Model $ m { imgs = imp }] <> fiv
-    SwitchTheme t -> [Model $ m { theme = t }]
-    FreshPool p -> 
-        let fiv = mapMaybe fivy $ P.take 6 (imgs m)
-            -- fivy :: URI -> Maybe _
-            fivy u = if M.member u (imgl m)
-                     then Nothing 
-                     else Just (Task . pure . LoadImg $ u) 
-        in [ Model $ m { pool = p } , Task (pure $ NextImg (Just 0)) ] 
+        in [Model $ m { imgs = imp }] 
+           <> (P.map (Task . pure . LoadImg) . P.take 5) imp 
+    -- SwitchTheme t -> [Model $ m { theme = t }]
+    -- FreshPool p -> 
+    --     let fiv = mapMaybe fivy $ P.take 6 (imgs m)
+    --         -- fivy :: URI -> Maybe _
+    --         fivy u = if M.member u (imgl m)
+    --                  then Nothing 
+    --                  else Just (Task . pure . LoadImg $ u) 
+    --     in [ Model $ m { pool = p } , Task (pure $ NextImg (Just 0)) ] 
         
 getImgs :: Kind -> [URI]
 getImgs (Kind1 u _ _) = u
@@ -109,24 +121,26 @@ buildUI _ m =
     -- themeSwitch (theme m) $ -- . keystroke [("Enter", Entuh)] 
     vstack [
       textFieldV (texts m) TextField 
-    -- , vstack . P.map showMsg $ msgs m 
-    , case imgs m of 
-            []    -> spacer
-            (tt : (P.take 5 -> tx) ) -> hsplit (
-                  box_ [onClick (NextImg Nothing)] $ showgg (render tt) (M.lookup tt (imgl m))  
-                , vstack $ 
-                    P.map 
-                        (\(ii, ur) -> 
-                            box_ [onClick (NextImg (Just ii))] (showgg (render ur) (M.lookup ur (imgl m)))  
-                            `styleBasic` [width 100]
-                            )
-                        (P.zipWith (,) [1..] tx) 
+    , vscroll . vstack . P.map showMsg $ msgs m 
+    -- , case imgs m of 
+    --         []    -> spacer
+    --         (tt : (P.take 5 -> tx)) -> hsplit (
+    --               box_ [onClick (NextImg Nothing)] 
+    --               $ showgg (render tt) (join (M.lookup tt (imgl m)))  
+    --             , vstack $ 
+    --                 P.map 
+    --                     (\(ii, ur) -> 
+    --                         box_ [onClick (NextImg (Just ii))] 
+    --                         (showgg (render ur) (join $ M.lookup ur (imgl m)))  
+    --                         `styleBasic` [width 100]
+    --                         )
+    --                     (P.zipWith (,) [1..] tx) 
                    
-                        <> 
-                        [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
-                              $ (P.length (imgs m)) 
-                        ]
-                )
+    --                     <> 
+    --                     [ box_ [onClick (NextImg (Just 6))] . label . T.pack . P.show  
+    --                           $ (P.length (imgs m)) 
+    --                     ]
+    --             )
     
     ]
     

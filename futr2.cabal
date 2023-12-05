@@ -52,6 +52,17 @@ library
       OverloadedStrings
       LambdaCase
       DataKinds
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleInstances
+      FlexibleContexts
+      NamedFieldPuns
+      ScopedTypeVariables
+      TypeApplications
+      RankNTypes
+      ForeignFunctionInterface
+      EmptyDataDecls
+      DoAndIfThenElse
   ghc-options: -Wall -fno-warn-orphans
   pkgconfig-depends:
       libsecp256k1
@@ -98,7 +109,7 @@ library
     , warp
     , websockets
     , wuss
-  default-language: GHC2021
+  default-language: Haskell98
 
 executable futr
   main-is: Main.hs
@@ -113,6 +124,17 @@ executable futr
       OverloadedStrings
       LambdaCase
       DataKinds
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleInstances
+      FlexibleContexts
+      NamedFieldPuns
+      ScopedTypeVariables
+      TypeApplications
+      RankNTypes
+      ForeignFunctionInterface
+      EmptyDataDecls
+      DoAndIfThenElse
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -160,7 +182,7 @@ executable futr
     , warp
     , websockets
     , wuss
-  default-language: GHC2021
+  default-language: Haskell98
 
 executable relay
   main-is: Main.hs
@@ -175,6 +197,17 @@ executable relay
       OverloadedStrings
       LambdaCase
       DataKinds
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleInstances
+      FlexibleContexts
+      NamedFieldPuns
+      ScopedTypeVariables
+      TypeApplications
+      RankNTypes
+      ForeignFunctionInterface
+      EmptyDataDecls
+      DoAndIfThenElse
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -222,7 +255,7 @@ executable relay
     , warp
     , websockets
     , wuss
-  default-language: GHC2021
+  default-language: Haskell98
 
 test-suite futr2-test
   type: exitcode-stdio-1.0
@@ -244,6 +277,17 @@ test-suite futr2-test
       OverloadedStrings
       LambdaCase
       DataKinds
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleInstances
+      FlexibleContexts
+      NamedFieldPuns
+      ScopedTypeVariables
+      TypeApplications
+      RankNTypes
+      ForeignFunctionInterface
+      EmptyDataDecls
+      DoAndIfThenElse
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -291,4 +335,4 @@ test-suite futr2-test
     , warp
     , websockets
     , wuss
-  default-language: GHC2021
+  default-language: Haskell98

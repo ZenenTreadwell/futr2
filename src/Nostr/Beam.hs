@@ -37,6 +37,7 @@ import Crypto.Hash.SHA256 as SHA256
 import Data.ByteString.Char8 as BS8
 import Data.Time.Clock.POSIX
 import Data.Foldable as F
+import Text.URI
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
@@ -52,17 +53,10 @@ createDb o = do
     pure chan
     
 eventfeed :: TChan Event -> Text -> IO Text  
-eventfeed chan t = do 
-    case qw t of 
-        Just e -> atomically $ writeTChan chan e
-        _ -> pure () 
-    pure "1" 
-
-insertPl :: Connection -> Event -> IO () 
-insertPl conn e@(Event i _ (Content{..})) = 
-    runBeamSqlite conn 
-        $ runUpdate
-        $ save (_plebs spec') (Pleb (wq pubkey) (Just $ wq e) ) 
+eventfeed chan t = case qw t of 
+    Just e -> atomically $ writeTChan chan e
+    _ -> pure () 
+    >> pure "not sure what this does, unit doesn't typecheck"
 
 data InsMode = Regular | Replace | ParReplace | Delete deriving (Show)
 
@@ -92,7 +86,7 @@ insertEv conn e@(Event i _ (Content{..})) = do
     ex <- calcExpiry e
     try . runBeamSqlite conn $ do
         runInsert $ insertOnConflict (_plebs spec') 
-                                     (insertExpressions [Pleb (val_ $ wq pubkey) default_])
+                                     (insertExpressions [Pleb (val_ $ wq pubkey)])
                                      anyConflict
                                      onConflictDoNothing
         case insMode e of 
@@ -205,22 +199,21 @@ calcExpiry e = case L.filter isExp . tags . con $ e of
 fifteen :: NominalDiffTime
 fifteen = secondsToNominalDiffTime . realToFrac $ 15 * 60 
 
-insertId :: Connection -> ByteString -> IO ()
+insertId :: Connection -> Hex96 -> IO ()
 insertId conn privKey = runBeamSqlite conn $
     runInsert $ B.insert (_identities spec') 
-              $ insertValues [Id privKey]
+              $ insertValues [Id $ wq privKey]
 
 getIdentities :: Connection -> IO [Hex96]
 getIdentities conn = runBeamSqlite conn $ do 
     idz <- runSelectReturningList . select $ all_ (_identities spec')
-    pure $ P.map (Hex96 . _priv) idz
+    pure $ mapMaybe (qw . _priv) idz
     
-
-insertRelay :: Connection -> Text -> IO ()
+insertRelay :: Connection -> URI -> IO ()
 insertRelay db uri = runBeamSqlite db $ do
     runInsert $ B.insert (_relays spec') 
-              $ insertExpressions 
-              [ Relay default_  (val_ uri) (val_ False) ]
+              $ insertValues 
+              [ Relay . render $ uri ]
 
 isHex32 :: Text -> Bool 
 isHex32 h = case decode . encode $ h of  

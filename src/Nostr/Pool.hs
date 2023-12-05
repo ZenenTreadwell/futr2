@@ -64,7 +64,7 @@ addRelay (Pool p db kp) uri = do
 feeder :: Hex96 -> URI -> TChan Up -> SQL.Connection -> ClientApp ()  
 feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)   
     where 
-    pri x = print $ render uri <> x
+    pri x = print $ render uri <> "  " <> x
     
     broadcast =  atomically (readTChan ch) 
                      >>= WS.sendTextData ws . encode
@@ -79,7 +79,7 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
         See _ e -> do  
             trust <- verifyE e 
             when trust do 
-                pri "e"
+                pri "ev"
                 void $ insertEv db e
         Live l -> print $ "--------live " <> l
         Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
@@ -151,7 +151,7 @@ extractURI uri = do
 liveF :: Integer -> Filter 
 liveF sec = emptyF { 
       sinceF = Just $ Since $ sec  
-    , kindsF = Just $ Kinds [0, 1] 
+    , kindsF = Just $ Kinds [1] 
     , limitF = Just $ Limit 0 
     } 
 

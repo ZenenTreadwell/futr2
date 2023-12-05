@@ -15,7 +15,8 @@ data AppModel = AppModel {
         theme :: Theme 
       , msgs :: [Event] -- Graph
       , imgs :: [URI]
-      , imgl :: M.Map URI (Image PixelRGBA8) 
+      , imgl :: M.Map URI 
+                      (Image PixelRGBA8) 
       , pool :: Pool'
       , texts :: Text
     } deriving (Eq)
@@ -25,8 +26,8 @@ data AppEvent =
     | Nada
     | ReModel AppModel
     | TextField Text
-    | FreshPool Pool'
-    | SwitchTheme Theme
+    -- | FreshPool Pool'
+    -- | SwitchTheme Theme
     | A [Event]
     | NextImg (Maybe Int)
     | LoadImg URI 
