@@ -209,11 +209,22 @@ getIdentities conn = runBeamSqlite conn $ do
     idz <- runSelectReturningList . select $ all_ (_identities spec')
     pure $ mapMaybe (qw . _priv) idz
     
-insertRelay :: Connection -> URI -> IO ()
-insertRelay db uri = runBeamSqlite db $ do
-    runInsert $ B.insert (_relays spec') 
-              $ insertValues 
-              [ Relay . render $ uri ]
+
+insertOrigin :: Connection -> URI -> Hex32 -> IO () 
+insertOrigin db uri eid = runBeamSqlite db $ do 
+    runInsert $ insertOnConflict (_relays spec') 
+                                 (insertValues [ Relay . render $ uri ])
+                                 anyConflict
+                                 onConflictDoNothing
+    runInsert $ B.insert (_origins spec') 
+              $ insertExpressions 
+              [Origin default_ 
+                      (val_ . RelayId . render $ uri) 
+                      (val_ . EvId . wq $ eid ) ]
+    
+    
+-- insertRelay :: Connection -> URI -> IO ()
+-- insertRelay db uri = runBeamSqlite db $ do
 
 isHex32 :: Text -> Bool 
 isHex32 h = case decode . encode $ h of  

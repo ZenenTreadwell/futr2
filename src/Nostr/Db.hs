@@ -32,9 +32,10 @@ data Db f = Db {
       , _replies :: f (T ReplyT)
       , _mentions :: f (T MentionT)
       , _azt :: f (T AzRefT)
-      , _relays :: f (T RelayT)
       , _plebs :: f (T PlebT)
       , _identities :: f (T IdT)
+      , _relays :: f (T RelayT)
+      , _origins :: f (T OriginT)
       } deriving (Generic, Database Sqlite)
 
 data EvT f = Ev {
@@ -77,6 +78,17 @@ type RelayId = PrimaryKey RelayT Identity
 instance Table RelayT where 
       data PrimaryKey RelayT f = RelayId (C f Text) deriving (Generic, Beamable)
       primaryKey = RelayId . _uri
+
+data OriginT f = Origin {
+        _idor :: C f Int32 
+      , _reor :: PrimaryKey RelayT f 
+      , _puor :: PrimaryKey EvT f
+      } deriving (Generic, Beamable)
+type Origin = OriginT 
+type OriginId = PrimaryKey OriginT Identity 
+instance Table OriginT where 
+      data PrimaryKey OriginT f = OriginId (C f Int32) deriving (Generic, Beamable)
+      primaryKey = OriginId . _idor      
 
 data ReplyT f = Reply {
         _idxr :: C f Int32

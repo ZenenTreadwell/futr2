@@ -32,7 +32,7 @@ poolParty db kp = do
     p <- Pool <$>  newTVarIO M.empty
     let pool = p db kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelay pool) (defaultRelay)
+    mapM_ (addRelayP pool) (defaultRelay)
     u <- exportPub kp
     castAll pool $ Subscribe "a" [ 
           liveF sec 
@@ -52,8 +52,8 @@ data Feed = Feed {
     , activethread :: ThreadId 
     } deriving Eq
 
-addRelay :: Pool -> URI -> IO ()
-addRelay (Pool p db kp) uri = do 
+addRelayP :: Pool -> URI -> IO ()
+addRelayP (Pool p db kp) uri = do 
     skr <- case checkUri uri of 
         Just socker -> pure socker 
         _ -> error "invalid uri?"
@@ -80,7 +80,8 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
             trust <- verifyE e 
             when trust do 
                 pri "ev"
-                void $ insertEv db e
+                _ <- insertEv db e
+                insertOrigin db uri (eid e) 
         Live l -> print $ "--------live " <> l
         Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
         Notice note -> pri $ "note:" <> note 
