@@ -105,7 +105,7 @@ instance Table ReplyT where
 data MentionT f = Mention {
         _idxm :: C f Int32
       , _eidm :: PrimaryKey EvT f
-      , _pidm :: C f Text -- PrimaryKey PlebT f
+      , _pidm :: C f Text
       } deriving (Generic, Beamable)
 type Mention = MentionT
 type MentionId = PrimaryKey MentionT Identity

@@ -37,7 +37,6 @@ dependencies:
 - base16-bytestring
 - base64-bytestring
 - bech32
-  
 
 ## network 
 - wuss
@@ -94,6 +93,7 @@ default-extensions:
 - ForeignFunctionInterface
 - EmptyDataDecls
 - DoAndIfThenElse
+- TupleSections
 
 ghc-options:
 - -Wall

@@ -81,7 +81,7 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
             when trust do 
                 pri "ev"
                 _ <- insertEv db e
-                insertOrigin db uri (eid e) 
+                insertOrigin db uri (eid e)
         Live l -> print $ "--------live " <> l
         Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
         Notice note -> pri $ "note:" <> note 

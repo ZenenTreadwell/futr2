@@ -63,6 +63,7 @@ library
       ForeignFunctionInterface
       EmptyDataDecls
       DoAndIfThenElse
+      TupleSections
   ghc-options: -Wall -fno-warn-orphans
   pkgconfig-depends:
       libsecp256k1
@@ -135,6 +136,7 @@ executable futr
       ForeignFunctionInterface
       EmptyDataDecls
       DoAndIfThenElse
+      TupleSections
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -208,6 +210,7 @@ executable relay
       ForeignFunctionInterface
       EmptyDataDecls
       DoAndIfThenElse
+      TupleSections
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -288,6 +291,7 @@ test-suite futr2-test
       ForeignFunctionInterface
       EmptyDataDecls
       DoAndIfThenElse
+      TupleSections
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1

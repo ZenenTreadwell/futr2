@@ -7,16 +7,17 @@ import Nostr.Pool
 import Data.Text as T
 import Text.URI
 import qualified Data.Map as M 
+import Data.Sequence
 import Codec.Picture
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
 data AppModel = AppModel {
         theme :: Theme 
-      , msgs :: [Event] -- Graph
-      , imgs :: [URI]
-      , imgl :: M.Map URI 
-                      (Image PixelRGBA8) 
+      -- , msgs :: [Event] -- Graph
+      , imgs :: Seq (URI, Image PixelRGBA8)
+      -- , imgl :: M.Map URI 
+      --                 (Image PixelRGBA8) 
       , pool :: Pool'
       , texts :: Text
     } deriving (Eq)
@@ -28,6 +29,6 @@ data AppEvent =
     | TextField Text
     -- | FreshPool Pool'
     -- | SwitchTheme Theme
-    | A [Event]
+    -- | A [Event]
     | NextImg (Maybe Int)
-    | LoadImg URI 
+    | LoadImg (URI , Image PixelRGBA8) 
