@@ -47,8 +47,8 @@ handle db f (Pool p _ _) _ _ m x = case x of
         --     threadDelay 5000000
         --     readTVarIO p >>= r . FreshPool  
         --     fresher r 
-        buffer :: NominalDiffTime
-        buffer = secondsToNominalDiffTime 6
+        -- buffer :: NominalDiffTime
+        -- buffer = secondsToNominalDiffTime 6
         
         displayfeed :: (AppEvent -> IO ()) 
                     -> IO () -- StateT (UTCTime, [Image PixelRGBA8]) IO ()
@@ -85,7 +85,7 @@ handle db f (Pool p _ _) _ _ m x = case x of
     --             newi = imgs m <> imgx 
     --         in [ Model $ m { 
     --                 msgs = e 
-    --               , imgs = newi
+    --               , imgs = v
     --             }] <> (P.map (Task . pure . LoadImg) . P.take 5) newi 
     NextImg (fromMaybe 1 -> i) -> 
         let imp = S.drop i (imgs m)
@@ -117,13 +117,38 @@ showgg t = \case
 -- okup :: M.Map URI -> URI -> AppNode
 okup m u = showgg (render u) (M.lookup u m)
 
+
+data TTTModel = TTTModel Text deriving Eq
+data TTTEvent = 
+      ChangeTTT Text 
+    | ReportTTT
+
+buildTTT :: UIBuilder TTTModel TTTEvent
+buildTTT  _ (TTTModel t) = textFieldV t ChangeTTT
+
+handlTTT :: EventHandler TTTModel TTTEvent AppModel AppEvent  
+handlTTT _ _ _ (ChangeTTT t) = [Model . TTTModel $ t]
+handlTTT _ _ _ _ = []
+                 -- [Report $ TextField ...]
+
+compositeTTT 
+    :: TTTModel 
+    -> (TTTModel -> TTTEvent) 
+    -> UIBuilder TTTModel TTTEvent
+    -> EventHandler TTTModel TTTEvent AppModel AppEvent  
+    -> AppNode
+compositeTTT = compositeV (WidgetType "ttt") 
+
+
 buildUI :: AppEnv  -> AppModel -> AppNode
 buildUI _ m = 
     -- themeSwitch (theme m) $ -- . keystroke [("Enter", Entuh)] 
     vstack [
+    box_ [mergeRequired (\_ _ _ -> False)] $ 
+    compositeTTT (TTTModel "past") (const ReportTTT) buildTTT handlTTT  
     --   textFieldV (texts m) TextField 
     -- , vscroll . vstack . P.map showMsg $ msgs m 
-    case imgs m of 
+    , case imgs m of 
             S.Empty    -> spacer
             ((urt, tt) :<| (S.take 5 -> tx)) -> hsplit (
                   box_ [onClick (NextImg Nothing)] $ showImg (render urt) tt
