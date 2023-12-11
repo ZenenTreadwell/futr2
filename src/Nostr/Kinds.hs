@@ -91,3 +91,5 @@ extractReg reg  = do
 star ~=~ reg = x $ evalState (extractReg reg) ("", [], star) 
     where 
     x (a,b,_) = (a,b)
+
+
