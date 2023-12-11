@@ -1,7 +1,27 @@
 module Main where
 
-import Monomer as O
-import Data.Text (Text)
+import Monomer 
+import Data.Text (Text, intercalate)
+import Data.Maybe (mapMaybe)
+import Data.Functor ((<&>))
+import System.Directory (
+          getHomeDirectory
+        , createDirectoryIfMissing
+        )
+import Database.SQLite.Simple (
+          open
+        , Connection ()
+        )
+import Nostr.Beam (createDb, fetch)
+import Nostr.Filter (
+          emptyF 
+        , Filter (..)
+        , Kinds(Kinds)
+        )
+import Nostr.Event 
+import Nostr.Kinds
+-- import Nostr.Pool (poolParty)
+-- import Futr.Gui (showMsg)
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
@@ -9,33 +29,50 @@ data AppModel = AppModel {
         theme :: Theme,
         searchText :: Text,
         newLink :: Text,
-	query :: Maybe Text
+        query :: Maybe Text
+        , results :: [Event]
     } deriving (Eq)
-
 data AppEvent = 
-      AppInit
-    | TextField Text
-    | Search Text
-    | LinkField Text
-    | Map Text
+          AppInit
+        | TextField Text
+        | Fetch Filter
+        | Search Text
+        | LinkField Text
+        | Map Text
+        | Results [Event]
 
 main :: IO ()
-main = startApp (AppModel lightTheme "" "" Nothing) handle buildUI
-        [ appWindowTitle "free://space"
-        , appWindowIcon "./assets/images/f_icon.png"
-        , appTheme lightTheme
-        , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
-        , appInitEvent AppInit
-        ]
+main = do 
+        d <- (<>"/.futr") <$> getHomeDirectory
+        createDirectoryIfMissing False d 
+        db <- open (d <> "/events.sqlite")
+        _ <- createDb db 
+        -- kp <- 
+        -- p <- poolParty db kp 
+        startApp (AppModel lightTheme "" "" Nothing []) (handle db) buildUI
+                [ appWindowTitle "free://space"
+                , appWindowIcon "./assets/images/f_icon.png"
+                , appTheme lightTheme
+                , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
+                , appInitEvent AppInit
+                ]
 
-handle :: AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
-handle _ _ model event = case event of
-	AppInit -> []
-	TextField t -> [ Model model {searchText = t} ]
-	Search "" -> [ Model model {searchText = "", query = Nothing} ]
-	Search t -> [ Model model {searchText = "", query = Just t} ]
-	LinkField t -> [ Model model {newLink = t} ]
-	Map t -> [ Model model {newLink = "mapping not supported yet"} ]
+handle :: Connection -> AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
+handle db _ _ model event = case event of
+        AppInit -> [Task . pure . Fetch
+                $ emptyF { kindsF = Just (Kinds [0, 1]) }]
+        TextField t -> [ Model model {searchText = t} ]
+        -- Search "" -> [ Model model {searchText = "", query = Nothing} ]
+
+        Fetch fi -> [ Task $ Results <$> fetch db fi ]
+
+        Search "" -> [ Model model {searchText = "", query = Nothing} ]
+        Search t -> [ Model model {searchText = "", query = Just t} ]
+
+
+        LinkField t -> [ Model model {newLink = t} ]
+        Map _ -> [ Model model {newLink = "mapping not supported yet"} ]
+        Results ex -> [ Model model { results = ex } ]
 
 myResultBox :: Text -> AppNode
 myResultBox query = box_ [alignLeft] (vstack 
@@ -60,10 +97,10 @@ addEntry query model = box_ [alignLeft] (vstack
         ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
     
 
-results :: Text -> AppModel -> [AppNode]
-results query model = case query of
-	"search" -> [myResultBox query, otherResultBox query]
-	_ -> [addEntry query model]
+-- results :: Text -> AppModel -> [AppNode]
+-- results query model = case query of
+--         "search" -> [myResultBox query, otherResultBox query]
+--         _ -> [addEntry query model]
 
 buildUI :: AppEnv -> AppModel -> AppNode
 buildUI env model = vstack (
@@ -75,12 +112,40 @@ buildUI env model = vstack (
     ++  [ hstack [ keystroke [("Enter", Search $ searchText model)] $ textFieldV_ (searchText model) TextField [placeholder "Who / what are you looking for? (debug note: 'search' returns demo results)"]] 
             `styleBasic` [padding 20]
         ]
-    ++ interface) `styleBasic` [padding 20] where
+    ++ interface) 
+
+    `styleBasic` [padding 20] 
+        where
         subtext = case (query model) of
             Just q -> label ("Search results for [" <> q <> "]") `styleBasic` [textSize 20, textCenter]
             Nothing -> label "the world, on your terms" `styleBasic` [textSize 20, textCenter]
 
-	interface = case (query model) of
-            Just q -> results q model
-            Nothing -> []
+        interface = map showMsg (take 5 $ results model)
+        -- case (query model) of
+        --     Just q -> results q model
+        --     Nothing -> []
 
+showMsg :: Event -> AppNode
+showMsg e = case kindE e of 
+    Kind0 (Just (Profile name about picture addies)) -> vstack [
+          hstack [
+                box (label name) `styleBasic` [padding 22]
+              , box (image_ picture [fitWidth]) 
+                `styleBasic` [height 53, width 53]
+              , label_ about lconfig 
+              ]
+        , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
+        ]
+    Kind0 Nothing -> label_ (content . con $ e) lconfig 
+    Kind1 _ txt (mapMaybe isTtag -> mx) -> vstack [
+          label_ txt lconfig `styleBasic` [textSize 21]
+        , label_ (intercalate ", " mx) lconfig
+        ]
+    _ -> label "unexpected"
+
+
+lconfig = [multiline, trimSpaces]
+
+isTtag :: Tag -> Maybe Text 
+isTtag (AZTag 't' x) = Just x
+isTtag _ = Nothing  
