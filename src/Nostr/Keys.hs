@@ -41,13 +41,13 @@ instance ToJSON Hex32 where
   toJSON (Hex32 bs) = toHex bs 
 
 instance FromJSON Hex96 where
-  parseJSON v = parseHex v >>= (fixBS 96 Hex96)
+  parseJSON v = parseHex v >>= fixBS 96 Hex96
             
 instance FromJSON Hex64 where
-  parseJSON v = parseHex v >>= (fixBS 64 Hex64) 
+  parseJSON v = parseHex v >>= fixBS 64 Hex64 
 
 instance FromJSON Hex32 where
-  parseJSON v = parseHex v >>= (fixBS 32 Hex32) 
+  parseJSON v = parseHex v >>= fixBS 32 Hex32 
 
 fixBS :: Int -> (ByteString -> b) -> ByteString -> Parser b
 fixBS l c bs

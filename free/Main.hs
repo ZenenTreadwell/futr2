@@ -1,7 +1,7 @@
 module Main where
 
 import Monomer 
-import Data.Text (Text, intercalate)
+import Data.Text (Text, intercalate, splitOn)
 import Data.Maybe (mapMaybe)
 import Data.Functor ((<&>))
 import System.Directory (
@@ -12,7 +12,8 @@ import Database.SQLite.Simple (
           open
         , Connection ()
         )
-import Nostr.Beam (createDb, fetch)
+import Nostr.Beam (dbIdentity, createDb, fetch, fetchx)
+
 import Nostr.Filter (
           emptyF 
         , Filter (..)
@@ -20,7 +21,8 @@ import Nostr.Filter (
         )
 import Nostr.Event 
 import Nostr.Kinds
--- import Nostr.Pool (poolParty)
+import Nostr.Keys (exportPub, genKeyPair, xnpub, npub)
+import Nostr.Pool (poolParty)
 -- import Futr.Gui (showMsg)
 
 type AppNode = WidgetNode AppModel AppEvent
@@ -47,8 +49,9 @@ main = do
         createDirectoryIfMissing False d 
         db <- open (d <> "/events.sqlite")
         _ <- createDb db 
-        -- kp <- 
-        -- p <- poolParty db kp 
+        kp <- dbIdentity db
+        p <- poolParty db kp 
+        
         startApp (AppModel lightTheme "" "" Nothing []) (handle db) buildUI
                 [ appWindowTitle "free://space"
                 , appWindowIcon "./assets/images/f_icon.png"
@@ -59,16 +62,15 @@ main = do
 
 handle :: Connection -> AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
 handle db _ _ model event = case event of
-        AppInit -> [Task . pure . Fetch
-                $ emptyF { kindsF = Just (Kinds [0, 1]) }]
+        AppInit -> [ Task . pure . Fetch $ emptyF ]
         TextField t -> [ Model model {searchText = t} ]
-        -- Search "" -> [ Model model {searchText = "", query = Nothing} ]
 
         Fetch fi -> [ Task $ Results <$> fetch db fi ]
 
-        Search "" -> [ Model model {searchText = "", query = Nothing} ]
-        Search t -> [ Model model {searchText = "", query = Just t} ]
-
+        Search "" -> [ Task . pure . Fetch $ emptyF ]
+        Search (splitOn " " -> tx) -> [ Task $ Results <$> fetchx db 
+                (map (\t -> emptyF { aztagF = [AZTag 't' t] }) tx)
+                ] 
 
         LinkField t -> [ Model model {newLink = t} ]
         Map _ -> [ Model model {newLink = "mapping not supported yet"} ]
@@ -109,8 +111,12 @@ buildUI env model = vstack (
             subtext
             ] `styleBasic` [padding 20]
         ]
-    ++  [ hstack [ keystroke [("Enter", Search $ searchText model)] $ textFieldV_ (searchText model) TextField [placeholder "Who / what are you looking for? (debug note: 'search' returns demo results)"]] 
-            `styleBasic` [padding 20]
+    ++  [ hstack [ keystroke [("Enter", Search $ searchText model)] $ 
+        textFieldV_ 
+                (searchText model) 
+                TextField 
+                [placeholder "enter search tags, enter blank refreshes"]] 
+        `styleBasic` [padding 20]
         ]
     ++ interface) 
 

@@ -63,7 +63,6 @@ runRelay conf@(RC _ _ _ p _) o f =
         (acceptRequest >=> relay o f) 
         (serve (Proxy :: Proxy Nip11) (n11 conf)) 
 
-
 relay :: SQL.Connection -> TChan Event -> ClientApp () 
 relay db chan ws = do
     chan' <- atomically $ dupTChan chan
@@ -76,8 +75,8 @@ relay db chan ws = do
     where 
 
     broadcast' :: TVar Auth -> TVar Subs -> TChan Event -> IO () 
-    broadcast' au subs chan = forever do 
-        e <- atomically $ readTChan chan
+    broadcast' au subs tc = forever do 
+        e <- atomically $ readTChan tc
         m <- readTVarIO subs
         a <- readTVarIO au
         when (isSend a e) case findKeyByValue (P.any (matchF e)) m of
@@ -112,7 +111,7 @@ relay db chan ws = do
                     void $ WS.sendTextData ws . encode 
                          $ CountD s n 
             Right Nothing -> print . (<> " - right nothing") . show $ eo
-            Left z -> myThreadId >>= killThread 
+            Left _ -> myThreadId >>= killThread 
 
 isSend :: Auth -> Event -> Bool
 isSend _ (Event _ _ Content{kind}) | kind /= 4 = True
@@ -124,9 +123,6 @@ isSend (Right p) (Event _ _ Content{tags, pubkey}) = case P.filter isPTag tags o
     isPTag (PTag{}) = True
     isPTag _ = False    
     
-
-fetchx :: SQL.Connection -> [Filter] -> IO [Event]
-fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 
 
 findKeyByValue :: (a -> Bool) -> M.Map k a -> Maybe k
 findKeyByValue f = M.foldlWithKey' (\acc k v -> 

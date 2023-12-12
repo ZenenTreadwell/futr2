@@ -51,12 +51,21 @@ createDb o = do
     chan <- newTChanIO
     _ <- createFunction o "eventfeed" (eventfeed chan) 
     pure chan
-    
+
+
+dbIdentity :: Connection -> IO Hex96    
+dbIdentity o = do  
+    idents <- getIdentities o
+    case idents of 
+        [] -> genKeyPair >>= (\me -> insertId o me >> pure me)
+        me : _ -> pure me
+
+        
 eventfeed :: TChan Event -> Text -> IO Text  
 eventfeed chan t = case qw t of 
     Just e -> atomically $ writeTChan chan e
     _ -> pure () 
-    >> pure "not sure what this does, unit doesn't typecheck"
+    >> pure ""
 
 data InsMode = Regular | Replace | ParReplace | Delete deriving (Show)
 
@@ -228,6 +237,9 @@ isHex32 h = case decode . encode $ h of
 
 toHex32 :: Text -> Maybe Hex32
 toHex32 = decode . encode 
+
+fetchx :: SQL.Connection -> [Filter] -> IO [Event]
+fetchx db fx = nub . mconcat <$> mapM (fetch db) fx 
 
 fetch :: SQL.Connection -> Filter -> IO [Event]
 
