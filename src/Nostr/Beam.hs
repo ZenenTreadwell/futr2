@@ -65,7 +65,7 @@ eventfeed :: TChan Event -> Text -> IO Text
 eventfeed chan t = case qw t of 
     Just e -> atomically $ writeTChan chan e
     _ -> pure () 
-    >> pure ""
+    >> pure "1"
 
 data InsMode = Regular | Replace | ParReplace | Delete deriving (Show)
 

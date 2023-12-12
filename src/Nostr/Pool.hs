@@ -75,20 +75,21 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
              --print "decode failed" >> print c >> print (render uri)
     
     downer :: Down -> IO ()
-    downer = \case  
-        See _ e -> do  
-            trust <- verifyE e 
-            when trust do 
-                pri "ev"
-                _ <- insertEv db e
-                insertOrigin db uri (eid e)
-        Live l -> print $ "--------live " <> l
-        Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
-        Notice note -> pri $ "note:" <> note 
-        Challenge t -> do
-            e <- authenticate kp uri t
-            atomically $ writeTChan ch (Auth e)  
-        CountD _ _ -> pure () 
+    downer d =  
+        case d of   
+            See _ e -> do  
+                trust <- verifyE e 
+                when trust do 
+                    pri "ev"
+                    _ <- insertEv db e
+                    insertOrigin db uri (eid e)
+            Live l -> print $ "--------live " <> l
+            Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
+            Notice note -> pri $ "note:" <> note 
+            Challenge t -> do
+                e <- authenticate kp uri t
+                atomically $ writeTChan ch (Auth e)  
+            CountD _ _ -> pure () 
      
 byeRelay :: Pool -> URI -> IO ()
 byeRelay (Pool tv _ _) uri = do
