@@ -24,11 +24,7 @@ main = do
         db'   = d <> "/events.sqlite" 
     o <- SQL.open db' 
     f <- createDb o
-    idents <- getIdentities o
-    kp <- case idents of 
-        [] -> genKeyPair >>= (\me -> (insertId o me) >> pure me)
-        me : _ -> pure me
-        
+    kp <- dbIdentity o     
     localIdentity <- exportPub kp
     ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
     case parseIniFile ctxt $ section "d" do 

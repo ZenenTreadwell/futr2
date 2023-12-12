@@ -73,7 +73,7 @@ dependencies:
 pkg-config-dependencies:
 - libsecp256k1
 
-language: Haskell98
+language: GHC2021
 
 default-extensions: 
 - RecordWildCards

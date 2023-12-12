@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -110,7 +110,7 @@ library
     , warp
     , websockets
     , wuss
-  default-language: Haskell98
+  default-language: GHC2021
 
 executable freespace
   main-is: Main.hs
@@ -184,7 +184,7 @@ executable freespace
     , warp
     , websockets
     , wuss
-  default-language: Haskell98
+  default-language: GHC2021
 
 executable futr
   main-is: Main.hs
@@ -258,7 +258,7 @@ executable futr
     , warp
     , websockets
     , wuss
-  default-language: Haskell98
+  default-language: GHC2021
 
 executable relay
   main-is: Main.hs
@@ -332,7 +332,7 @@ executable relay
     , warp
     , websockets
     , wuss
-  default-language: Haskell98
+  default-language: GHC2021
 
 test-suite futr2-test
   type: exitcode-stdio-1.0
@@ -413,4 +413,4 @@ test-suite futr2-test
     , warp
     , websockets
     , wuss
-  default-language: Haskell98
+  default-language: GHC2021

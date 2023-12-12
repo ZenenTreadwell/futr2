@@ -51,7 +51,6 @@ main = do
         _ <- createDb db 
         kp <- dbIdentity db
         p <- poolParty db kp 
-        
         startApp (AppModel lightTheme "" "" Nothing []) (handle db) buildUI
                 [ appWindowTitle "free://space"
                 , appWindowIcon "./assets/images/f_icon.png"

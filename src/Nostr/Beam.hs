@@ -57,7 +57,7 @@ dbIdentity :: Connection -> IO Hex96
 dbIdentity o = do  
     idents <- getIdentities o
     case idents of 
-        [] -> genKeyPair >>= (\me -> insertId o me >> pure me)
+        [] -> genKeyPair >>= (\me -> (insertId o me) >> pure me)
         me : _ -> pure me
 
         
