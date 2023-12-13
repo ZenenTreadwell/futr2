@@ -41,12 +41,17 @@ import Text.URI
 
 createDb :: SQL.Connection -> IO (TChan Event) 
 createDb o = do 
-    runBeamSqlite o $ do 
+    _ <- runBeamSqlite o $ do 
         veri <- verifySchema migrationBackend spec
         _ <- checkSchema migrationBackend spec mempty
         case veri of 
             VerificationFailed _ -> autoMigrate migrationBackend spec
             VerificationSucceeded -> pure () 
+        veri2 <- verifySchema migrationBackend spec
+        case veri2 of 
+            VerificationFailed e -> error . show $ e
+            VerificationSucceeded -> pure () 
+        
     _ <- execute_ o "CREATE TRIGGER IF NOT EXISTS updaterhook AFTER INSERT ON events BEGIN SELECT eventfeed(NEW.con); END;"
     chan <- newTChanIO
     _ <- createFunction o "eventfeed" (eventfeed chan) 
