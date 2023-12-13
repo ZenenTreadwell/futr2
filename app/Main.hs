@@ -1,85 +1,161 @@
-{-# Language
-    DataKinds 
-    , OverloadedStrings
-#-}
+module Main where
 
-module Main (main) where
-
-import Prelude as P 
-import Network.WebSockets as WS
-import Control.Monad
-import Database.SQLite.Simple as SQL
-import Control.Concurrent
+import Monomer 
+import Data.Text (Text, intercalate, splitOn)
+import Data.Maybe (mapMaybe)
 import Control.Concurrent.STM.TChan
-import Control.Concurrent.STM.TVar
-import Control.Concurrent.Async
-import Control.Monad.STM
-import Network.Wai.Handler.Warp
-import Servant.API
-import Servant.Server
-import Data.Proxy
-import Data.Text as T
-import Data.Text.Encoding
-import Data.Text.IO as TIO
-import Data.Maybe
-import Data.Aeson
-import Data.ByteString as BS
-import Network.Wai.Handler.WebSockets
-import Nostr.Keys
-import Nostr.Wire
-import Data.Time.Clock.POSIX
-import Data.Map as M 
-import Control.Concurrent.STM.TVar
-import Control.Exception as E
-import System.Directory as D
-import System.IO as S
-import Data.Ini.Config
-import Nostr.Beam
-import Nostr.Relay
-import Nostr.Event
-import Nostr.Boots
-import Nostr.Direct
-import Nostr.Filter
-import Nostr.Pool
-import Futr.Gui 
+import System.Directory (
+          getHomeDirectory
+        , createDirectoryIfMissing
+        )
+import Database.SQLite.Simple (
+          open
+        , Connection ()
+        )
+import Nostr.Beam (dbIdentity, createDb, fetch, fetchx)
+
+import Nostr.Filter (
+          emptyF 
+        , Filter (..)
+        , Kinds(Kinds)
+        )
+import Nostr.Event 
+import Nostr.Kinds
+import Nostr.Keys (exportPub, genKeyPair, xnpub, npub)
+import Nostr.Pool (poolParty)
+import Futr.Gui hiding (buildUI, handle, showImg)
+
+type AppNode = WidgetNode AppModel AppEvent
+type AppEnv = WidgetEnv AppModel AppEvent
+data AppModel = AppModel {
+        theme :: Theme,
+        searchText :: Text,
+        newLink :: Text,
+        query :: Maybe Text
+        , results :: [Event]
+    } deriving (Eq)
+data AppEvent = 
+          AppInit
+        | TextField Text
+        | Fetch Filter
+        | Search Text
+        | LinkField Text
+        | Map Text
+        | Results [Event]
 
 main :: IO ()
-main = return () 
-    -- d <- (<>"/.futr") <$> getHomeDirectory 
-    -- createDirectoryIfMissing False d 
-    -- let conf' = d <> "/futr.conf"
-    --     db'   = d <> "/events.sqlite" 
-    -- o <- SQL.open db' 
-    -- f <- createDb o
-  
-    -- idents <- getIdentities o
-    -- kp <- case idents of 
-    --     [] -> genKeyPair >>= (\me -> insertId o me >> pure me)
-    --     me : _ -> pure me
-    -- localIdentity <- exportPub kp
-    
-    -- sd <- doesFileExist conf' 
-    -- if sd then pure () 
-    --       else S.writeFile conf' "#"
-    
-    -- ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
-    -- case parseIniFile ctxt $ section "d" do 
-    --                p <- fieldMbOf "port" number
-    --                n <- fieldMb "name"
-    --                desc <- fieldMb "description"
-    --                c <- fieldMb "contact"
-    --                pk <- join . (qw <$>) <$> fieldMb "pubkey"
-    --                pure $ RC (fromMaybe "" n)
-    --                          (fromMaybe "" desc)
-    --                          (fromMaybe "" c)
-    --                          (fromMaybe 9481 p)
-    --                          (fromMaybe localIdentity pk)   
+main = do 
+        d <- (<>"/.futr") <$> getHomeDirectory
+        createDirectoryIfMissing False d 
+        db <- open (d <> "/events.sqlite")
+        f <- createDb db 
+        kp <- dbIdentity db
+        p <- poolParty db kp 
+        startApp (AppModel lightTheme "" "" Nothing []) (handle db) (buildUI f)
+                [ appWindowTitle "nostr"
+                , appWindowIcon "./assets/images/icon.png"
+                , appTheme lightTheme
+                , appFontDef "Regular" "./assets/fonts/Cantarell-Regular.ttf"
+                , appInitEvent AppInit
+                ]
 
-    --     of 
-    --     Left err -> print ("config error: " <> conf') >> print err
-    --     Right conf ->  do 
-    --         print conf
-    --         void . forkIO $ runRelay conf o f  
-    --         pool <- poolParty o kp
-    --         start o f pool
+handle :: Connection -> AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
+handle db _ _ model event = case event of
+        AppInit -> [ Task . pure . Fetch $ emptyF ]
+        TextField t -> [ Model model {searchText = t} ]
 
+        Fetch fi -> [ Task $ Results <$> fetch db fi ]
+
+        Search "" -> [ Task . pure . Fetch $ emptyF ]
+        Search (splitOn " " -> tx) -> [ Task $ Results <$> fetchx db 
+                (map (\t -> emptyF { aztagF = [AZTag 't' t] }) tx)
+                ] 
+
+        LinkField t -> [ Model model {newLink = t} ]
+        Map _ -> [ Model model {newLink = "mapping not supported yet"} ]
+        Results ex -> [ Model model { results = ex } ]
+
+myResultBox :: Text -> AppNode
+myResultBox query = box_ [alignLeft] (vstack 
+        [ hstack [ label ("You've already mapped [" <> query <> "] to "), externalLink "Ecosia" "https://ecosia.org" ]
+        ] `styleBasic` [padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+
+otherResultBox :: Text -> AppNode
+otherResultBox query = box_ [alignLeft] (vstack 
+        [ hstack [ label ("2 friends map [" <> query <> "] to "), externalLink "DuckDuckGo" "https://duckduckgo.com/" ] `styleBasic` [ textSize 30 ]
+        , externalLink "fiatjaf" "https://fiatjaf.com/" `styleBasic` [textSize 10, textLeft]
+        , externalLink "zenen" "https://zenen.space" `styleBasic` [textSize 10, textLeft]
+
+        ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+
+addEntry :: Text -> AppModel -> AppNode
+addEntry query model = box_ [alignLeft] (vstack 
+        [ label ("No results for [" <> query <> "]") `styleBasic` [textSize 20, textLeft]
+        , label "Would you like to add a mapping?"
+        , spacer
+        , keystroke [("Enter", Map $ newLink model)] $ textFieldV_ (newLink model) LinkField [placeholder "paste a URL or bech32-style nostr identifier"]
+
+        ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+    
+
+-- results :: Text -> AppModel -> [AppNode]
+-- results query model = case query of
+--         "search" -> [myResultBox query, otherResultBox query]
+--         _ -> [addEntry query model]
+
+buildUI :: TChan Event -> AppEnv -> AppModel -> AppNode
+buildUI f env model = vstack (
+    [ vstack [
+            label "construction" `styleBasic` [textSize 40, textCenter],
+            subtext
+            ] `styleBasic` [padding 20]
+        -- , tttextfield
+            ,        keystroke [("Enter", Search $ searchText model)] $ 
+                        textFieldV_ 
+                                (searchText model) 
+                                TextField 
+                                [placeholder 
+                                "enter search tags, enter refreshes"] 
+        ]
+    ++  [ hsplit (
+                  vstack interface  `styleBasic` [padding 20]
+                , memeShower f
+                )
+        ]
+    ) 
+
+    `styleBasic` [padding 20] 
+        where
+        subtext = case (query model) of
+            Just q -> label ("Search results for [" <> q <> "]") `styleBasic` [textSize 20, textCenter]
+            Nothing -> label "subtext" `styleBasic` [textSize 20, textCenter]
+
+        interface = map showMsg2 (take 5 $ results model)
+        -- case (query model) of
+        --     Just q -> results q model
+        --     Nothing -> []
+
+showMsg2 :: Event -> AppNode
+showMsg2 e = case kindE e of 
+    Kind0 (Just (Profile name about picture addies)) -> vstack [
+          hstack [
+                box (label name) `styleBasic` [padding 22]
+              , box (image_ picture [fitWidth]) 
+                `styleBasic` [height 53, width 53]
+              , label_ about lconfig 
+              ]
+        , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
+        ]
+    Kind0 Nothing -> label_ (content . con $ e) lconfig 
+    Kind1 _ txt (mapMaybe isTtag -> mx) -> vstack [
+          label_ txt lconfig `styleBasic` [textSize 21]
+        , label_ (intercalate ", " mx) lconfig
+        ]
+    _ -> label "unexpected"
+
+
+lconfig = [multiline, trimSpaces]
+
+isTtag :: Tag -> Maybe Text 
+isTtag (AZTag 't' x) = Just x
+isTtag _ = Nothing  

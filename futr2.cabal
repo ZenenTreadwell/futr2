@@ -25,7 +25,6 @@ source-repository head
 
 library
   exposed-modules:
-      Futr.App
       Futr.Gui
       Futr.Imgs
       Nostr.Auth
@@ -88,80 +87,6 @@ library
     , cryptonite
     , directory
     , entropy
-    , hspec
-    , memory
-    , modern-uri
-    , monomer
-    , monomer-hagrid
-    , mtl
-    , regex-tdfa
-    , req
-    , servant
-    , servant-server
-    , sqlite-simple
-    , stm
-    , text
-    , time
-    , tls
-    , transformers
-    , vector
-    , wai
-    , wai-websockets
-    , warp
-    , websockets
-    , wuss
-  default-language: GHC2021
-
-executable freespace
-  main-is: Main.hs
-  other-modules:
-      Paths_futr2
-  hs-source-dirs:
-      free
-  default-extensions:
-      RecordWildCards
-      ViewPatterns
-      BlockArguments
-      OverloadedStrings
-      LambdaCase
-      DataKinds
-      DeriveGeneric
-      MultiParamTypeClasses
-      FlexibleInstances
-      FlexibleContexts
-      NamedFieldPuns
-      ScopedTypeVariables
-      TypeApplications
-      RankNTypes
-      ForeignFunctionInterface
-      EmptyDataDecls
-      DoAndIfThenElse
-      TupleSections
-  ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
-  pkgconfig-depends:
-      libsecp256k1
-  build-depends:
-      JuicyPixels
-    , QuickCheck
-    , aeson
-    , async
-    , base >=4.7 && <5
-    , base16-bytestring
-    , base64-bytestring
-    , beam-core
-    , beam-migrate
-    , beam-sqlite
-    , bech32
-    , bytestring
-    , bytestring-to-vector
-    , config-ini
-    , connection
-    , containers
-    , cryptohash-sha256
-    , cryptonite
-    , directory
-    , entropy
-    , futr2
     , hspec
     , memory
     , modern-uri

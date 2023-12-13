@@ -1,6 +1,5 @@
 module Futr.Imgs where 
 
-import Futr.App
 import Network.HTTP.Req 
 import Codec.Picture
 import Data.Text
