@@ -44,42 +44,42 @@ import Nostr.Pool
 import Futr.Gui 
 
 main :: IO ()
-main = do 
-    d <- (<>"/.futr") <$> getHomeDirectory 
-    createDirectoryIfMissing False d 
-    let conf' = d <> "/futr.conf"
-        db'   = d <> "/events.sqlite" 
-    o <- SQL.open db' 
-    f <- createDb o
+main = return () 
+    -- d <- (<>"/.futr") <$> getHomeDirectory 
+    -- createDirectoryIfMissing False d 
+    -- let conf' = d <> "/futr.conf"
+    --     db'   = d <> "/events.sqlite" 
+    -- o <- SQL.open db' 
+    -- f <- createDb o
   
-    idents <- getIdentities o
-    kp <- case idents of 
-        [] -> genKeyPair >>= (\me -> insertId o me >> pure me)
-        me : _ -> pure me
-    localIdentity <- exportPub kp
+    -- idents <- getIdentities o
+    -- kp <- case idents of 
+    --     [] -> genKeyPair >>= (\me -> insertId o me >> pure me)
+    --     me : _ -> pure me
+    -- localIdentity <- exportPub kp
     
-    sd <- doesFileExist conf' 
-    if sd then pure () 
-          else S.writeFile conf' "#"
+    -- sd <- doesFileExist conf' 
+    -- if sd then pure () 
+    --       else S.writeFile conf' "#"
     
-    ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
-    case parseIniFile ctxt $ section "d" do 
-                   p <- fieldMbOf "port" number
-                   n <- fieldMb "name"
-                   desc <- fieldMb "description"
-                   c <- fieldMb "contact"
-                   pk <- join . (qw <$>) <$> fieldMb "pubkey"
-                   pure $ RC (fromMaybe "" n)
-                             (fromMaybe "" desc)
-                             (fromMaybe "" c)
-                             (fromMaybe 9481 p)
-                             (fromMaybe localIdentity pk)   
+    -- ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
+    -- case parseIniFile ctxt $ section "d" do 
+    --                p <- fieldMbOf "port" number
+    --                n <- fieldMb "name"
+    --                desc <- fieldMb "description"
+    --                c <- fieldMb "contact"
+    --                pk <- join . (qw <$>) <$> fieldMb "pubkey"
+    --                pure $ RC (fromMaybe "" n)
+    --                          (fromMaybe "" desc)
+    --                          (fromMaybe "" c)
+    --                          (fromMaybe 9481 p)
+    --                          (fromMaybe localIdentity pk)   
 
-        of 
-        Left err -> print ("config error: " <> conf') >> print err
-        Right conf ->  do 
-            print conf
-            void . forkIO $ runRelay conf o f  
-            pool <- poolParty o kp
-            start o f pool
+    --     of 
+    --     Left err -> print ("config error: " <> conf') >> print err
+    --     Right conf ->  do 
+    --         print conf
+    --         void . forkIO $ runRelay conf o f  
+    --         pool <- poolParty o kp
+    --         start o f pool
 

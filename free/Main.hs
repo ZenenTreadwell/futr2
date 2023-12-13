@@ -23,7 +23,7 @@ import Nostr.Event
 import Nostr.Kinds
 import Nostr.Keys (exportPub, genKeyPair, xnpub, npub)
 import Nostr.Pool (poolParty)
--- import Futr.Gui (showMsg)
+import Futr.Gui hiding (buildUI, handle, showImg)
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
@@ -109,6 +109,7 @@ buildUI env model = vstack (
             label "free://space" `styleBasic` [textSize 40, textCenter],
             subtext
             ] `styleBasic` [padding 20]
+        , tttextfield
         ]
     ++  [ hstack [ keystroke [("Enter", Search $ searchText model)] $ 
         textFieldV_ 
@@ -125,13 +126,13 @@ buildUI env model = vstack (
             Just q -> label ("Search results for [" <> q <> "]") `styleBasic` [textSize 20, textCenter]
             Nothing -> label "the world, on your terms" `styleBasic` [textSize 20, textCenter]
 
-        interface = map showMsg (take 5 $ results model)
+        interface = map showMsg2 (take 5 $ results model)
         -- case (query model) of
         --     Just q -> results q model
         --     Nothing -> []
 
-showMsg :: Event -> AppNode
-showMsg e = case kindE e of 
+showMsg2 :: Event -> AppNode
+showMsg2 e = case kindE e of 
     Kind0 (Just (Profile name about picture addies)) -> vstack [
           hstack [
                 box (label name) `styleBasic` [padding 22]
