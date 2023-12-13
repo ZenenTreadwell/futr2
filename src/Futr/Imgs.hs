@@ -7,6 +7,7 @@ import Data.Text
 import Text.URI
 import Monomer
 import Data.Vector.Storable.ByteString
+import Data.Typeable
 
 fetchImg :: URI -> IO (Image PixelRGBA8) -- ByteString
 fetchImg uri = 
@@ -23,7 +24,7 @@ fetchImg uri =
         Left l -> error l 
         Right r -> convertRGBA8 r 
         
-showImg :: Text -> Image PixelRGBA8 -> AppNode 
+showImg :: (Typeable a , Typeable b) => Text -> Image PixelRGBA8 -> WidgetNode a b 
 showImg l r = imageMem_ l 
                         (vectorToByteString . imageData $ r) 
                         (Size (fromIntegral $ imageWidth r) 

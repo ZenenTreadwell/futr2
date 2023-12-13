@@ -30,5 +30,5 @@ data AppEvent =
     -- | FreshPool Pool'
     -- | SwitchTheme Theme
     -- | A [Event]
-    | NextImg (Maybe Int)
-    | LoadImg (URI , Image PixelRGBA8) 
+    -- | NextImg (Maybe Int)
+    -- | LoadImg (URI , Image PixelRGBA8) 

@@ -3,7 +3,7 @@ module Main where
 import Monomer 
 import Data.Text (Text, intercalate, splitOn)
 import Data.Maybe (mapMaybe)
-import Data.Functor ((<&>))
+import Control.Concurrent.STM.TChan
 import System.Directory (
           getHomeDirectory
         , createDirectoryIfMissing
@@ -48,10 +48,10 @@ main = do
         d <- (<>"/.futr") <$> getHomeDirectory
         createDirectoryIfMissing False d 
         db <- open (d <> "/events.sqlite")
-        _ <- createDb db 
+        f <- createDb db 
         kp <- dbIdentity db
         p <- poolParty db kp 
-        startApp (AppModel lightTheme "" "" Nothing []) (handle db) buildUI
+        startApp (AppModel lightTheme "" "" Nothing []) (handle db) (buildUI f)
                 [ appWindowTitle "free://space"
                 , appWindowIcon "./assets/images/f_icon.png"
                 , appTheme lightTheme
@@ -103,22 +103,26 @@ addEntry query model = box_ [alignLeft] (vstack
 --         "search" -> [myResultBox query, otherResultBox query]
 --         _ -> [addEntry query model]
 
-buildUI :: AppEnv -> AppModel -> AppNode
-buildUI env model = vstack (
+buildUI :: TChan Event -> AppEnv -> AppModel -> AppNode
+buildUI f env model = vstack (
     [ vstack [
             label "free://space" `styleBasic` [textSize 40, textCenter],
             subtext
             ] `styleBasic` [padding 20]
-        , tttextfield
+        -- , tttextfield
+            ,        keystroke [("Enter", Search $ searchText model)] $ 
+                        textFieldV_ 
+                                (searchText model) 
+                                TextField 
+                                [placeholder 
+                                "enter search tags, enter blank refreshes"] 
         ]
-    ++  [ hstack [ keystroke [("Enter", Search $ searchText model)] $ 
-        textFieldV_ 
-                (searchText model) 
-                TextField 
-                [placeholder "enter search tags, enter blank refreshes"]] 
-        `styleBasic` [padding 20]
+    ++  [ hsplit (
+                  vstack interface  `styleBasic` [padding 20]
+                , memeShower f
+                )
         ]
-    ++ interface) 
+    ) 
 
     `styleBasic` [padding 20] 
         where
