@@ -23,7 +23,8 @@ import Nostr.Event
 import Nostr.Kinds
 import Nostr.Keys (exportPub, genKeyPair, xnpub, npub)
 import Nostr.Pool (poolParty)
-import Futr.Gui hiding (buildUI, handle, showImg)
+import Futr.Gui 
+import Futr.LiveImgs 
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
@@ -119,7 +120,7 @@ buildUI f env model = vstack (
         ]
     ++  [ hsplit (
                   vstack interface  `styleBasic` [padding 20]
-                , memeShower f
+                , pandoras (liveImgs f)
                 )
         ]
     ) 

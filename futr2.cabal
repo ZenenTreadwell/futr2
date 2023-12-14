@@ -27,6 +27,7 @@ library
   exposed-modules:
       Futr.Gui
       Futr.Imgs
+      Futr.LiveImgs
       Nostr.Auth
       Nostr.Beam
       Nostr.Boots
