@@ -2,6 +2,7 @@ module Main where
 
 import Monomer 
 import Data.Text (Text, intercalate, splitOn)
+import Text.URI (render)
 import Data.Maybe (mapMaybe)
 import Control.Concurrent.STM.TChan
 import System.Directory (
@@ -34,6 +35,7 @@ data AppModel = AppModel {
         newLink :: Text,
         query :: Maybe Text
         , results :: [Event]
+        
     } deriving (Eq)
 data AppEvent = 
           AppInit
@@ -138,7 +140,7 @@ buildUI f env model = vstack (
 
 showMsg2 :: Event -> AppNode
 showMsg2 e = case kindE e of 
-    Kind0 (Just (Profile name about picture addies)) -> vstack [
+    Kind0 (Just (Profile name about picture banner addies)) -> vstack [
           hstack [
                 box (label name) `styleBasic` [padding 22]
               , box (image_ picture [fitWidth]) 
@@ -148,14 +150,16 @@ showMsg2 e = case kindE e of
         , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
         ]
     Kind0 Nothing -> label_ (content . con $ e) lconfig 
-    Kind1 _ txt (mapMaybe isTtag -> mx) -> vstack [
-          label_ txt lconfig `styleBasic` [textSize 21]
-        , label_ (intercalate ", " mx) lconfig
+    Kind1 _ ol txt (mapMaybe isTtag -> mx) -> vstack [
+          label_ txt lconfig 
+                `styleBasic` [textSize 21]
+        -- , separatorLine
+        , label_ (intercalate ", " mx) lconfig 
+                `styleBasic` [textSize 12]
+        -- , label -- vstack $ -- map (\o -> externalLink (render o)  (render o)) ol 
+        -- , separatorLine
         ]
     _ -> label "unexpected"
-
-
-lconfig = [multiline, trimSpaces]
 
 isTtag :: Tag -> Maybe Text 
 isTtag (AZTag 't' x) = Just x

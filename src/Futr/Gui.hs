@@ -30,7 +30,7 @@ import Data.Foldable
 import Data.Typeable
         
 getImgs :: Kind -> [URI]
-getImgs (Kind1 u _ _) = u
+getImgs (Kind1 u _ _ _) = u
 getImgs _ = []
 
 data TTTModel = TTTModel Text deriving Eq
@@ -66,5 +66,5 @@ isIs :: Tag -> Maybe Text
 isIs (AZTag 't' x) = Just x
 isIs _ = Nothing  
     
-labelconfig :: (Typeable a, Typeable b) =>  [LabelCfg a b]
-labelconfig = [O.multiline, trimSpaces]
+lconfig :: (Typeable a, Typeable b) =>  [LabelCfg a b]
+lconfig = [O.multiline, trimSpaces]

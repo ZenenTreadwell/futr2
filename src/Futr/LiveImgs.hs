@@ -15,6 +15,7 @@ import Data.Maybe (fromMaybe)
 import Nostr.Event
 import Nostr.Kinds
 import Futr.Imgs
+import Futr.Gui
 
 data LImodel = M (Seq (URI, Image PixelRGBA8)) deriving (Eq)
 data LIevent = 
@@ -25,8 +26,8 @@ data LIevent =
     | InitImg
 
 handle :: (Typeable a, Typeable b) 
-             => TChan Event 
-             -> EventHandler LImodel LIevent a b
+       => TChan Event 
+       -> EventHandler LImodel LIevent a b
 handle f _ _ (M m) = \case 
     LoadImg p -> [ Model . M $ m |> p ]
     PriorityLoadImg p -> [ Model . M $ p <| m ]
@@ -39,7 +40,7 @@ handle f _ _ (M m) = \case
                 (getImgs . kindE -> ix) <- atomically $ readTChan f
                 mapM (\uri -> fetchImg uri >>= r . LoadImg . (uri,)) ix
             getImgs :: Kind -> [URI]
-            getImgs (Kind1 u _ _) = u
+            getImgs (Kind1 u _ _ _) = u
             getImgs _ = []
         in [Producer feed] 
 
@@ -48,12 +49,10 @@ build _ (M ix) = case ix of
             Empty    -> spacer
             ((urt, tt) :<| (take 5 -> tx)) -> hsplit (
                   box_ [onClick (NextImg Nothing)] $ showImg (render urt) tt
-                  -- $ showgg (render tt) (join (M.lookup tt (imgl m)))  
                 , vstack $ 
                     map 
                         (\(ii, (ur, pi) )  -> 
                             box_ [onClick (NextImg (Just ii))] (showImg (render ur) pi)
-                            -- (showgg "" -- (join $ M.lookup ur (imgl m)))  
                             `styleBasic` [width 100]
                             )
                         (zipWith (,) ([1..]) (toList tx) )
@@ -65,7 +64,7 @@ build _ (M ix) = case ix of
                     )
     
 liveImgs :: (Typeable a, Typeable b) => TChan Event -> WidgetNode a b
-liveImgs f = compositeV_ 
+liveImgs f = pandoras $ compositeV_ 
     (WidgetType "sh")
     (M empty) 
     (const WhatImg)

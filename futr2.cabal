@@ -28,6 +28,8 @@ library
       Futr.Gui
       Futr.Imgs
       Futr.LiveImgs
+      Futr.MainProfile
+      Futr.TagSearch
       Nostr.Auth
       Nostr.Beam
       Nostr.Boots

@@ -26,6 +26,7 @@ data Kind =
       Kind0 (Maybe Profile) 
     | Kind1 { 
               imglinks :: [URI]
+            , otherlinks :: [URI]
             , contentk1 :: Text
             , tagsk1 :: [Tag]
             --  
@@ -38,7 +39,7 @@ kind0 :: Event -> Kind
 kind0 (Event _ _ (Content {..})) = Kind0 
     ((decode . encodeUtf8 . fromStrict) content :: Maybe Profile)
 
-data Profile = Profile Text Text Text [(Text, Text)]
+data Profile = Profile Text Text Text (Maybe Text) [(Text, Text)]
 
 instance FromJSON Profile where 
     parseJSON = withObject "kind0" \o ->  
@@ -48,25 +49,31 @@ instance FromJSON Profile where
                              . delete "picture" 
                              . delete "about" 
                              . delete "name"
+                             . delete "banner"
                              $ o
         in
         Profile <$> (o .: "name")
                 <*> (o .: "about")
                 <*> (o .: "picture")
+                <*> (o .:? "banner")
                 <*> pure additional
 
+-- these REGEXES (XXX PARSING)
 kind1 :: Event -> Kind 
-kind1 (Event _ _ (Content {..})) =
+kind1 (Event _ _ (Content {content})) =
     let 
-    (nolinks, mapMaybe mkURI -> links) = content ~=~ "http.+(jpg|png)" 
-    (_, map ttxn -> hashtags)  = nolinks ~=~ "#[^:space:]+" 
-    (nonoes, map ptxn . mapMaybe (xnpub) -> mentions) = nolinks ~=~ "npub[^:space:]"
+    (noimglinks, mapMaybe mkURI -> imglinks) = content ~=~ "http.+(jpg|png)" 
+    (nolinks, mapMaybe mkURI -> othlinks) = noimglinks ~=~ "http[^[:space:]]+" 
+    (nohtgs, map ttxn -> hashtags)  = nolinks ~=~ "#[^[:space:]]+" 
+    
+    (nonoes, map ptxn . mapMaybe (xnpub) -> mentions) = nohtgs ~=~ "npub[^[:space:]]+"
     
     in 
     Kind1 
-        links 
+        imglinks 
+        othlinks
         nonoes 
-        (tags <> mentions <> hashtags) 
+        (mentions <> hashtags) 
         
     where
     ptxn :: Hex32 -> Tag
