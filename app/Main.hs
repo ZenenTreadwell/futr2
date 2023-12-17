@@ -22,29 +22,39 @@ import Nostr.Filter (
         )
 import Nostr.Event 
 import Nostr.Kinds
-import Nostr.Keys (exportPub, genKeyPair, xnpub, npub)
+import Nostr.Keys 
+        -- (exportPub, genKeyPair, xnpub, npub)
 import Nostr.Pool (poolParty)
 import Futr.Gui 
 import Futr.LiveImgs 
+import Futr.TagSearch
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
-data AppModel = AppModel {
-        theme :: Theme,
-        searchText :: Text,
-        newLink :: Text,
-        query :: Maybe Text
-        , results :: [Event]
+data AppModel = AppModel 
+        -- {
+        -- theme :: Theme,
         
-    } deriving (Eq)
+
+        
+        -- newLink :: Text,
+        -- query :: Maybe Text
+          -- searchText :: Text
+        -- , current :: Either Event Profile 
+        -- , results :: [Event]
+        
+    deriving (Eq)
 data AppEvent = 
           AppInit
         | TextField Text
         | Fetch Filter
         | Search Text
-        | LinkField Text
-        | Map Text
         | Results [Event]
+        | SetCurrent Hex32
+        | SetCurrentE Event
+        | SetCurrentP Profile  -- pubkey / eid
+        -- | LinkField Text
+        -- | Map Text
 
 main :: IO ()
 main = do 
@@ -53,8 +63,9 @@ main = do
         db <- open (d <> "/events.sqlite")
         f <- createDb db 
         kp <- dbIdentity db
+        pub <- exportPub kp
         p <- poolParty db kp 
-        startApp (AppModel lightTheme "" "" Nothing []) (handle db) (buildUI f)
+        startApp (AppModel) (handle db) (buildUI db f)
                 [ appWindowTitle "nostr"
                 , appWindowIcon "./assets/images/icon.png"
                 , appTheme lightTheme
@@ -64,103 +75,53 @@ main = do
 
 handle :: Connection -> AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
 handle db _ _ model event = case event of
-        AppInit -> [ Task . pure . Fetch $ emptyF ]
-        TextField t -> [ Model model {searchText = t} ]
+        _ -> []
+        -- AppInit -> [ Task . pure . Fetch $ emptyF ]
+        -- SetCurrentE h32 -> [ Model model { current = Left h32 } ]
+        -- SetCurrentP h32 -> [ Model model { current = Right h32 } ]
+        -- SetCurrent h32 -> [Task $ getH32 db h32]
 
-        Fetch fi -> [ Task $ Results <$> fetch db fi ]
+getH32 :: Connection -> Hex32 -> IO AppEvent 
+getH32 db h32 = undefined  
 
-        Search "" -> [ Task . pure . Fetch $ emptyF ]
-        Search (splitOn " " -> tx) -> [ Task $ Results <$> fetchx db 
-                (map (\t -> emptyF { aztagF = [AZTag 't' t] }) tx)
-                ] 
+        -- LinkField t -> [ Model model {newLink = t} ]
+        -- Map _ -> [ Model model {newLink = "mapping not supported yet"} ]
 
-        LinkField t -> [ Model model {newLink = t} ]
-        Map _ -> [ Model model {newLink = "mapping not supported yet"} ]
-        Results ex -> [ Model model { results = ex } ]
+buildUI :: Connection -> TChan Event -> AppEnv -> AppModel -> AppNode
+buildUI db f env model = vstack [
+    vstack [
+            label "construction" `styleBasic` [textSize 40, textCenter],
+            label "subtext" `styleBasic` [textSize 20, textCenter]
+            
+            ] `styleBasic` [padding 20]
+    , hsplit (tagSearch db, liveImgs f )
+    ]
+    `styleBasic` [padding 20] 
 
-myResultBox :: Text -> AppNode
-myResultBox query = box_ [alignLeft] (vstack 
-        [ hstack [ label ("You've already mapped [" <> query <> "] to "), externalLink "Ecosia" "https://ecosia.org" ]
-        ] `styleBasic` [padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+-- myResultBox :: Text -> AppNode
+-- myResultBox query = box_ [alignLeft] (vstack 
+--         [ hstack [ label ("You've already mapped [" <> query <> "] to "), externalLink "Ecosia" "https://ecosia.org" ]
+--         ] `styleBasic` [padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
 
-otherResultBox :: Text -> AppNode
-otherResultBox query = box_ [alignLeft] (vstack 
-        [ hstack [ label ("2 friends map [" <> query <> "] to "), externalLink "DuckDuckGo" "https://duckduckgo.com/" ] `styleBasic` [ textSize 30 ]
-        , externalLink "fiatjaf" "https://fiatjaf.com/" `styleBasic` [textSize 10, textLeft]
-        , externalLink "zenen" "https://zenen.space" `styleBasic` [textSize 10, textLeft]
+-- otherResultBox :: Text -> AppNode
+-- otherResultBox query = box_ [alignLeft] (vstack 
+--         [ hstack [ label ("2 friends map [" <> query <> "] to "), externalLink "DuckDuckGo" "https://duckduckgo.com/" ] `styleBasic` [ textSize 30 ]
+--         , externalLink "fiatjaf" "https://fiatjaf.com/" `styleBasic` [textSize 10, textLeft]
+--         , externalLink "zenen" "https://zenen.space" `styleBasic` [textSize 10, textLeft]
 
-        ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+--         ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
 
-addEntry :: Text -> AppModel -> AppNode
-addEntry query model = box_ [alignLeft] (vstack 
-        [ label ("No results for [" <> query <> "]") `styleBasic` [textSize 20, textLeft]
-        , label "Would you like to add a mapping?"
-        , spacer
-        , keystroke [("Enter", Map $ newLink model)] $ textFieldV_ (newLink model) LinkField [placeholder "paste a URL or bech32-style nostr identifier"]
+-- addEntry :: Text -> AppModel -> AppNode
+-- addEntry query model = box_ [alignLeft] (vstack 
+--         [ label ("No results for [" <> query <> "]") `styleBasic` [textSize 20, textLeft]
+--         , label "Would you like to add a mapping?"
+--         , spacer
+--         , keystroke [("Enter", Map $ newLink model)] $ textFieldV_ (newLink model) LinkField [placeholder "paste a URL or bech32-style nostr identifier"]
 
-        ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
+--         ] `styleBasic` [textLeft, padding 10, radius 5, bgColor gainsboro]) `styleBasic` [padding 10]
     
 
 -- results :: Text -> AppModel -> [AppNode]
 -- results query model = case query of
 --         "search" -> [myResultBox query, otherResultBox query]
 --         _ -> [addEntry query model]
-
-buildUI :: TChan Event -> AppEnv -> AppModel -> AppNode
-buildUI f env model = vstack (
-    [ vstack [
-            label "construction" `styleBasic` [textSize 40, textCenter],
-            subtext
-            ] `styleBasic` [padding 20]
-        -- , tttextfield
-            ,        keystroke [("Enter", Search $ searchText model)] $ 
-                        textFieldV_ 
-                                (searchText model) 
-                                TextField 
-                                [placeholder 
-                                "enter search tags, enter refreshes"] 
-        ]
-    ++  [ hsplit (
-                  vstack interface  `styleBasic` [padding 20]
-                , pandoras (liveImgs f)
-                )
-        ]
-    ) 
-
-    `styleBasic` [padding 20] 
-        where
-        subtext = case (query model) of
-            Just q -> label ("Search results for [" <> q <> "]") `styleBasic` [textSize 20, textCenter]
-            Nothing -> label "subtext" `styleBasic` [textSize 20, textCenter]
-
-        interface = map showMsg2 (take 5 $ results model)
-        -- case (query model) of
-        --     Just q -> results q model
-        --     Nothing -> []
-
-showMsg2 :: Event -> AppNode
-showMsg2 e = case kindE e of 
-    Kind0 (Just (Profile name about picture banner addies)) -> vstack [
-          hstack [
-                box (label name) `styleBasic` [padding 22]
-              , box (image_ picture [fitWidth]) 
-                `styleBasic` [height 53, width 53]
-              , label_ about lconfig 
-              ]
-        , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
-        ]
-    Kind0 Nothing -> label_ (content . con $ e) lconfig 
-    Kind1 _ ol txt (mapMaybe isTtag -> mx) -> vstack [
-          label_ txt lconfig 
-                `styleBasic` [textSize 21]
-        -- , separatorLine
-        , label_ (intercalate ", " mx) lconfig 
-                `styleBasic` [textSize 12]
-        -- , label -- vstack $ -- map (\o -> externalLink (render o)  (render o)) ol 
-        -- , separatorLine
-        ]
-    _ -> label "unexpected"
-
-isTtag :: Tag -> Maybe Text 
-isTtag (AZTag 't' x) = Just x
-isTtag _ = Nothing  
