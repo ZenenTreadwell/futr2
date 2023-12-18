@@ -40,6 +40,7 @@ kind0 (Event _ _ (Content {..})) = Kind0
     ((decode . encodeUtf8 . fromStrict) content :: Maybe Profile)
 
 data Profile = Profile Text Text Text (Maybe Text) [(Text, Text)]
+    deriving Eq
 
 instance FromJSON Profile where 
     parseJSON = withObject "kind0" \o ->  

@@ -370,5 +370,5 @@ lookupEid db t =
     $ lookup_ (_events spec') (EvId . wq $ t)
 
 
--- fetchHex :: Connection -> 
+    
 
