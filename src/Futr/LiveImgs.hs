@@ -16,6 +16,7 @@ import Nostr.Event
 import Nostr.Kinds
 import Futr.Imgs
 import Futr.Gui
+import Futr.App
 
 data LImodel = M (Seq (URI, Image PixelRGBA8)) deriving (Eq)
 data LIevent = 
@@ -63,11 +64,11 @@ build _ (M ix) = case ix of
                         ]
                     )
     
-liveImgs :: (Typeable a, Typeable b) => TChan Event -> WidgetNode a b
-liveImgs f = pandoras $ compositeV_ 
+liveImgs :: (Typeable a, Typeable b) => Futr -> WidgetNode a b
+liveImgs (Futr{feed}) = pandoras $ compositeV_ 
     (WidgetType "sh")
     (M empty) 
     (const WhatImg)
     build
-    (handle f)
+    (handle feed)
     [onInit InitImg]

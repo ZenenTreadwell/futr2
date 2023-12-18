@@ -368,3 +368,7 @@ lookupEid db t =
     runBeamSqlite db 
     $ runSelectReturningOne 
     $ lookup_ (_events spec') (EvId . wq $ t)
+
+
+-- fetchHex :: Connection -> 
+

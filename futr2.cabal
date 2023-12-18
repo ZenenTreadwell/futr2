@@ -25,10 +25,10 @@ source-repository head
 
 library
   exposed-modules:
+      Futr.App
       Futr.Gui
       Futr.Imgs
       Futr.LiveImgs
-      Futr.MainProfile
       Futr.TagSearch
       Nostr.Auth
       Nostr.Beam
