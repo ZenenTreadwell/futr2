@@ -13,6 +13,9 @@ import Nostr.Event
 import Nostr.Filter
 import Nostr.Beam
 import Nostr.Kinds
+import Nostr.Keys
+import Control.Concurrent.STM
+import Control.Concurrent.STM.TChan
 
 data TSmodel = TS Text [Event] deriving Eq
 
@@ -22,19 +25,25 @@ data TSevent =
         | Search Text
         | Results [Event]
         | TextField Text
+        | SetCurrentTop Hex32
         | TSnull
 
 
-handle db _ _ (TS sm em) event = case event of
+handle (Futr{base, top}) _ _ (TS sm em) event = case event of
     TSInit -> [ Task . pure . Fetch $ emptyF ]
-    Fetch fi -> [ Task $ Results <$> fetch db fi ]
+    Fetch fi -> [ Task $ Results <$> fetch base fi ]
     Search "" -> [ Task . pure . Fetch $ emptyF ]
-    Search (splitOn " " -> tx) -> [ Task $ Results <$> fetchx db 
+    Search (splitOn " " -> tx) -> [ Task $ Results <$> fetchx base 
             (map (\t -> emptyF { aztagF = [AZTag 't' t] }) tx)
             ] 
     Results ex -> [ Model $ TS "" ex ]
     --- XXX
     TextField t -> [ Model $ TS t em]
+    SetCurrentTop x -> [Task $ do 
+        print "###########################"
+        atomically (writeTChan top (SetCurrent x))
+        pure TSnull 
+        ]
     TSnull -> []
 
 
@@ -45,18 +54,20 @@ build _ (TS sm results) = vstack [
                   TextField 
                   [placeholder 
                   "enter search tags, enter refreshes"] 
-    , vstack $ map showMsg2 (take 5 results)
+    , vstack $ map s2 (take 5 results)
     ]
 
-showMsg2 e = label_ (content . con $ e) lconfig 
+s2 e = box_ 
+            [onClick (SetCurrentTop (eid e))] 
+            (label_ (content . con $ e) lconfig) 
 
 tagSearch :: (Typeable a, Typeable b) => Futr -> WidgetNode a b
-tagSearch (Futr{base}) = pandoras $ compositeV_ 
+tagSearch futr = pandoras $ compositeV_ 
     (WidgetType "ts")
     (TS "" [])
     (const TSnull) -- XXX?
     build
-    (handle base)
+    (handle futr)
     [onInit TSInit]
     
 -- -- handle :: Connection -> AppEnv -> AppNode -> AppModel -> AppEvent -> [AppEventResponse AppModel AppEvent]
@@ -64,36 +75,6 @@ tagSearch (Futr{base}) = pandoras $ compositeV_
 
 
 -- tagSearch = undefined 
-
-
--- showMsg2 :: (Typeable a, Typeable b) => Event -> WidgetNode a b
--- showMsg2 e@(Event _ _ (Content {..})) = case kindE e of 
---     Kind0 (Just (Profile name about picture banner addies)) -> vstack [
---           hstack [
---                 box (label name) `styleBasic` [padding 22]
---               , box (image_ picture [fitWidth]) 
---                 `styleBasic` [height 53, width 53]
---               , label_ about lconfig 
---               ]
---         , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
---         ]
---     Kind0 Nothing -> label_ content lconfig 
---     Kind1 _ ol txt (mapMaybe isTtag . (<> tags) -> mx) -> vstack [
---           label_ txt lconfig 
---                 `styleBasic` [textSize 21]
---         -- , separatorLine
---         , label_ (intercalate ", " mx) lconfig 
---                 `styleBasic` [textSize 12]
---         , vstack $ mapMaybe (\o -> 
---                 let Just (a, _, _) = extractURI o 
---                 in Just $ externalLink (pack a) (render o)) ol 
---         -- , separatorLine
---         ]
---     _ -> label "unexpected"
-
--- isTtag :: Tag -> Maybe Text 
--- isTtag (AZTag 't' x) = Just x
--- isTtag _ = Nothing  
 
 -- myResultBox :: Text -> AppNode
 -- myResultBox query = box_ [alignLeft] (vstack 

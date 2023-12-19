@@ -1,7 +1,7 @@
 module Main where
 
-import Monomer 
-import Data.Text (Text, intercalate, splitOn)
+import Monomer hiding (Event)
+import Data.Text (Text, intercalate, splitOn, pack)
 import Text.URI (render)
 import Data.Maybe (mapMaybe)
 import Data.Time.Clock.POSIX
@@ -25,6 +25,7 @@ import Nostr.Filter (
 import Nostr.Event 
 import Nostr.Kinds
 import Nostr.Keys 
+import Nostr.Pool
         -- (exportPub, genKeyPair, xnpub, npub)
 import Nostr.Pool (poolParty)
 import Nostr.Filter 
@@ -32,6 +33,9 @@ import Futr.Gui
 import Futr.LiveImgs 
 import Futr.TagSearch
 import Futr.App
+
+import Data.Typeable
+
 
 main :: IO ()
 main = do 
@@ -47,7 +51,7 @@ main = do
     _ <- fetchHex futr pub
     sec :: Integer <- round <$> getPOSIXTime
     e <- signE kp $ Content 1 [] "this is a test"  sec
-    startApp (AppModel e [] Nothing) (appHandle futr) (appBuild futr)
+    startApp (AppModel e [] Doge) (appHandle futr) (appBuild futr)
             [ appWindowTitle "futr"
             , appWindowIcon "./assets/images/icon.png"
             , appTheme lightTheme
@@ -55,30 +59,59 @@ main = do
             , appInitEvent AppInit
             ]
 
-appHandle :: Futr -> AppEventHandler AppModel AppEvent
-appHandle futr@(Futr{base, top}) _ _ model event = case event of
-    AppInit -> [Producer (atomically (readTChan top) >>=)]
-    SetCurrent x -> [Task $ ApplyCurrent <$> fetchHex futr x ]
-    ApplyCurrent (Just (e, ex)) -> [Model $ AppModel e ex Nothing]
-    _ -> []
-
 appBuild :: Futr -> AppUIBuilder AppModel AppEvent 
-appBuild futr _ _ = vstack [
-    vstack [
-            label "construction" `styleBasic` [textSize 40, textCenter],
-            label "subtext" `styleBasic` [textSize 20, textCenter]
-            
-            ] `styleBasic` [padding 20]
-    , hsplit (tagSearch futr, liveImgs futr)
-    ]
-    `styleBasic` [padding 20] 
+appBuild futr _ m@(AppModel{showMode}) = flip styleBasic [padding 20] . vstack $ [ 
+      hstack [ 
+            button "doge"  (SetPage Doge)
+          , button "unicorn" (SetPage Uni) `styleBasic` [width 123]     
+          , button "bull" (SetPage Bull)
+          , button "uncensored" (SetPage ImgFeed) `styleBasic` [width 123]     
+          ]
+    , zstack $ [
+          label "accounts" `nodeVisible` (showMode == Doge)
+        , nostr futr m `nodeVisible` (showMode == Uni)
+        , label "relays" `nodeVisible` (showMode == Bull)
+        , liveImgs futr `nodeVisible` (showMode == ImgFeed)
+    ]]
 
-fetchHex :: Futr -> Hex32 -> IO (Maybe (Event, [Event])) 
-fetchHex (Futr{base}) x = do 
-    frompub <- fetch base emptyF{
-                              authorsF=Just (Authors [wq x]) 
-                            , kindsF=Just (Kinds [0])
-                            } 
-    case frompub of 
-        [] -> pure Nothing
-        e : _ -> pure . Just $ (e, [])
+nostr futr (AppModel e ex _) = 
+    vscroll . vstack $ [ 
+          showMsg2 futr e `styleBasic` [textSize 27, textCenter, padding 25]
+        , vstack (map (showMsg2 futr) ex) `styleBasic` [textSize 17, textLeft]
+        , tagSearch futr 
+    ]
+        
+    --         label "construction" `styleBasic` 
+    --         label "subtext" `styleBasic` [textSize 20, textCenter]
+            
+    --         ] `styleBasic` [padding 20]
+
+showMsg2 :: (Typeable a, Typeable b) => Futr -> Event -> WidgetNode a b
+showMsg2 futr e@(Event _ _ (Content {..})) = case kindE e of 
+    Kind0 (Just (Profile name about picture banner addies)) -> vstack [
+          hstack [
+                box (label name) `styleBasic` [padding 22]
+              , box (image_ picture [fitWidth]) 
+                `styleBasic` [height 53, width 53]
+              , label_ about lconfig 
+              ]
+        , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
+        ]
+    Kind0 Nothing -> label_ content lconfig 
+    Kind1 _ ol txt (mapMaybe isTtag . (<> tags) -> mx) -> vstack [
+          label_ txt lconfig 
+                `styleBasic` [textSize 21]
+        -- , separatorLine
+        , label_ (intercalate ", " mx) lconfig 
+                `styleBasic` [textSize 12]
+        , vstack $ mapMaybe (\o -> 
+                let Just (a, _, _) = extractURI o 
+                in Just $ externalLink (pack a) (render o)) ol 
+        -- , separatorLine
+        ]
+    _ -> label "unexpected"
+
+
+isTtag :: Tag -> Maybe Text 
+isTtag (AZTag 't' x) = Just x
+isTtag _ = Nothing  
