@@ -8,6 +8,7 @@ import Nostr.Event
 import Nostr.Filter
 import Nostr.Beam 
 
+import Control.Monad
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TChan
 import Database.SQLite.Simple
@@ -40,7 +41,7 @@ data Futr = Futr {
 
 appHandle :: Futr -> AppEventHandler AppModel AppEvent
 appHandle futr@(Futr{base, top}) _ _ model event = case event of
-    AppInit -> let toppy r = atomically (readTChan top) >>= r 
+    AppInit -> let toppy r = forever $ atomically (readTChan top) >>= r 
                in [Producer toppy]
     SetCurrent x -> [Task $ do 
         print "**************************"
