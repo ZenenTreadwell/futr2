@@ -39,7 +39,9 @@ import Data.Time.Clock.POSIX
 import Data.Foldable as F
 import Text.URI
 
-createDb :: SQL.Connection -> IO (TChan Event) 
+type WriteReadDb = (TChan Event, Connection)
+
+createDb :: Connection -> IO (TChan Event) 
 createDb o = do 
     _ <- runBeamSqlite o $ do 
         veri <- verifySchema migrationBackend spec
@@ -95,10 +97,15 @@ removeEv ee' = do
     runDelete $ B.delete (_events spec') 
                 (\a -> (val_ ee' ==.) . _eid $ a) 
 
+insertEvs :: WriteReadDb -> IO () 
+insertEvs (tc, db) = forever do 
+    e <- atomically (readTChan tc)
+    insertEv db e
+
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
     ex <- calcExpiry e
-    try . runBeamSqlite conn $ do
+    try . runBeamSqliteDebug print conn $ do
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey)])
                                      anyConflict

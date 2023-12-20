@@ -30,10 +30,13 @@ import Nostr.Boots
 poolParty :: SQL.Connection -> Hex96 -> IO Pool 
 poolParty db kp = do 
     p <- Pool <$>  newTVarIO M.empty
-    let pool = p db kp
+    tc <- newTChanIO
+    let wr = (tc, db) 
+    let pool = p wr kp
     sec :: Integer <- round <$> getPOSIXTime
     mapM_ (addRelayP pool) (defaultRelay)
     u <- exportPub kp
+    void . forkIO $ insertEvs wr
     castAll pool $ Subscribe "a" [ 
           liveF sec 
         , emptyF{ptagF=Just (PTagM [u])}
@@ -42,7 +45,7 @@ poolParty db kp = do
 
 type Pool' = M.Map URI Feed 
 
-data Pool = Pool (TVar Pool') SQL.Connection Hex96
+data Pool = Pool (TVar Pool') WriteReadDb Hex96
 
 instance Eq Pool where 
     (==) _ _ = False
@@ -61,7 +64,7 @@ addRelayP (Pool p db kp) uri = do
     trd <- forkIO . gottaCatchemAll uri p . skr $ feeder kp uri ch db
     atomically $ modifyTVar p (M.insert uri (Feed ch trd))
     
-feeder :: Hex96 -> URI -> TChan Up -> SQL.Connection -> ClientApp ()  
+feeder :: Hex96 -> URI -> TChan Up -> WriteReadDb -> ClientApp ()  
 feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)   
     where 
     pri x = print $ render uri <> "  " <> x
@@ -82,8 +85,8 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
                 trust <- verifyE e 
                 when trust do 
                     pri "ev"
-                    _ <- insertEv db e
-                    insertOrigin db uri (eid e)
+                    atomically (writeTChan (fst db) e)
+                    -- insertOrigin db uri (eid e)
             Live l -> print $ "--------live " <> l
             Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
             Notice note -> pri $ "note:" <> note 
