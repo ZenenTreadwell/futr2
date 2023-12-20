@@ -46,7 +46,6 @@ main = do
     kp <- dbIdentity db
     pub <- exportPub kp
     p <- poolParty db kp 
-    -- threadDelay 60000000
     t <- newTChanIO
     let futr = Futr p f db t
     _ <- fetchHex futr pub
@@ -63,29 +62,43 @@ main = do
 appBuild :: Futr -> AppUIBuilder AppModel AppEvent 
 appBuild futr _ m@(AppModel{showMode}) = flip styleBasic [padding 20] . vstack $ [ 
       hstack [ 
-            button "doge"  (SetPage Doge)
-          , button "unicorn" (SetPage Uni) `styleBasic` [width 123]     
-          , button "bull" (SetPage Bull)
-          , button "uncensored" (SetPage ImgFeed) `styleBasic` [width 123]     
+            -- button "doge"  (SetPage Doge)
+          -- , 
+            button "explore?" (SetPage Uni) `styleBasic` [width 123]     
+          -- , button "bull" (SetPage Bull)
+          , button "imgfeed" (SetPage ImgFeed) `styleBasic` [width 123]     
           ]
     , zstack $ [
-          label "accounts" `nodeVisible` (showMode == Doge)
-        , nostr futr m `nodeVisible` (showMode == Uni)
-        , label "relays" `nodeVisible` (showMode == Bull)
+          -- label "accounts" `nodeVisible` (showMode == Doge)
+        -- , 
+          nostr futr m `nodeVisible` (showMode == Uni)
+        -- , label "relays" `nodeVisible` (showMode == Bull)
         , liveImgs futr `nodeVisible` (showMode == ImgFeed)
     ]]
 
+nostr :: Futr -> AppModel -> AppNode
 nostr futr (AppModel e ex _) = 
     vscroll . vstack $ [ 
-          showMsg2 futr e `styleBasic` [textSize 27, textCenter, padding 25]
-        , vstack (map (showMsg2 futr) ex) `styleBasic` [textSize 17, textLeft]
+          currentCard futr e `styleBasic` [textSize 20, textCenter, padding 15]
+        , vstack (map (\_-> label "reeeee") ex) `styleBasic` [textSize 17, textLeft]
         , tagSearch futr 
     ]
+
+currentCard :: Futr -> Event -> AppNode
+currentCard futr e@(Event _ _ (Content {..})) = case kindE e of 
+    Kind0 (Just (Profile name about picture banner addies)) -> vstack [
+              box (image_ picture [fitWidth, alignCenter]) 
+                  `styleBasic` [width 60, height 60, radius 30]
+            , label name `styleBasic` [textSize 33, textCenter]
+            , label "subtext" `styleBasic` [textSize 20, textCenter]
+            , directMessage futr
+            ] `styleBasic` [padding 20]
+
+    Kind1 _ ol txt xtg -> showMsg2 futr e
+    _ -> label $ "unexpected kind" <> (pack . show $ kind)
+
+directMessage _ = tttextfield 
         
-    --         label "construction" `styleBasic` 
-    --         label "subtext" `styleBasic` [textSize 20, textCenter]
-            
-    --         ] `styleBasic` [padding 20]
 
 showMsg2 :: (Typeable a, Typeable b) => Futr -> Event -> WidgetNode a b
 showMsg2 futr e@(Event _ _ (Content {..})) = case kindE e of 
@@ -98,7 +111,7 @@ showMsg2 futr e@(Event _ _ (Content {..})) = case kindE e of
               ]
         , vstack $ flip map addies \(t,tt) -> label (t <> " : " <> tt) 
         ]
-    Kind0 Nothing -> label_ content lconfig 
+    Kind0 Nothing -> label "0 but no profile" -- _ content lconfig 
     Kind1 _ ol txt (mapMaybe isTtag . (<> tags) -> mx) -> vstack [
           label_ txt lconfig 
                 `styleBasic` [textSize 21]
@@ -110,7 +123,7 @@ showMsg2 futr e@(Event _ _ (Content {..})) = case kindE e of
                 Just $ externalLink (pack a) (render o)) ol 
         -- , separatorLine
         ]
-    _ -> label "unexpected"
+    _ -> label "not 1 or 0"
 
 
 isTtag :: Tag -> Maybe Text 
