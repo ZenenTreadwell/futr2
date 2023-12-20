@@ -35,7 +35,7 @@ import Futr.TagSearch
 import Futr.App
 
 import Data.Typeable
-
+import Control.Concurrent
 
 main :: IO ()
 main = do 
@@ -46,12 +46,13 @@ main = do
     kp <- dbIdentity db
     pub <- exportPub kp
     p <- poolParty db kp 
+    -- threadDelay 60000000
     t <- newTChanIO
     let futr = Futr p f db t
     _ <- fetchHex futr pub
     sec :: Integer <- round <$> getPOSIXTime
     e <- signE kp $ Content 1 [] "this is a test"  sec
-    startApp (AppModel e [] Doge) (appHandle futr) (appBuild futr)
+    startApp (AppModel e [] Uni) (appHandle futr) (appBuild futr)
             [ appWindowTitle "futr"
             , appWindowIcon "./assets/images/icon.png"
             , appTheme lightTheme
@@ -104,9 +105,9 @@ showMsg2 futr e@(Event _ _ (Content {..})) = case kindE e of
         -- , separatorLine
         , label_ (intercalate ", " mx) lconfig 
                 `styleBasic` [textSize 12]
-        , vstack $ mapMaybe (\o -> 
-                let Just (a, _, _) = extractURI o 
-                in Just $ externalLink (pack a) (render o)) ol 
+        , vstack $ mapMaybe (\o -> do
+                (a, _, _) <- extractURI o 
+                Just $ externalLink (pack a) (render o)) ol 
         -- , separatorLine
         ]
     _ -> label "unexpected"

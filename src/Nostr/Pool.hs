@@ -69,10 +69,11 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
     broadcast =  atomically (readTChan ch) 
                      >>= WS.sendTextData ws . encode
 
-    acceptcast = receiveData ws >>= \c -> case decode c of 
-        Just dow -> downer dow  
-        _ -> error " " -- print $ "test" <> show c 
-             --print "decode failed" >> print c >> print (render uri)
+    acceptcast = receiveData ws >>= \c -> do 
+        pri "ce"
+        case decode c of 
+            Just dow -> downer dow  
+            _ -> error " feeder, acceptcast, Pool " 
     
     downer :: Down -> IO ()
     downer d =  

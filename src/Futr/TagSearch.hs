@@ -40,12 +40,10 @@ handle (Futr{base, top}) _ _ (TS sm em) event = case event of
     --- XXX
     TextField t -> [ Model $ TS t em]
     SetCurrentTop x -> [Task $ do 
-        print "###########################"
         atomically (writeTChan top (SetCurrent x))
         pure TSnull 
         ]
     TSnull -> []
-
 
 build _ (TS sm results) = vstack [
       keystroke [("Enter", Search sm)] $ 
@@ -57,9 +55,18 @@ build _ (TS sm results) = vstack [
     , vstack $ map s2 (take 5 results)
     ]
 
-s2 e = box_ 
+s2 e = hsplit (
+      profilePic (pubkey . con $ e)
+    , box_ 
             [onClick (SetCurrentTop (eid e))] 
             (label_ (content . con $ e) lconfig) 
+    )
+
+
+profilePic x = button "xo" (SetCurrentTop x)
+
+
+
 
 tagSearch :: (Typeable a, Typeable b) => Futr -> WidgetNode a b
 tagSearch futr = pandoras $ compositeV_ 

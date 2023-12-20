@@ -43,16 +43,13 @@ appHandle :: Futr -> AppEventHandler AppModel AppEvent
 appHandle futr@(Futr{base, top}) _ _ model event = case event of
     AppInit -> let toppy r = forever $ atomically (readTChan top) >>= r 
                in [Producer toppy]
-    SetCurrent x -> [Task $ do 
-        print "**************************"
-        ApplyCurrent <$> fetchHex futr x ]
+    SetCurrent x -> [Task $ ApplyCurrent <$> fetchHex futr x ]
     ApplyCurrent (Just (e, ex)) -> [Model $ model{current=e, children=ex}]
     SetPage p -> [Model (model{showMode=p})]
     _ -> []
 
 fetchHex :: Futr -> Hex32 -> IO (Maybe (Event, [Event])) 
 fetchHex (Futr{base}) x = do 
-    print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"  
     frompub <- fetch base emptyF{
                               authorsF=Just (Authors [wq x]) 
                             , kindsF=Just (Kinds [0])

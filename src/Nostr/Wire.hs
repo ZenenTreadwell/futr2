@@ -114,7 +114,7 @@ instance FromJSON Down where
                              <*> parseJSON (a V.! 3)
             ("COUNT", String s) -> CountD s <$> 
                 withObject "" (.: "count") (a V.! 2)  
-            _ -> fail . show $ a
+            _ -> error . ("fromJSON Down: " <> ) . show $ a
             
 instance ToJSON Down where 
     toJSON (See s e) = toJSON [
