@@ -56,6 +56,9 @@ getDbTest = do
 
     let keyless7 = Content 0 [] "" sec
 
+    let keyless8 = Content 0 [] "u" sec
+    
+
     mE :: Event <- signE kp keyless 
     mE2 <- signE kp keyless2 
     mE3 <- signE kp keyless3 
@@ -63,6 +66,7 @@ getDbTest = do
     mE5 <- signE kp keyless5
     mE6 <- signE kp keyless6
     mE7 <- signE kp keyless7
+    mE8 <- signE kp keyless8
     o <- open "./test.sqlite" 
     f <- createDb o
     insertEv o wev
@@ -73,13 +77,23 @@ getDbTest = do
     insertEv o mE5
     insertEv o mE6
     insertEv o mE7
+    insertEv o mE8
+    
     return $ describe "database queries" do 
        it "replacable" $ do 
-          f' <- content . con . P.head <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
+          f' <- content . con . P.head 
+                <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}
           shouldBe "second" f'
+       it "replacable 0" $ do 
+          f' <- content . con . P.head 
+                <$> fetch o emptyF{kindsF=(Just . Kinds $ [0]), authorsF=(Just . Authors $ [wq p1])}
+          shouldBe "u" f'
+      
        it "parameterized replaceable" $ do 
           f' <- content . con . P.head <$> fetch o emptyF{kindsF=(Just . Kinds $ [33333])}
           shouldBe "second" f'
+
+
       
        it "expires shortly?" $ do  
           Just (Just f') <- runBeamSqlite o $ runSelectReturningOne $ select $ do 
@@ -105,18 +119,20 @@ getDbTest = do
               fromIntegral c `shouldBe` P.length ex
 
        it "deletes by etag" $ do 
-           mE7 <- signE kp $ Content 5 [ETag (eid mE6) Nothing Nothing] "oooops" sec
-           insertEv o mE7
+           mmE7 <- signE kp $ Content 5 [ETag (eid mE6) Nothing Nothing] "oooops" sec
+           insertEv o mmE7
            aFx <- P.length 
                   <$> fetch o emptyF{ idsF=Just (Ids [T.take 19 . T.drop 1 . wq $ eid mE6]) }
            shouldBe 0 aFx
        it "deletes by atag" $ do 
-           mE8 <- signE kp $ Content 5 [ATag (ARef 33333 p1 (Just "butts")) Nothing] "oooops" sec
-           insertEv o mE8 
+           mmE8 <- signE kp $ Content 5 [ATag (ARef 33333 p1 (Just "butts")) Nothing] "oooops" sec
+           insertEv o mmE8 
            
            aFx <- P.length 
                   <$> fetch o emptyF{aztagF = [AZTag 'd' "butts" ] }
            aFx `shouldBe` 0
+
+        
         
           
 fl = emptyF {kindsF = Just (Kinds [0,1]), limitF = Just (Limit 2)}
