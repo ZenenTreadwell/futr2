@@ -34,7 +34,7 @@ poolParty db kp = do
     let wr = (tc, db) 
     let pool = p wr kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelayP pool) (P.take 1 defaultRelay)
+    mapM_ (addRelayP pool) (defaultRelay)
     u <- exportPub kp
     void . forkIO $ insertLoop tc
     castAll pool $ Subscribe "a" [ 

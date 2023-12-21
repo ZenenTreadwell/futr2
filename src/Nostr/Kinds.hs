@@ -82,8 +82,10 @@ kind1 (Event _ _ (Content {content})) =
 
     ttxn :: Text -> Tag
     ttxn = AZTag 't'
-    -- yesoes = tags <> mentions <> hashtags
-        
+     
+getContentTags :: Event -> [Tag]
+getContentTags (kindE -> Kind1{tagsk1}) = tagsk1 
+getContentTags _ = [] 
                 
 type RegT = State (Text, [Text], Text) (Text, [Text], Text)
 

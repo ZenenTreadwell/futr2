@@ -18,8 +18,8 @@ import Control.Concurrent.STM.TChan
 
 main :: IO () 
 main = do 
-    lines <$> P.readFile "assets/images/futr.utf8ans" 
-          >>= mapM_ P.putStrLn   
+    P.readFile "assets/images/futr.utf8ans" 
+        >>= mapM_ P.putStrLn . lines   
     d <- (<>"/.futr") <$> getHomeDirectory 
     createDirectoryIfMissing False d 
     let conf' = d <> "/futr.conf"
@@ -28,7 +28,7 @@ main = do
     f <- createDb o
     kp <- dbIdentity o
     wr <- newTChanIO
-    forkIO $ insertLoop wr
+    void . forkIO $ insertLoop wr
     localIdentity <- exportPub kp
     ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
     case parseIniFile ctxt $ section "d" do 

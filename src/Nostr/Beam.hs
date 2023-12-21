@@ -25,6 +25,7 @@ import qualified Data.ByteString as BS
 import Nostr.Event
 import Nostr.Filter
 import Nostr.Keys
+import Nostr.Kinds
 import Data.Aeson
 import Data.Int
 import Nostr.Db
@@ -141,7 +142,7 @@ insertEv conn e@(Event i _ (Content{..})) = do
                     _ -> pure Nothing 
                 for_ e' removeEv
         runInsert $ B.insert (_events spec') (insertValues [toEv ex e])
-        mapM_ insertTz tags 
+        mapM_ insertTz $ tags <> getContentTags e 
     where 
     isD :: Tag -> Bool
     isD (AZTag 'd' _) = True
