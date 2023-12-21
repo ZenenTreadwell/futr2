@@ -34,9 +34,9 @@ poolParty db kp = do
     let wr = (tc, db) 
     let pool = p wr kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelayP pool) (defaultRelay)
+    mapM_ (addRelayP pool) (P.take 1 defaultRelay)
     u <- exportPub kp
-    void . forkIO $ insertEvs wr
+    void . forkIO $ insertLoop tc
     castAll pool $ Subscribe "a" [ 
           liveF sec 
         , emptyF{ptagF=Just (PTagM [u])}
@@ -65,7 +65,7 @@ addRelayP (Pool p db kp) uri = do
     atomically $ modifyTVar p (M.insert uri (Feed ch trd))
     
 feeder :: Hex96 -> URI -> TChan Up -> WriteReadDb -> ClientApp ()  
-feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)   
+feeder kp uri ch (wr, db) ws = race_ (forever broadcast) (forever acceptcast)   
     where 
     pri x = print $ render uri <> "  " <> x
     
@@ -85,8 +85,11 @@ feeder kp uri ch db ws = race_ (forever broadcast) (forever acceptcast)
                 trust <- verifyE e 
                 when trust do 
                     pri "ev"
-                    atomically (writeTChan (fst db) e)
-                    -- insertOrigin db uri (eid e)
+                    atomically . writeTChan wr $ 
+                        (void $ insertEv db e)
+                    -- XXX
+                    atomically . writeTChan wr $ 
+                        insertOrigin db uri (eid e)
             Live l -> print $ "--------live " <> l
             Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
             Notice note -> pri $ "note:" <> note 

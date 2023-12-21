@@ -80,7 +80,7 @@ nostr :: Futr -> AppModel -> AppNode
 nostr futr (AppModel e ex _) = 
     vscroll . vstack $ [ 
           currentCard futr e `styleBasic` [textSize 20, textCenter, padding 15]
-        , vstack (map (\_-> label "reeeee") ex) `styleBasic` [textSize 17, textLeft]
+        , vstack (map (showMsg2 futr ) ex) `styleBasic` [textSize 17, textLeft]
         , tagSearch futr 
     ]
 

@@ -13,6 +13,8 @@ import Nostr.Db
 import Nostr.Beam
 import Nostr.Relay
 import Nostr.Keys
+import Control.Concurrent
+import Control.Concurrent.STM.TChan
 
 main :: IO () 
 main = do 
@@ -24,7 +26,9 @@ main = do
         db'   = d <> "/events.sqlite" 
     o <- SQL.open db' 
     f <- createDb o
-    kp <- dbIdentity o     
+    kp <- dbIdentity o
+    wr <- newTChanIO
+    forkIO $ insertLoop wr
     localIdentity <- exportPub kp
     ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
     case parseIniFile ctxt $ section "d" do 
@@ -41,4 +45,4 @@ main = do
 
         of 
         Left err -> print ("config error: " <> conf') >> print err
-        Right conf -> runRelay conf o f  
+        Right conf -> runRelay conf (wr, o) f  

@@ -57,14 +57,14 @@ n11 (RC n d c _ k)= do
     (.=+) :: KeyValue k => Key -> Text -> k 
     (.=+) = (.=)
 
-runRelay :: RelayConf -> SQL.Connection -> TChan Event -> IO ()
+runRelay :: RelayConf -> WriteReadDb -> TChan Event -> IO ()
 runRelay conf@(RC _ _ _ p _) o f =  
     W.run p $ websocketsOr defaultConnectionOptions 
         (acceptRequest >=> relay o f) 
         (serve (Proxy :: Proxy Nip11) (n11 conf)) 
 
-relay :: SQL.Connection -> TChan Event -> ClientApp () 
-relay db chan ws = do
+relay :: WriteReadDb -> TChan Event -> ClientApp () 
+relay (wr, db) chan ws = do
     chan' <- atomically $ dupTChan chan
     s <- newTVarIO M.empty
     r <- decodeUtf8 . Hex.encode <$> getEntropy 32
@@ -93,8 +93,9 @@ relay db chan ws = do
                     a <- readTVarIO au
                     void $ WS.sendTextDatas ws 
                          $ P.map (encode . See s) $ P.filter (isSend a) ex   
+                    void $ WS.sendTextData ws . encode $ Live s
                     atomically $ modifyTVar subs (M.insert s fx) 
-                Submit e -> submit db ws e 
+                Submit e -> submit (wr, db) ws e 
                 End s -> atomically $ modifyTVar subs (M.delete s)
                 Auth t -> do 
                     a <- readTVarIO au
@@ -106,7 +107,7 @@ relay db chan ws = do
                                 Just p -> atomically $ writeTVar au (Right p)
                                 Nothing -> pure () 
                 CountU s fx -> do 
-                    n <- sum . L.concatMap (P.map fromIntegral) -- sum . L.concat . P.map fromInteger 
+                    n <- sum . L.concatMap (P.map fromIntegral)  
                         <$> mapM (countFx db) fx 
                     void $ WS.sendTextData ws . encode 
                          $ CountD s n 
@@ -128,11 +129,11 @@ findKeyByValue :: (a -> Bool) -> M.Map k a -> Maybe k
 findKeyByValue f = M.foldlWithKey' (\acc k v -> 
     if f v then Just k else acc) Nothing
 
-submit :: SQL.Connection -> WS.Connection -> Event -> IO () 
-submit db ws e = do 
+submit :: WriteReadDb -> WS.Connection -> Event -> IO () 
+submit (wr, db)  ws e = do 
     trust <- verifyE e
     if not trust then reply False (Invalid "signature failed")
-    else do  
+    else atomically $ writeTChan wr do  
         insRes <- mask_ $ insertEv db e  
         case insRes of 
             Left (SQLError ErrorConstraint t _) -> 

@@ -39,7 +39,14 @@ import Data.Time.Clock.POSIX
 import Data.Foldable as F
 import Text.URI
 
-type WriteReadDb = (TChan Event, Connection)
+type WriteDb = TChan (IO ())
+
+type WriteReadDb = (WriteDb, Connection)
+
+insertLoop :: WriteDb -> IO () 
+insertLoop tc = forever do 
+    ins <- atomically (readTChan tc) 
+    ins
 
 createDb :: Connection -> IO (TChan Event) 
 createDb o = do 
@@ -97,10 +104,6 @@ removeEv ee' = do
     runDelete $ B.delete (_events spec') 
                 (\a -> (val_ ee' ==.) . _eid $ a) 
 
-insertEvs :: WriteReadDb -> IO () 
-insertEvs (tc, db) = forever do 
-    e <- atomically (readTChan tc)
-    insertEv db e
 
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
