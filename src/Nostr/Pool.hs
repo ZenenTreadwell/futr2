@@ -85,11 +85,10 @@ feeder kp uri ch (wr, db) ws = race_ (forever broadcast) (forever acceptcast)
                 trust <- verifyE e 
                 when trust do 
                     pri "ev"
-                    atomically . writeTChan wr $ 
-                        (void $ insertEv db e)
-                    -- XXX
-                    atomically . writeTChan wr $ 
-                        insertOrigin db uri (eid e)
+                    atomically . writeTChan wr . void 
+                        $ insertEv db e
+                    atomically . writeTChan wr 
+                        $ insertOrigin db uri (eid e)
             Live l -> print $ "--------live " <> l
             Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
             Notice note -> pri $ "note:" <> note 
@@ -107,14 +106,14 @@ byeRelay (Pool tv _ _) uri = do
 
 castAll :: Pool -> Up -> IO () 
 castAll (Pool tv _ _) u = do 
-    tv' <- atomically $ readTVar tv  
+    tv' <- readTVarIO tv  
     mapM_ xyz tv'  
     where xyz :: Feed -> IO () 
           xyz (Feed uch _) = atomically $ writeTChan uch u 
     
 castOne :: Pool -> URI -> Up -> IO () 
 castOne (Pool tv _ _) uri m = do 
-    tv' <- atomically $ readTVar tv  
+    tv' <- readTVarIO tv  
     case M.lookup uri tv' of 
         Just (Feed uch _) -> atomically $ writeTChan uch m 
         _ -> pure () 

@@ -66,7 +66,8 @@ kind1 (Event _ _ (Content {content})) =
     (noimglinks, mapMaybe mkURI -> imglinks) = content ~=~ "http.+(jpg|png)" 
     (nolinks, mapMaybe mkURI -> othlinks) = noimglinks ~=~ "http[^[:space:]]+" 
     (nohtgs, map ttxn -> hashtags)  = nolinks ~=~ "#[^[:space:]]+" 
-    
+
+    --- XXX nip19 / nip21
     (nonoes, map ptxn . mapMaybe (xnpub) -> mentions) = nohtgs ~=~ "npub[^[:space:]]+"
     
     in 
