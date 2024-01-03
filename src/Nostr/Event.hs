@@ -81,7 +81,11 @@ instance Sign Content where
                 let newE = Event eid sig' content
                 trust <- verifyE newE
                 if trust then pure newE
-                         else sign kp content 
+                else do 
+                    pu <- exportPub kp 
+                    if pu /= pubkey content 
+                    then error "sign with wrong key"
+                    else sign kp content 
             _ -> free sig >> error "schnorrSign error"
              
 idE :: Content -> Hex32
