@@ -17,6 +17,11 @@ import Nostr.Keys
 import Data.Int
 import Data.Text.Encoding
 import Data.Aeson.Text
+import Data.Time.Clock.POSIX
+import Network.HTTP.Req 
+import Data.Maybe
+import Text.URI (URI)
+import Text.URI.QQ (uri)
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  
@@ -28,23 +33,56 @@ verifyE Event{..}
         (== 1) <$> schnorrSignatureVerify ctx sig' msg' 32 pub' 
     | otherwise = pure False 
 
-signE :: Hex96 -> Keyless -> IO Event
-signE kp keyless = do
-    content <- keyless <$> exportPub kp
-    let eid = idE content
-    (priv, 96) <- getPtr (un96 kp)
-    sig <- mallocBytes 64
-    (msg, 32) <- getPtr . un32 $ eid 
-    (salt, 32) <- genSalt
-    ret <- schnorrSign ctx sig msg priv salt
-    case ret of 
-        1 -> do 
-            sig' <- Hex64 <$> packPtr (sig, 64)
-            let newE = Event eid sig' content
-            trust <- verifyE newE
-            if trust then pure newE
-                     else signE kp keyless -- signE kp keyless 
-        _ -> free sig >> error "schnorrSign error"
+
+type Keyless = (Hex32 -> Content)
+
+signE :: Sign x => Hex96 -> x -> IO Event
+signE = sign
+
+class Sign c where 
+    sign :: Hex96 -> c -> IO Event
+
+instance Sign (Int -> [Tag] -> Text -> Integer -> Hex32 -> Content) where 
+    sign kp conless = sign kp $ conless 1
+
+instance Sign ([Tag] -> Text -> Integer -> Hex32 -> Content) where 
+    sign kp conless = sign kp $ conless []
+
+instance Sign (Text -> Integer -> Hex32 -> Content) where 
+    sign kp conless = 
+        let u = fst [urlQ|https://buddha-api.com/api/random|]
+            r = req GET u NoReqBody jsonResponse mempty
+        in do 
+            (fromMaybe "~" . (parseMaybe (.: "text")) . responseBody -> t ) 
+                <- runReq defaultHttpConfig r 
+            sign kp $ conless t
+
+instance Sign (Integer -> Hex32 -> Content) where 
+    sign kp timeless = do 
+        keyless <- timeless . round <$> getPOSIXTime 
+        sign kp keyless
+
+instance Sign (Hex32 -> Content) where 
+    sign kp keyless = do 
+        content <- keyless <$> exportPub kp
+        sign kp content    
+
+instance Sign Content where 
+    sign kp content = do
+        let eid = idE content
+        (priv, 96) <- getPtr (un96 kp)
+        sig <- mallocBytes 64
+        (msg, 32) <- getPtr . un32 $ eid 
+        (salt, 32) <- genSalt
+        ret <- schnorrSign ctx sig msg priv salt
+        case ret of 
+            1 -> do 
+                sig' <- Hex64 <$> packPtr (sig, 64)
+                let newE = Event eid sig' content
+                trust <- verifyE newE
+                if trust then pure newE
+                         else sign kp content 
+            _ -> free sig >> error "schnorrSign error"
              
 idE :: Content -> Hex32
 idE Content{..} = Hex32 
@@ -77,7 +115,6 @@ data Content = Content {
 instance ToJSON Content
 instance FromJSON Content
 
-type Keyless = (Hex32 -> Content)
 
 instance ToJSON Event where 
     toJSON (Event i s (Content{..})) = object [

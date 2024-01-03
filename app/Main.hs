@@ -49,8 +49,7 @@ main = do
     t <- newTChanIO
     let futr = Futr p f db t
     _ <- fetchHex futr pub
-    sec :: Integer <- round <$> getPOSIXTime
-    e <- signE kp $ Content 1 [] "this is a test"  sec
+    e <- signE kp Content 
     startApp (AppModel e [] Uni) (appHandle futr) (appBuild futr)
             [ appWindowTitle "futr"
             , appWindowIcon "./assets/images/icon.png"

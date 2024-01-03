@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes #-}
+
 module Nostr.Boots where 
 
 import Text.URI (URI)

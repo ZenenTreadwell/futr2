@@ -94,6 +94,7 @@ default-extensions:
 - EmptyDataDecls
 - DoAndIfThenElse
 - TupleSections
+- QuasiQuotes
 
 ghc-options:
 - -Wall

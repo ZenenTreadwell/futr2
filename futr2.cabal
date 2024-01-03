@@ -66,6 +66,7 @@ library
       EmptyDataDecls
       DoAndIfThenElse
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -fno-warn-orphans
   pkgconfig-depends:
       libsecp256k1
@@ -139,6 +140,7 @@ executable futr
       EmptyDataDecls
       DoAndIfThenElse
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -213,6 +215,7 @@ executable relay
       EmptyDataDecls
       DoAndIfThenElse
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -294,6 +297,7 @@ test-suite futr2-test
       EmptyDataDecls
       DoAndIfThenElse
       TupleSections
+      QuasiQuotes
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
