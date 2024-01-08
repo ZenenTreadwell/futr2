@@ -31,11 +31,13 @@ import Nostr.Pool (poolParty)
 import Nostr.Filter 
 import Futr.Gui 
 import Futr.LiveImgs 
+import Futr.Imgs
 import Futr.TagSearch
 import Futr.App
 
 import Data.Typeable
 import Control.Concurrent
+
 
 main :: IO ()
 main = do 
@@ -60,8 +62,10 @@ main = do
 
 appBuild :: Futr -> AppUIBuilder AppModel AppEvent 
 appBuild futr _ m@(AppModel{showMode}) = flip styleBasic [padding 20] . vstack $ [ 
-      hstack [ 
+        box drawImg `styleBasic` [height 250]
+      , hstack [ 
             -- button "doge"  (SetPage Doge)
+
           -- , 
             button "explore?" (SetPage Uni) `styleBasic` [width 123]     
           -- , button "bull" (SetPage Bull)

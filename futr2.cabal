@@ -61,6 +61,7 @@ library
       NamedFieldPuns
       ScopedTypeVariables
       TypeApplications
+      TypeFamilies
       RankNTypes
       ForeignFunctionInterface
       EmptyDataDecls
@@ -73,6 +74,7 @@ library
   build-depends:
       JuicyPixels
     , QuickCheck
+    , Rasterific
     , aeson
     , async
     , base >=4.7 && <5
@@ -89,13 +91,16 @@ library
     , containers
     , cryptohash-sha256
     , cryptonite
+    , diagrams-contrib
+    , diagrams-core
+    , diagrams-lib
+    , diagrams-rasterific
     , directory
     , entropy
     , hspec
     , memory
     , modern-uri
     , monomer
-    , monomer-hagrid
     , mtl
     , regex-tdfa
     , req
@@ -135,6 +140,7 @@ executable futr
       NamedFieldPuns
       ScopedTypeVariables
       TypeApplications
+      TypeFamilies
       RankNTypes
       ForeignFunctionInterface
       EmptyDataDecls
@@ -147,6 +153,7 @@ executable futr
   build-depends:
       JuicyPixels
     , QuickCheck
+    , Rasterific
     , aeson
     , async
     , base >=4.7 && <5
@@ -163,6 +170,10 @@ executable futr
     , containers
     , cryptohash-sha256
     , cryptonite
+    , diagrams-contrib
+    , diagrams-core
+    , diagrams-lib
+    , diagrams-rasterific
     , directory
     , entropy
     , futr2
@@ -170,7 +181,6 @@ executable futr
     , memory
     , modern-uri
     , monomer
-    , monomer-hagrid
     , mtl
     , regex-tdfa
     , req
@@ -210,6 +220,7 @@ executable relay
       NamedFieldPuns
       ScopedTypeVariables
       TypeApplications
+      TypeFamilies
       RankNTypes
       ForeignFunctionInterface
       EmptyDataDecls
@@ -222,6 +233,7 @@ executable relay
   build-depends:
       JuicyPixels
     , QuickCheck
+    , Rasterific
     , aeson
     , async
     , base >=4.7 && <5
@@ -238,6 +250,10 @@ executable relay
     , containers
     , cryptohash-sha256
     , cryptonite
+    , diagrams-contrib
+    , diagrams-core
+    , diagrams-lib
+    , diagrams-rasterific
     , directory
     , entropy
     , futr2
@@ -245,7 +261,6 @@ executable relay
     , memory
     , modern-uri
     , monomer
-    , monomer-hagrid
     , mtl
     , regex-tdfa
     , req
@@ -292,6 +307,7 @@ test-suite futr2-test
       NamedFieldPuns
       ScopedTypeVariables
       TypeApplications
+      TypeFamilies
       RankNTypes
       ForeignFunctionInterface
       EmptyDataDecls
@@ -304,6 +320,7 @@ test-suite futr2-test
   build-depends:
       JuicyPixels
     , QuickCheck
+    , Rasterific
     , aeson
     , async
     , base >=4.7 && <5
@@ -320,6 +337,10 @@ test-suite futr2-test
     , containers
     , cryptohash-sha256
     , cryptonite
+    , diagrams-contrib
+    , diagrams-core
+    , diagrams-lib
+    , diagrams-rasterific
     , directory
     , entropy
     , futr2
@@ -327,7 +348,6 @@ test-suite futr2-test
     , memory
     , modern-uri
     , monomer
-    , monomer-hagrid
     , mtl
     , regex-tdfa
     , req
