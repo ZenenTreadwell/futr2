@@ -6,8 +6,6 @@ import Control.Exception
 import Network.WebSockets as WS
 import Wuss
 import Database.SQLite.Simple as SQL
-import Network.Connection as C 
-import Network.TLS as TLS
 import Text.URI as URI
 import Data.Text as T
 import Control.Concurrent.STM.TChan
@@ -171,9 +169,9 @@ directF p = emptyF {
 
 gottaCatchemAll :: URI -> TVar Pool' -> IO () -> IO ()  
 gottaCatchemAll uri tv = 
-      handle conerr2 
-    . handle handerr 
-    . handle tlserr 
+      -- handle conerr2 
+    -- . handle tlserr 
+      handle handerr 
     . handle urierr 
     . handle cryerr 
     . handle cryerr3
@@ -186,10 +184,10 @@ gottaCatchemAll uri tv =
               . P.take 227 . show $ z
     urierr :: URI.ParseException -> IO () 
     urierr = caught  showrender
-    tlserr :: TLS.TLSException -> IO () 
-    tlserr = caught showrender
-    conerr2 :: C.HostCannotConnect -> IO () 
-    conerr2 = caught  showrender
+    -- tlserr :: TLS.TLSException -> IO () 
+    -- tlserr = caught showrender
+    -- conerr2 :: C.HostCannotConnect -> IO () 
+    -- conerr2 = caught  showrender
     handerr :: WS.HandshakeException -> IO () 
     handerr = caught  showrender
     cryerr :: WS.ConnectionException -> IO () 

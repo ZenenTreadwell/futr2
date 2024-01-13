@@ -87,7 +87,6 @@ library
     , bytestring
     , bytestring-to-vector
     , config-ini
-    , connection
     , containers
     , cryptohash-sha256
     , cryptonite
@@ -110,7 +109,6 @@ library
     , stm
     , text
     , time
-    , tls
     , transformers
     , vector
     , wai
@@ -166,7 +164,6 @@ executable futr
     , bytestring
     , bytestring-to-vector
     , config-ini
-    , connection
     , containers
     , cryptohash-sha256
     , cryptonite
@@ -190,7 +187,6 @@ executable futr
     , stm
     , text
     , time
-    , tls
     , transformers
     , vector
     , wai
@@ -246,7 +242,6 @@ executable relay
     , bytestring
     , bytestring-to-vector
     , config-ini
-    , connection
     , containers
     , cryptohash-sha256
     , cryptonite
@@ -270,7 +265,6 @@ executable relay
     , stm
     , text
     , time
-    , tls
     , transformers
     , vector
     , wai
@@ -333,7 +327,6 @@ test-suite futr2-test
     , bytestring
     , bytestring-to-vector
     , config-ini
-    , connection
     , containers
     , cryptohash-sha256
     , cryptonite
@@ -357,7 +350,6 @@ test-suite futr2-test
     , stm
     , text
     , time
-    , tls
     , transformers
     , vector
     , wai

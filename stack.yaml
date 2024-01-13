@@ -1,17 +1,26 @@
 
-resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/20.yaml
+resolver: nightly-2024-01-10
 
 packages:
 - .
 
 extra-deps:
 - clplug-0.4.0.0
-- monomer-1.5.1.0
-- monomer-hagrid-0.3.1.1
-- git: https://github.com/AutonomousOrganization/beam # -- https://github.com/AutonomousOrganization/beam
+- /media/o/o2/Code/monomer
+- git: https://github.com/AutonomousOrganization/beam 
   commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
   subdirs: 
     - beam-core
     - beam-sqlite
     - beam-migrate
+- diagrams-contrib-1.4.5.1
+- diagrams-lib-1.4.6
+- diagrams-rasterific-1.4.2.3
+- sdl2-2.5.5.0
+- vector-sized-1.5.0
+- cubicbezier-0.6.0.7
+- finite-typelits-0.1.6.0
+- force-layout-0.4.0.6
+- vector-space-0.16
+- MemoTrie-0.6.11
+- newtype-generics-0.6.2

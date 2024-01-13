@@ -12,20 +12,6 @@ packages:
   original:
     hackage: clplug-0.4.0.0
 - completed:
-    hackage: monomer-1.5.1.0@sha256:0441ecfb767c716015d4baace5bd66eda62bb65afdca0ca3ad7d81a9d4bd1353,17356
-    pantry-tree:
-      sha256: f803a19d455fad33a0e02db0aac1996d53f70e8311e480ca1752085c81d1690c
-      size: 14513
-  original:
-    hackage: monomer-1.5.1.0
-- completed:
-    hackage: monomer-hagrid-0.3.1.1@sha256:3f1977428fa9a022a57f5622dfcf083a380bd478a5e719c99dc3f6a0fb6e337a,5564
-    pantry-tree:
-      sha256: 3faeb276e564b428f60665c0fc5c6a398994027f23287680615233996ac48225
-      size: 662
-  original:
-    hackage: monomer-hagrid-0.3.1.1
-- completed:
     commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
     git: https://github.com/AutonomousOrganization/beam
     name: beam-core
@@ -64,10 +50,86 @@ packages:
     commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
     git: https://github.com/AutonomousOrganization/beam
     subdir: beam-migrate
+- completed:
+    hackage: diagrams-contrib-1.4.5.1@sha256:6bda0198aee14b7553ec60c53fefc31ff66629ee9004228d743d7b08c91fea74,4650
+    pantry-tree:
+      sha256: d63fe9d866e3e261b0f6e86dd48980e75370e27790c4bd672414d7259a12de68
+      size: 11388
+  original:
+    hackage: diagrams-contrib-1.4.5.1
+- completed:
+    hackage: diagrams-lib-1.4.6@sha256:6a96abb1d27b25ec465cea90d3221df07c8796fc03602643957e95a96b836325,8202
+    pantry-tree:
+      sha256: cd6ac6d72993a2d80637161f9013b71185f15bd69656b73487574e69f3cb273c
+      size: 11604
+  original:
+    hackage: diagrams-lib-1.4.6
+- completed:
+    hackage: diagrams-rasterific-1.4.2.3@sha256:4f2f710e90912fe4652379e3760097352f6ea549fee948830870c3c420b64427,3174
+    pantry-tree:
+      sha256: 5a87b9582e60decec5c7747b3fff3069cda7aad05c939874205c80cab7bce64c
+      size: 1387
+  original:
+    hackage: diagrams-rasterific-1.4.2.3
+- completed:
+    hackage: sdl2-2.5.5.0@sha256:9d1125181e651518ea960738266e3cef98c0c4fa2d5f9c35e67f4b0f87fd1464,12695
+    pantry-tree:
+      sha256: edba7eb6774cf869abc597f518e0491473cfbee2a91bc7416e25b7447730b335
+      size: 6641
+  original:
+    hackage: sdl2-2.5.5.0
+- completed:
+    hackage: vector-sized-1.5.0@sha256:1c85b70dbfe6fbdcc58d2706c626e6e38d1900276bbb6f1ba6cfee83941f45e6,1836
+    pantry-tree:
+      sha256: 026c260a2c1c6b2deab166dcbeb8888eb284d7e9e73ab837d88d530933929588
+      size: 1302
+  original:
+    hackage: vector-sized-1.5.0
+- completed:
+    hackage: cubicbezier-0.6.0.7@sha256:ded06a45d1ffa8b5ae39dbe525c7a09676ecad543da3bed12e5f0e79a0426f90,2327
+    pantry-tree:
+      sha256: ef4f500b656c51f32f549bedf4a5f39679ad4be6cf3bc3384e197134ff5649f7
+      size: 1029
+  original:
+    hackage: cubicbezier-0.6.0.7
+- completed:
+    hackage: finite-typelits-0.1.6.0@sha256:b9f22e8a03a4f9ccc1e558340babdbb980de752a2a29a395f39cc839212cf56c,1128
+    pantry-tree:
+      sha256: 380c6700d4e75cb7020a5232e31cfa7f40567bf171dbb4fc30314cafb07dce5a
+      size: 340
+  original:
+    hackage: finite-typelits-0.1.6.0
+- completed:
+    hackage: force-layout-0.4.0.6@sha256:9270e4333ac3bac705d1ed742523b31849dfa7df48a3721f98e2ac05bc07dbd0,1321
+    pantry-tree:
+      sha256: 062299837db65635bbdd24ad621bf08e25e0e67f0adfbf2a2021a4d65822f014
+      size: 276
+  original:
+    hackage: force-layout-0.4.0.6
+- completed:
+    hackage: vector-space-0.16@sha256:3b93ce68ceb96b173d472b17c89283e5a652a270a40b33f49d65d8b7dd4492e8,2016
+    pantry-tree:
+      sha256: 842ccf892e4423602bed855f1712b16299b18c16edac29f0e2d1490f2e0a4991
+      size: 724
+  original:
+    hackage: vector-space-0.16
+- completed:
+    hackage: MemoTrie-0.6.11@sha256:edda47de940a047237c395a85ac3216db6d25888002293853d7eebd01beb5da6,1516
+    pantry-tree:
+      sha256: 38df5299ea29682697353800ff19a014c0b92ac436d939d1b62755f764a1b40f
+      size: 274
+  original:
+    hackage: MemoTrie-0.6.11
+- completed:
+    hackage: newtype-generics-0.6.2@sha256:81cbf377241a186ac210bb60417ac3a23ea576257b01ec7be7051790b225daeb,2053
+    pantry-tree:
+      sha256: ddde4d87ffe9cc06a61855aab18e101ae6125032a9cd6f91af06b79b07530255
+      size: 455
+  original:
+    hackage: newtype-generics-0.6.2
 snapshots:
 - completed:
-    sha256: 5921ddc75f5dd3f197fbc32e1e5676895a8e7b971d4f82ef6b556657801dd18a
-    size: 640054
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/20.yaml
-  original:
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/20.yaml
+    sha256: fb194ea04d72ba9680dc67ce413af055913d48fee1e7e2433e2d36441c19e094
+    size: 556051
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2024/1/10.yaml
+  original: nightly-2024-01-10

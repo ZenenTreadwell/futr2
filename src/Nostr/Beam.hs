@@ -29,7 +29,7 @@ import Nostr.Kinds
 import Data.Aeson
 import Data.Int
 import Nostr.Db
-import Control.Monad.State
+import Control.Monad
 import Control.Monad.STM
 import Control.Exception
 import Control.Concurrent.STM.TChan

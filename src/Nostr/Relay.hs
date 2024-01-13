@@ -50,11 +50,11 @@ n11 (RC n d c _ k)= do
         , "supported_nips" .= 
              ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
               :: [Int])
-        , "software" .=+ "http://github.com/autonomousorganization/futr2"  
+        , "software" .=+ ""  
         , "version" .=+ "0.0.0.0"
         ]
     where 
-    (.=+) :: KeyValue k => Key -> Text -> k 
+    (.=+) :: KeyValue Value k => Key -> Text -> k 
     (.=+) = (.=)
 
 runRelay :: RelayConf -> WriteReadDb -> TChan Event -> IO ()

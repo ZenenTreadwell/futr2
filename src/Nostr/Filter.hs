@@ -109,7 +109,7 @@ instance Matchable Until where
     matchM e (Until t) = (created_at . con $ e) < t
 
 class Keyable a where 
-    toKv :: KeyValue x => a -> x
+    toKv :: KeyValue Value x => a -> x
 
 instance Keyable Ids where 
     toKv (Ids t)     = "ids" .= t
