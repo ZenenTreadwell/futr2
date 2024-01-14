@@ -11,10 +11,10 @@ import DbT
 main :: IO ()
 main = do
   runLoops
+  dbT <- getDbTest
   nip1 <- nip1GetTest
   nip4 <- getNip4Test
   nip13 <- getNip13Test
-  dbT <- getDbTest
   hspec do 
     nip1
     nip4

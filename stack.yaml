@@ -1,18 +1,15 @@
 
-resolver: nightly-2024-01-10
+resolver: nightly-2024-01-14
 
 packages:
 - .
 
 extra-deps:
 - clplug-0.4.0.0
-- /media/o/o2/Code/monomer
-- git: https://github.com/AutonomousOrganization/beam 
-  commit: fee04061cfcb93b3b4df6a0df8b0c7d8230d94f7
-  subdirs: 
-    - beam-core
-    - beam-sqlite
-    - beam-migrate
+- monomer-1.6.0.1
+- beam-core-0.10.1.0
+- beam-sqlite-0.5.3.0
+- beam-migrate-0.5.2.1
 - diagrams-contrib-1.4.5.1
 - diagrams-lib-1.4.6
 - diagrams-rasterific-1.4.2.3

@@ -7,7 +7,6 @@ import Monomer as O
 import qualified Data.ByteString as B
 import Data.ByteString.Lazy as LB
 import Nostr.Event as N
-import Nostr.Pool
 import Control.Concurrent
 import Control.Concurrent.STM.TVar
 import Nostr.Kinds

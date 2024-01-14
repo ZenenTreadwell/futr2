@@ -1,4 +1,4 @@
-module Nostr.Pool where 
+module Futr.Pool where 
 
 import Prelude as P
 import Control.Concurrent
@@ -71,10 +71,9 @@ feeder kp uri ch (wr, db) ws = race_ (forever broadcast) (forever acceptcast)
                      >>= WS.sendTextData ws . encode
 
     acceptcast = receiveData ws >>= \c -> do 
-        pri "ce"
         case decode c of 
             Just dow -> downer dow  
-            _ -> error " feeder, acceptcast, Pool " 
+            _o -> error " feeder, acceptcast, Pool " 
     
     downer :: Down -> IO ()
     downer d =  
@@ -82,13 +81,12 @@ feeder kp uri ch (wr, db) ws = race_ (forever broadcast) (forever acceptcast)
             See _ e -> do  
                 trust <- verifyE e 
                 when trust do 
-                    pri "ev"
                     atomically . writeTChan wr . void 
                         $ insertEv db e
                     atomically . writeTChan wr 
                         $ insertOrigin db uri (eid e)
-            Live l -> print $ "--------live " <> l
-            Ok _ b c  -> pri $ "ok? " <> T.pack (P.show c)
+            Live l -> pri $ "--------live " <> l
+            Ok _ _ c  -> pri $ "ok? " <> T.pack (P.show c)
             Notice note -> pri $ "note:" <> note 
             Challenge t -> do
                 e <- authenticate kp uri t
@@ -117,14 +115,13 @@ castOne (Pool tv _ _) uri m = do
         _ -> pure () 
 
 signCastAll :: Pool -> Keyless -> IO () 
-signCastAll p@(Pool tv _ kp) kl = do 
+signCastAll p@(Pool _ _ kp) kl = do 
     u <- Submit <$> signE kp kl
     castAll p u 
 
-signCastOne :: Pool -> URI -> Keyless -> IO () 
-signCastOne p@(Pool tv _ kp) uri kl = do 
-    u <- Submit <$> signE kp kl
-    castOne p uri u
+signCastOne :: Sign s => Pool -> URI -> s -> IO () 
+signCastOne p@(Pool _ _ kp) uri kl = 
+    signE kp kl >>= castOne p uri . Submit 
 
 
 checkUri :: URI -> Maybe (ClientApp () -> IO ())

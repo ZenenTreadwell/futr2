@@ -109,7 +109,7 @@ removeEv ee' = do
 insertEv :: Connection -> Event -> IO (Either SQLError ())
 insertEv conn e@(Event i _ (Content{..})) = do 
     ex <- calcExpiry e
-    try . runBeamSqliteDebug print conn $ do
+    try . runBeamSqlite conn $ do
         runInsert $ insertOnConflict (_plebs spec') 
                                      (insertExpressions [Pleb (val_ $ wq pubkey)])
                                      anyConflict

@@ -9,10 +9,8 @@ version:        0.1.0.0
 description:    Types for interacting with the nostr network, relay and client..
 homepage:       https://github.com/autonomousorganization/futr2#readme
 bug-reports:    https://github.com/autonomousorganization/futr2/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2023 Author name here
-license:        BSD3
+copyright:      2024
+license:        BS
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -29,6 +27,7 @@ library
       Futr.Gui
       Futr.Imgs
       Futr.LiveImgs
+      Futr.Pool
       Futr.TagSearch
       Nostr.Auth
       Nostr.Beam
@@ -39,7 +38,6 @@ library
       Nostr.Filter
       Nostr.Keys
       Nostr.Kinds
-      Nostr.Pool
       Nostr.Relay
       Nostr.Wire
       Secp256k1.Internal
@@ -77,7 +75,7 @@ library
     , Rasterific
     , aeson
     , async
-    , base >=4.7 && <5
+    , base >=4.19 && <5
     , base16-bytestring
     , base64-bytestring
     , beam-core
@@ -154,7 +152,7 @@ executable futr
     , Rasterific
     , aeson
     , async
-    , base >=4.7 && <5
+    , base >=4.19 && <5
     , base16-bytestring
     , base64-bytestring
     , beam-core
@@ -232,7 +230,7 @@ executable relay
     , Rasterific
     , aeson
     , async
-    , base >=4.7 && <5
+    , base >=4.19 && <5
     , base16-bytestring
     , base64-bytestring
     , beam-core
@@ -317,7 +315,7 @@ test-suite futr2-test
     , Rasterific
     , aeson
     , async
-    , base >=4.7 && <5
+    , base >=4.19 && <5
     , base16-bytestring
     , base64-bytestring
     , beam-core

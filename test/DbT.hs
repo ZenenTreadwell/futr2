@@ -79,7 +79,7 @@ getDbTest = do
     insertEv o mE7
     insertEv o mE8
     
-    return $ describe "database queries" do 
+    return $ describe "relay" do 
        it "replacable" $ do 
           f' <- content . con . P.head 
                 <$> fetch o emptyF{kindsF=(Just . Kinds $ [11111])}

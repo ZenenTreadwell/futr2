@@ -25,15 +25,14 @@ import Nostr.Filter (
 import Nostr.Event 
 import Nostr.Kinds
 import Nostr.Keys 
-import Nostr.Pool
         -- (exportPub, genKeyPair, xnpub, npub)
-import Nostr.Pool (poolParty)
 import Nostr.Filter 
 import Futr.Gui 
 import Futr.LiveImgs 
 import Futr.Imgs
 import Futr.TagSearch
 import Futr.App
+import Futr.Pool (poolParty, extractURI)
 
 import Data.Typeable
 import Control.Concurrent

@@ -2,16 +2,15 @@ module Futr.App where
 
 import Monomer 
 import Nostr.Keys
-import Nostr.Kinds
-import Nostr.Pool
 import Nostr.Event
 import Nostr.Filter
 import Nostr.Beam 
-
 import Control.Monad
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TChan
 import Database.SQLite.Simple
+
+import Futr.Pool
 
 type AppNode = WidgetNode AppModel AppEvent
 type AppEnv = WidgetEnv AppModel AppEvent
