@@ -1,3 +1,4 @@
 .stack-work/
 futr.sqlite
 *.sqlite
+dist-newstyle

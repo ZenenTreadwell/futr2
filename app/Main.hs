@@ -4,8 +4,6 @@ import Monomer hiding (Event)
 import Data.Text (Text, intercalate, splitOn, pack)
 import Text.URI (render)
 import Data.Maybe (mapMaybe)
-import Data.Time.Clock.POSIX
-import Control.Monad.STM
 import Control.Concurrent.STM.TChan
 import System.Directory (
           getHomeDirectory
@@ -15,18 +13,12 @@ import Database.SQLite.Simple (
           open
         , Connection ()
         )
-import Nostr.Beam (dbIdentity, createDb, fetch, fetchx)
-
-import Nostr.Filter (
-          emptyF 
-        , Filter (..)
-        , Kinds(Kinds)
-        )
 import Nostr.Event 
 import Nostr.Kinds
 import Nostr.Keys 
-        -- (exportPub, genKeyPair, xnpub, npub)
-import Nostr.Filter 
+import Nostr.Beam
+import Nostr.Db
+
 import Futr.Gui 
 import Futr.LiveImgs 
 import Futr.Imgs
@@ -35,7 +27,6 @@ import Futr.App
 import Futr.Pool (poolParty, extractURI)
 
 import Data.Typeable
-import Control.Concurrent
 
 
 main :: IO ()

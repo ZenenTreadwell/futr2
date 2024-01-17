@@ -9,7 +9,7 @@ import Data.Vector.Storable.ByteString
 import Data.Typeable
 import Diagrams.Core
 import Diagrams.Backend.Rasterific
-import Diagrams.Example.Logo
+import Diagrams.Example.Logo (logo)
 import Diagrams.TwoD
 
 

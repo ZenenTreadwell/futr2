@@ -118,7 +118,7 @@ packages:
     hackage: newtype-generics-0.6.2
 snapshots:
 - completed:
-    sha256: d6f7de20f9d885fee73539bad04c991452ee658a318a08bacc8bee1f2416fb85
-    size: 556886
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2024/1/14.yaml
-  original: nightly-2024-01-14
+    sha256: ebdaf8d4d6b365aac63aa06e57053313953d7a37d3eb84b0bbf5398734044952
+    size: 557524
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2024/1/17.yaml
+  original: nightly-2024-01-17

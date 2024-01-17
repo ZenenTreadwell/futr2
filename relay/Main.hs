@@ -9,7 +9,6 @@ import Data.Text.IO as TIO
 import System.Directory as D
 import Data.Ini.Config
 import Nostr.Event
-import Nostr.Db
 import Nostr.Beam
 import Nostr.Relay
 import Nostr.Keys
@@ -18,8 +17,6 @@ import Control.Concurrent.STM.TChan
 
 main :: IO () 
 main = do 
-    P.readFile "assets/images/futr.utf8ans" 
-        >>= mapM_ P.putStrLn . lines   
     d <- (<>"/.futr") <$> getHomeDirectory 
     createDirectoryIfMissing False d 
     let conf' = d <> "/futr.conf"
