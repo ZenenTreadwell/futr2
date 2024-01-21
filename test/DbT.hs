@@ -1,9 +1,11 @@
 module DbT where 
 import Test.Hspec
 import Prelude as P 
-import Nostr.Beam
 import Nostr.Filter
-import Nostr.Db
+import Nostr.Db.Schema
+import Nostr.Db.Fetch
+import Nostr.Db.Insert
+import Nostr.Db.Create
 import Golden
 import Database.SQLite.Simple
 import Control.Monad as M

@@ -6,7 +6,7 @@
     , PartialTypeSignatures
     #-}
 
-module Nostr.Db where
+module Nostr.Db.Schema where
 
 import Database.Beam
 import Database.Beam.Sqlite

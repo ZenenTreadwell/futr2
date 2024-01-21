@@ -17,7 +17,8 @@ import Control.Monad
 import Nostr.Event
 import Nostr.Wire 
 import Nostr.Filter 
-import Nostr.Beam
+import Nostr.Db.Schema
+import Nostr.Db.Insert
 import Nostr.Keys
 import Nostr.Auth
 import Data.Map as M
@@ -83,8 +84,8 @@ feeder kp uri ch (wr, db) ws = race_ (forever broadcast) (forever acceptcast)
                 when trust do 
                     atomically . writeTChan wr . void 
                         $ insertEv db e
-                    atomically . writeTChan wr 
-                        $ insertOrigin db uri (eid e)
+                    -- atomically . writeTChan wr 
+                    --     $ insertOrigin db uri (eid e)
             Live l -> pri $ "--------live " <> l
             Ok _ _ c  -> pri $ "ok? " <> T.pack (P.show c)
             Notice note -> pri $ "note:" <> note 

@@ -30,9 +30,11 @@ library
       Futr.Pool
       Futr.TagSearch
       Nostr.Auth
-      Nostr.Beam
       Nostr.Boots
-      Nostr.Db
+      Nostr.Db.Create
+      Nostr.Db.Fetch
+      Nostr.Db.Insert
+      Nostr.Db.Schema
       Nostr.Direct
       Nostr.Event
       Nostr.Filter

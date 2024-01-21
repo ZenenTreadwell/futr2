@@ -11,7 +11,7 @@ import Futr.Gui
 
 import Nostr.Event
 import Nostr.Filter
-import Nostr.Beam
+import Nostr.Db.Fetch
 import Nostr.Kinds
 import Nostr.Keys
 import Control.Concurrent.STM

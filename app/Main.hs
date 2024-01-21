@@ -16,8 +16,8 @@ import Database.SQLite.Simple (
 import Nostr.Event 
 import Nostr.Kinds
 import Nostr.Keys 
-import Nostr.Beam
-import Nostr.Db
+import Nostr.Db.Schema
+import Nostr.Db.Create
 
 import Futr.Gui 
 import Futr.LiveImgs 
@@ -35,7 +35,7 @@ main = do
     createDirectoryIfMissing False d 
     db <- open (d <> "/events.sqlite")
     f <- createDb db 
-    kp <- dbIdentity db
+    kp <- genKeyPair -- dbIdentity db
     pub <- exportPub kp
     p <- poolParty db kp 
     t <- newTChanIO

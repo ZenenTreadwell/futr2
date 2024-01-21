@@ -18,7 +18,9 @@ import Control.Monad.STM
 import Control.Concurrent.STM.TVar
 import Control.Concurrent
 import Nostr.Wire
-import Nostr.Beam
+import Nostr.Db.Schema
+import Nostr.Db.Insert
+import Nostr.Db.Fetch
 import Nostr.Event 
 import Nostr.Filter 
 import Nostr.Auth

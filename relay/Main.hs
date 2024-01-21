@@ -9,7 +9,8 @@ import Data.Text.IO as TIO
 import System.Directory as D
 import Data.Ini.Config
 import Nostr.Event
-import Nostr.Beam
+import Nostr.Db.Create
+import Nostr.Db.Insert
 import Nostr.Relay
 import Nostr.Keys
 import Control.Concurrent
@@ -23,7 +24,7 @@ main = do
         db'   = d <> "/events.sqlite" 
     o <- SQL.open db' 
     f <- createDb o
-    kp <- dbIdentity o
+    kp <- genKeyPair --dbIdentity o
     wr <- newTChanIO
     void . forkIO $ insertLoop wr
     localIdentity <- exportPub kp
@@ -43,3 +44,11 @@ main = do
         of 
         Left err -> print ("config error: " <> conf') >> print err
         Right conf -> runRelay conf (wr, o) f  
+
+
+
+-- dbIdentity o = do 
+--     idz <- runSelectReturningOne . select $ all_ (_identities spec')
+--     case idz of 
+--         Just i -> i 
+--         Nothing -> genKeyPair >>= (\me -> (insertId o me) >> pure me)

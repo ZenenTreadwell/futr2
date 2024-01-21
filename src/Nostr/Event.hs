@@ -33,7 +33,6 @@ verifyE Event{..}
         (== 1) <$> schnorrSignatureVerify ctx sig' msg' 32 pub' 
     | otherwise = pure False 
 
-
 type Keyless = (Hex32 -> Content)
 
 signE :: Sign x => Hex96 -> x -> IO Event
@@ -252,3 +251,6 @@ wq (toJSON -> a) = case a of
 
 qw :: FromJSON a => Text -> Maybe a
 qw = J.decode . BS.fromStrict . encodeUtf8 
+
+hashtag :: Tag -> BS.ByteString 
+hashtag = SHA256.hash  . BS.toStrict  . J.encode

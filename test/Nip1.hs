@@ -7,7 +7,6 @@ import Nostr.Keys
 import Nostr.Filter
 import Data.ByteString as BS
 import Data.Time.Clock.POSIX
-import Nostr.Beam
 
 nip1GetTest = do
     kp <- genKeyPair 

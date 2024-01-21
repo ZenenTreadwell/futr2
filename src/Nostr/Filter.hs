@@ -12,9 +12,6 @@ import GHC.Generics
 import Nostr.Event 
 import Nostr.Keys
 
-matchFx :: Event -> [Filter] -> Bool 
-matchFx = any . matchF 
-
 matchF :: Event -> Filter -> Bool
 matchF e' (Filter i a k e p s u _ _  ) = all id . catMaybes $ 
     [ matchM e' <$> i  

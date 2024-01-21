@@ -4,7 +4,7 @@ import Monomer
 import Nostr.Keys
 import Nostr.Event
 import Nostr.Filter
-import Nostr.Beam 
+import Nostr.Db.Fetch 
 import Control.Monad
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TChan
