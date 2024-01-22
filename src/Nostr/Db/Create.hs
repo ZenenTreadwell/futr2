@@ -8,12 +8,16 @@ import Database.Beam.Sqlite
 import Database.SQLite.Simple
 import Database.SQLite.Simple.Function
 import Database.Beam.Sqlite.Migrate
+import Database.Beam.Migrate.Generics
 
 import Database.Beam.Migrate.Simple
 import Control.Concurrent.STM.TChan
 import Data.Text (Text)
 
 import Control.Monad.STM
+
+spec :: CheckedDatabaseSettings Sqlite Db
+spec = defaultMigratableDbSettings 
 
 createDb :: Connection -> IO (TChan Event) 
 createDb o = do 

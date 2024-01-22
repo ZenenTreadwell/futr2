@@ -6,7 +6,7 @@ cabal-version: 1.12
 
 name:           futr2
 version:        0.1.0.0
-description:    Types for interacting with the nostr network, relay and client..
+description:    Types for nostr with relay
 homepage:       https://github.com/autonomousorganization/futr2#readme
 bug-reports:    https://github.com/autonomousorganization/futr2/issues
 copyright:      2024
@@ -68,6 +68,8 @@ library
       DoAndIfThenElse
       TupleSections
       QuasiQuotes
+      ConstraintKinds
+      PartialTypeSignatures
   ghc-options: -Wall -fno-warn-orphans
   pkgconfig-depends:
       libsecp256k1
@@ -145,6 +147,8 @@ executable futr
       DoAndIfThenElse
       TupleSections
       QuasiQuotes
+      ConstraintKinds
+      PartialTypeSignatures
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -223,6 +227,8 @@ executable relay
       DoAndIfThenElse
       TupleSections
       QuasiQuotes
+      ConstraintKinds
+      PartialTypeSignatures
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1
@@ -308,6 +314,8 @@ test-suite futr2-test
       DoAndIfThenElse
       TupleSections
       QuasiQuotes
+      ConstraintKinds
+      PartialTypeSignatures
   ghc-options: -Wall -fno-warn-orphans -threaded -rtsopts -with-rtsopts=-N
   pkgconfig-depends:
       libsecp256k1

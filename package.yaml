@@ -10,7 +10,7 @@ extra-source-files:
 - README.md
 - CHANGELOG.md
 
-description: "Types for interacting with the nostr network, relay and client.."      
+description: "Types for nostr with relay"      
 
 dependencies:
 - base >= 4.19 && < 5
@@ -98,6 +98,8 @@ default-extensions:
 - DoAndIfThenElse
 - TupleSections
 - QuasiQuotes
+- ConstraintKinds
+- PartialTypeSignatures
 
 ghc-options:
 - -Wall

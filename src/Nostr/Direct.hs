@@ -1,8 +1,5 @@
 module Nostr.Direct where 
 
--- | https://github.com/nostr-protocol/nips/blob/master/04.md
--- 
-
 import Prelude as P 
 import Crypto.Cipher.Types
 import Data.Text as T

@@ -20,10 +20,7 @@ import qualified Data.Text as T
 import Nostr.Event
 import Data.Time
 
-spec :: CheckedDatabaseSettings Sqlite Db
-spec = defaultMigratableDbSettings 
-
-spec' :: DatabaseSettings Sqlite Db
+spec' :: DatabaseSettings be Db
 spec' = defaultDbSettings
 
 type T = TableEntity

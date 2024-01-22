@@ -24,7 +24,6 @@ import Nostr.Auth
 import Data.Map as M
 import Data.Foldable
 import Data.Time.Clock.POSIX
-import Nostr.Boots
 
 poolParty :: SQL.Connection -> Hex96 -> IO Pool 
 poolParty db kp = do 
@@ -33,7 +32,7 @@ poolParty db kp = do
     let wr = (tc, db) 
     let pool = p wr kp
     sec :: Integer <- round <$> getPOSIXTime
-    mapM_ (addRelayP pool) (defaultRelay)
+    mapM_ (addRelayP pool) ([])
     u <- exportPub kp
     void . forkIO $ insertLoop tc
     castAll pool $ Subscribe "a" [ 
