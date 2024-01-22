@@ -20,104 +20,148 @@ import Database.Beam.Sqlite
 import Database.SQLite.Simple 
 import Database.Beam.Backend.SQL
 
-type MyConstraint f context be s =
-        (Sql92TableSourceExpressionSyntax
-                  (Sql92FromTableSourceSyntax
-                     (Sql92SelectTableFromSyntax
-                        (Sql92SelectSelectTableSyntax
-                           (Sql92SelectSyntax (BeamSqlBackendSyntax be)))))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Sql92ProjectionExpressionSyntax
-                  (Sql92SelectTableProjectionSyntax
-                     (Sql92SelectSelectTableSyntax
-                        (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Sql92InsertValuesExpressionSyntax
-                  (Sql92InsertValuesSyntax
-                     (Sql92InsertSyntax (BeamSqlBackendSyntax be)))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Sql92ExpressionSelectSyntax
-                  (Sql92UpdateExpressionSyntax
-                     (Sql92UpdateSyntax (BeamSqlBackendSyntax be)))
-                ~ Sql92SelectSyntax (BeamSqlBackendSyntax be),
-                Sql92OrderingExpressionSyntax
-                  (Sql92SelectOrderingSyntax
-                     (Sql92SelectSyntax (BeamSqlBackendSyntax be)))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Columnar f Text ~ QGenExpr context be s Text,
-                Sql92GroupingExpressionSyntax
-                  (Sql92SelectTableGroupingSyntax
-                     (Sql92SelectSelectTableSyntax
-                        (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Sql92FromExpressionSyntax
-                  (Sql92SelectTableFromSyntax
-                     (Sql92SelectSelectTableSyntax
-                        (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
-                ~ Sql92UpdateExpressionSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                Sql92ExpressionFieldNameSyntax
-                  (Sql92UpdateExpressionSyntax
-                     (Sql92UpdateSyntax (BeamSqlBackendSyntax be)))
-                ~ Sql92UpdateFieldNameSyntax
-                    (Sql92UpdateSyntax (BeamSqlBackendSyntax be)),
-                BeamSqlBackend be, BeamSqlBackendIsString be Text,
-                IsSql92AggregationExpressionSyntax
-                  (Sql92UpdateExpressionSyntax
-                     (Sql92UpdateSyntax (BeamSqlBackendSyntax be))),
-                Eq
-                  (Sql92UpdateExpressionSyntax
-                     (Sql92UpdateSyntax (BeamSqlBackendSyntax be))),
-                HasSqlValueSyntax
-                  (Sql92ExpressionValueSyntax
-                     (Sql92UpdateExpressionSyntax
-                        (Sql92UpdateSyntax (BeamSqlBackendSyntax be))))
-                  Text,
-                HasSqlValueSyntax
-                  (Sql92ExpressionValueSyntax
-                     (Sql92UpdateExpressionSyntax
-                        (Sql92UpdateSyntax (BeamSqlBackendSyntax be))))
-                  SqlNull) 
+type MyConstraint f be s =
+        (Database be Db
+        
+        , Columnar f Text ~ QGenExpr QValueContext be s Text
+        , f ~ QGenExpr QValueContext be s
+        -- , Sql92SanityCheck 
+        , BeamSqlBackend be
+        , HasSqlEqualityCheck be Text
+
+        , BeamSqlBackendIsString be Text
+
+        , HasSqlValueSyntax
+                          (Sql92ExpressionValueSyntax
+                             (Sql92UpdateExpressionSyntax
+                                (Sql92UpdateSyntax (BeamSqlBackendSyntax be))))
+                          Text
+        
+        , Sql92ExpressionFieldNameSyntax
+                          (Sql92UpdateExpressionSyntax
+                             (Sql92UpdateSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92UpdateFieldNameSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+        , Sql92InsertValuesSelectSyntax
+                          (Sql92InsertValuesSyntax
+                             (Sql92InsertSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92SelectSyntax (BeamSqlBackendSyntax be)
+
+        , Sql92ExpressionSelectSyntax
+                          (Sql92UpdateExpressionSyntax
+                             (Sql92UpdateSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92SelectSyntax (BeamSqlBackendSyntax be)
+            
+        , Sql92DeleteExpressionSyntax
+                          (Sql92DeleteSyntax (BeamSqlBackendSyntax be))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92OrderingExpressionSyntax
+                          (Sql92SelectOrderingSyntax
+                             (Sql92SelectSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92InsertValuesExpressionSyntax
+                          (Sql92InsertValuesSyntax
+                             (Sql92InsertSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92TableSourceExpressionSyntax
+                          (Sql92FromTableSourceSyntax
+                             (Sql92SelectTableFromSyntax
+                                (Sql92SelectSelectTableSyntax
+                                   (Sql92SelectSyntax (BeamSqlBackendSyntax be)))))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92ProjectionExpressionSyntax
+                          (Sql92SelectTableProjectionSyntax
+                             (Sql92SelectSelectTableSyntax
+                                (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92FromExpressionSyntax
+                          (Sql92SelectTableFromSyntax
+                             (Sql92SelectSelectTableSyntax
+                                (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92TableSourceSelectSyntax
+                          (Sql92FromTableSourceSyntax
+                             (Sql92SelectTableFromSyntax
+                                (Sql92SelectSelectTableSyntax
+                                   (Sql92SelectSyntax (BeamSqlBackendSyntax be)))))
+                        ~ Sql92SelectSyntax (BeamSqlBackendSyntax be)
+
+
+        , Sql92SelectSelectTableSyntax
+                          (Sql92SelectTableSelectSyntax
+                             (Sql92SelectSelectTableSyntax
+                                (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
+                        ~ Sql92SelectSelectTableSyntax
+                            (Sql92SelectSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92GroupingExpressionSyntax
+                          (Sql92SelectTableGroupingSyntax
+                             (Sql92SelectSelectTableSyntax
+                                (Sql92SelectSyntax (BeamSqlBackendSyntax be))))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+
+        , Sql92SelectTableExpressionSyntax
+                          (Sql92SelectSelectTableSyntax
+                             (Sql92SelectSyntax (BeamSqlBackendSyntax be)))
+                        ~ Sql92UpdateExpressionSyntax
+                            (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
+        )
+
 
 class Qable a where 
-    qf :: MyConstraint f context be s => 
-          EvT f -> a -> QGenExpr context be s Bool
+    qf :: MyConstraint f be s => EvT f -> a -> Q be Db s () -- (EvT (QExpr be s))
+
+--           EvT f -> a -> Q be Db s () -- (EvT (QExpr be s))
+--           -- QGenExpr context be s Bool
 
 instance Qable Ids where 
-    qf e (Ids px) =  foldr anym (val_ False) 
+    qf e (Ids px) = guard_ 
+                  . foldr anym (val_ False) 
                   . map (val_ . (<> "%")) 
                   $ px 
         where 
         anym = (||.) . like_ (_eid e)
 
 instance Qable Authors where 
-    qf e (Authors px) = foldr anym (val_ False) 
+    qf e (Authors px) = guard_
+                      . foldr anym (val_ False) 
                       . map (val_ . (<> "%"))
                       $ px
         where 
         anym = (||.) . like_ ((\(PlebId p) -> p) $ _pub e)
 
+
 -- XXX
--- instance Qable Kinds where 
---     qf e (Kinds kx) = in_ (_kind e)
---                     -- . _
---                     . map (fromIntegral :: Int -> Int32)
---                     $ kx
+instance Qable Kinds where 
+    qf e (Kinds kx) = guard_
+                    . in_ (_kind e)
+                    . map fromIntegral
+                    $ kx
+                    
 -- XXX 
 
--- instance Qable ETagM where 
---     qf e (ETagM (map (val_ . wq) -> ex)) = do  
---         ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
---                        (all_ (_replies spec'))
---         pure (_eidr ref `references_` e)
+instance Qable ETagM where 
+    qf e (ETagM (map (val_ . wq) -> ex)) = do  
+        ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
+                       (all_ (_replies spec'))
+        guard_ (_eidr ref `references_` e)
 
   
-getQf :: Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
+getQf :: -- MyConstraint f be s => 
+      Filter -> Q Sqlite Db s (EvT (QExpr Sqlite s))
 getQf fi@Filter{} = do  
     e <- all_ (_events spec')
     guard_ $ fromMaybe_ currentTimestamp_ (_expires e) >=. currentTimestamp_ 
@@ -131,21 +175,21 @@ fullQf (Filter {..}) e = do
     mguard authorsF       
 
     -- XXX converting this to mguard broke
-    -- mguard kindsF      
-    case kindsF of 
-            Just (Kinds (map fromIntegral -> kx)) -> 
-                guard_ (in_ (_kind e) kx)
-            _ -> pure () 
+    mguard kindsF      
+    -- case kindsF of 
+    --         Just (Kinds (map fromIntegral -> kx)) -> 
+    --             guard_ (in_ (_kind e) kx)
+    --         _ -> pure () 
             -- XXX
         
     -- XXX drawing board    
-    -- mguard etagF 
-    case etagF of 
-        Just (ETagM (map (val_ . wq) -> ex)) -> do  
-            ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
-                           (all_ (_replies spec'))
-            guard_ (_eidr ref `references_` e)
-        _ -> pure ()
+    mguard etagF 
+    -- case etagF of 
+    --     Just (ETagM (map (val_ . wq) -> ex)) -> do  
+    --         ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
+    --                        (all_ (_replies spec'))
+    --         guard_ (_eidr ref `references_` e)
+    --     _ -> pure ()
     case ptagF of 
         Just (PTagM (map (val_ . wq) -> px)) -> do 
             ref <- filter_ (\men -> in_ (_pidm men) px)
@@ -168,7 +212,7 @@ fullQf (Filter {..}) e = do
         
     where 
     mguard :: Qable s => Maybe s -> _ 
-    mguard = maybe (pure ()) (guard_ . qf e)      
+    mguard = maybe (pure ()) (qf e)      
             
 countFx :: Connection -> Filter -> IO [Int32]
 countFx db ff = runBeamSqlite db 
@@ -204,10 +248,10 @@ fetch db (Filter (Just (Ids tx@(all isHex32 -> True))) _ _ _ _ _ _ _ _ ) = do
     pure . mapMaybe (qw . _con) . catMaybes $ hx
         
 fetch db ff@Filter{..} =  
-    mapMaybe (qw . _con) <$> runBeamSqlite db (s' d') 
+    mapMaybe (qw . _con) <$> runBeamSqlite db (sf d) 
     where 
     -- s' :: _ -- Q Sqlite db x y 
-    s' = case limitF of 
+    sf = case limitF of 
        Just (Limit (fromIntegral -> x)) 
             -> runSelectReturningList . select 
                                       . limit_ x 
@@ -219,4 +263,4 @@ fetch db ff@Filter{..} =
                                    . nub_ 
                                    . orderBy_ (desc_ . _time) 
         
-    d' = getQf ff  
+    d = getQf ff  
