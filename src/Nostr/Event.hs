@@ -20,8 +20,6 @@ import Data.Aeson.Text
 import Data.Time.Clock.POSIX
 import Network.HTTP.Req 
 import Data.Maybe
-import Text.URI (URI)
-import Text.URI.QQ (uri)
 
 verifyE :: Event -> IO Bool 
 verifyE Event{..}  

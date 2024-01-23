@@ -67,6 +67,8 @@ dependencies:
 - beam-sqlite
 - beam-migrate
 - sqlite-simple
+# - beam-postgres
+# - postgresql-simple
 
 ## test
 - hspec

@@ -2,18 +2,14 @@ module Nostr.Db.Create where
 
 import Nostr.Event
 import Nostr.Db.Schema
-
-import Database.Beam
 import Database.Beam.Sqlite
 import Database.SQLite.Simple
 import Database.SQLite.Simple.Function
 import Database.Beam.Sqlite.Migrate
 import Database.Beam.Migrate.Generics
-
 import Database.Beam.Migrate.Simple
 import Control.Concurrent.STM.TChan
 import Data.Text (Text)
-
 import Control.Monad.STM
 
 spec :: CheckedDatabaseSettings Sqlite Db
@@ -42,3 +38,4 @@ eventfeed chan t = case qw t of
     Just e -> atomically $ writeTChan chan e
     _ -> pure () 
     >> pure "1"
+
