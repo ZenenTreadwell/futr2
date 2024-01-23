@@ -12,6 +12,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.List (nub)
 import Data.Aeson
+import Data.ByteString (ByteString)
 
 import Control.Monad
 
@@ -20,6 +21,7 @@ import Database.Beam.Sqlite
 import Database.SQLite.Simple 
 import Database.Beam.Backend.SQL
 
+-- XXX ._. XXX
 type MyConstraint f be s =
         (Database be Db
         
@@ -118,8 +120,21 @@ type MyConstraint f be s =
                              (Sql92SelectSyntax (BeamSqlBackendSyntax be)))
                         ~ Sql92UpdateExpressionSyntax
                             (Sql92UpdateSyntax (BeamSqlBackendSyntax be))
-        )
+        
+        , HasSqlValueSyntax
+                          (Sql92ExpressionValueSyntax
+                             (Sql92UpdateExpressionSyntax
+                                (Sql92UpdateSyntax (BeamSqlBackendSyntax be))))
+                          Int64
 
+        , HasSqlValueSyntax
+                          (Sql92ExpressionValueSyntax
+                             (Sql92UpdateExpressionSyntax
+                                (Sql92UpdateSyntax (BeamSqlBackendSyntax be))))
+                              ByteString
+                          
+        , HasSqlEqualityCheck be ByteString              
+        )
 
 class Qable a where 
     qf :: MyConstraint f be s => EvT f -> a -> Q be Db s () -- (EvT (QExpr be s))
@@ -143,21 +158,34 @@ instance Qable Authors where
         where 
         anym = (||.) . like_ ((\(PlebId p) -> p) $ _pub e)
 
-
--- XXX
 instance Qable Kinds where 
     qf e (Kinds kx) = guard_
                     . in_ (_kind e)
                     . map fromIntegral
                     $ kx
                     
--- XXX 
-
 instance Qable ETagM where 
     qf e (ETagM (map (val_ . wq) -> ex)) = do  
         ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
                        (all_ (_replies spec'))
         guard_ (_eidr ref `references_` e)
+
+instance Qable PTagM where 
+    qf e (PTagM (map (val_ . wq) -> px)) = do 
+        ref <- filter_ (\men -> in_ (_pidm men) px)
+                       (all_ $ _mentions spec')
+        guard_ (_eidm ref `references_` e)
+
+instance Qable Since where 
+    qf e (Since (fromIntegral -> s)) = guard_ $ _time e >. (val_ s) 
+
+instance Qable Until where 
+    qf e (Until (fromIntegral -> u)) = guard_ $ (_time e <. val_ u )
+
+instance Qable Tag where 
+    qf e az = do 
+        ref <- filter_ (\rf -> val_ (hashtag az) ==. _azref rf) (all_ (_azt spec'))
+        guard_ (_iieid ref `references_` e)
 
   
 getQf :: -- MyConstraint f be s => 
@@ -168,48 +196,15 @@ getQf fi@Filter{} = do
     fullQf fi e
     pure e
 
-                          
-                        
 fullQf (Filter {..}) e = do
     mguard idsF
     mguard authorsF       
-
-    -- XXX converting this to mguard broke
     mguard kindsF      
-    -- case kindsF of 
-    --         Just (Kinds (map fromIntegral -> kx)) -> 
-    --             guard_ (in_ (_kind e) kx)
-    --         _ -> pure () 
-            -- XXX
-        
-    -- XXX drawing board    
     mguard etagF 
-    -- case etagF of 
-    --     Just (ETagM (map (val_ . wq) -> ex)) -> do  
-    --         ref <- filter_ (\rep -> in_ (_eidrr rep) ex) 
-    --                        (all_ (_replies spec'))
-    --         guard_ (_eidr ref `references_` e)
-    --     _ -> pure ()
-    case ptagF of 
-        Just (PTagM (map (val_ . wq) -> px)) -> do 
-            ref <- filter_ (\men -> in_ (_pidm men) px)
-                           (all_ $ _mentions spec')
-            guard_ (_eidm ref `references_` e)
-        _ -> pure () 
-    case sinceF of 
-        Just (Since (fromIntegral -> s)) -> 
-            guard_ $ (_time e >. val_ s )
-        _ -> pure ()
-    case untilF of 
-        Just (Until (fromIntegral -> u)) -> 
-            guard_ $ (_time e <. val_ u )
-        _ -> pure () 
-    forM_ aztagF \case 
-        az -> do  
-            ref <- filter_ (\rf -> val_ (hashtag az) ==. _azref rf) (all_ (_azt spec'))
-            guard_ (_iieid ref `references_` e)
-        _ -> pure ()
-        
+    mguard ptagF
+    mguard sinceF
+    mguard untilF
+    forM_ aztagF (qf e)
     where 
     mguard :: Qable s => Maybe s -> _ 
     mguard = maybe (pure ()) (qf e)      
