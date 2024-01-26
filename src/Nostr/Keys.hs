@@ -12,11 +12,17 @@ import Foreign.Ptr
 import Secp256k1.Internal 
 import Data.Text (Text)
 import Codec.Binary.Bech32 as BECH
+import System.Entropy
 
-npub :: Hex32 -> Text
-npub (Hex32 b) = 
-  let Right prefix = humanReadablePartFromText "npub"
-  in case BECH.encode prefix . dataPartFromBytes $ b of
+npub (Hex32 b) = bechin "npub" b  
+
+nsec :: Hex96 -> Text 
+nsec (Hex96 b) = bechin "nsec" (BS.take 32 b)
+
+bechin :: Text -> ByteString -> Text
+bechin prefix bs =
+  let Right pf = humanReadablePartFromText prefix
+  in case BECH.encode pf . dataPartFromBytes $ bs of
       Right t -> t
       Left _ -> error "invalid npub"
 
@@ -65,7 +71,12 @@ parseHex = withText "HexByteString" $ \txt -> do
 
 genKeyPair :: IO Hex96
 genKeyPair = do 
-    (salt, 32) <- genSalt
+    x <- Hex32 <$> getEntropy 32
+    expandPriv x
+
+expandPriv :: Hex32 -> IO Hex96 
+expandPriv (Hex32 bs) = do
+    (salt, 32) <- getPtr bs
     keypair <- mallocBytes 96
     ret <- keyPairCreate ctx keypair salt
     case ret of 

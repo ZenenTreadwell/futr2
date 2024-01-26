@@ -69,7 +69,7 @@ copyX h x _ _ = do
     memcpy h x 32
     return 1     
 
--- XXX randomize for each sign/verify
+-- XXX randomize XXX
 ctx :: Ctx
 ctx = unsafePerformIO $ contextCreate 0x0301
 {-# NOINLINE ctx #-}

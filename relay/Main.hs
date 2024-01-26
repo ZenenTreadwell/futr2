@@ -12,9 +12,19 @@ import Nostr.Event
 import Nostr.Db.Create
 import Nostr.Db.Insert
 import Nostr.Relay
-import Nostr.Keys
 import Control.Concurrent
 import Control.Concurrent.STM.TChan
+
+import Database.Beam
+import Database.Beam.Sqlite
+
+import Nostr.Db.Schema
+import Nostr.Db.Insert
+import Nostr.Keys
+import Nostr.Event
+
+import Data.Aeson
+
 
 main :: IO () 
 main = do 
@@ -24,7 +34,21 @@ main = do
         db'   = d <> "/events.sqlite" 
     o <- SQL.open db' 
     f <- createDb o
-    kp <- genKeyPair --dbIdentity o
+    idz <- (runBeamSqlite o $ do    
+        runSelectReturningList . select $ do 
+            e <- all_ (_identities spec')
+            pure (_priv $ e)
+            )
+            
+    kp <- case idz of 
+        (xnpub -> Just i ) : _ -> expandPriv i   
+
+        _ -> do  
+            newKp <- genKeyPair 
+            runBeamSqlite o  
+                $ runInsert (insert (_identities spec') 
+                $ insertValues [Id (nsec newKp)])
+            pure newKp       
     wr <- newTChanIO
     void . forkIO $ insertLoop wr
     localIdentity <- exportPub kp
@@ -43,12 +67,12 @@ main = do
 
         of 
         Left err -> print ("config error: " <> conf') >> print err
-        Right conf -> runRelay conf (wr, o) f  
+        Right conf@(RC{rc_port}) -> do 
+        
+            P.putStrLn $ "nostr relay running on: " <> show rc_port 
+            
+            TIO.putStrLn . wq $ nip11 conf
+             
+            
+            runRelay conf (wr, o) f  
 
-
-
--- dbIdentity o = do 
---     idz <- runSelectReturningOne . select $ all_ (_identities spec')
---     case idz of 
---         Just i -> i 
---         Nothing -> genKeyPair >>= (\me -> (insertId o me) >> pure me)

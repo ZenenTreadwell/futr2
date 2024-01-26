@@ -39,25 +39,36 @@ type Listen = IO (Either WS.ConnectionException LB.ByteString)
 type Subs = M.Map Text [Filter] 
 type Auth = Either Text Hex32
 
-data RelayConf = RC Text Text Text Port Hex32 deriving (Show)
+data RelayConf = RC { 
+      rc_name :: Text 
+    , rc_contact :: Text 
+    , rc_description :: Text 
+    , rc_port :: Port 
+    , rc_pubkey :: Hex32 
+    } deriving (Show)
 
 type Nip11 = Get '[JSON] Text 
-n11 :: RelayConf -> Server Nip11
-n11 (RC n d c _ k)= do 
-    return . decodeUtf8 . BS.toStrict . encode . object $ [ 
-          "name" .=+ n
-        , "description" .=+ d 
-        , "pubkey" .=+ wq k 
-        , "contact" .=+ c
-        , "supported_nips" .= 
-             ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
-              :: [Int])
-        , "software" .=+ ""  
-        , "version" .=+ "0.0.0.0"
-        ]
+
+
+
+nip11 :: RelayConf -> Value
+nip11 (RC n d c _ k) = object [
+      "name" .=+ n
+    , "description" .=+ d 
+    , "pubkey" .=+ wq k 
+    , "contact" .=+ c
+    , "supported_nips" .= 
+         ([1, 2, 4, 9, 10, 45, 42, 40, 12, 16, 20, 33]
+          :: [Int])
+    , "software" .=+ "autonomousorganization/futr2"  
+    , "version" .=+ "0.0.0.0"
+    ] 
     where 
     (.=+) :: KeyValue Value k => Key -> Text -> k 
     (.=+) = (.=)
+
+n11 :: RelayConf -> Server Nip11
+n11 = return . decodeUtf8 . BS.toStrict . encode . nip11 
 
 runRelay :: RelayConf -> WriteReadDb -> TChan Event -> IO ()
 runRelay conf@(RC _ _ _ p _) o f =  
