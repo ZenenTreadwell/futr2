@@ -1,9 +1,9 @@
 name:                futr2
 version:             0.1.0.0
-github:              "autonomousorganization/futr2"
+github:              "ZenenTreadwell/futr2"
 license:             BS
-author:              ""
-maintainer:          ""
+author:              "Taylor Singleton-Fookes"
+maintainer:          "Zenen Treadwell"
 copyright:           "2024"
 
 extra-source-files:

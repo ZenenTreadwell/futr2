@@ -49,8 +49,10 @@ main = do
                 $ runInsert (insert (_identities spec') 
                 $ insertValues [Id (nsec newKp)])
             pure newKp       
+
     wr <- newTChanIO
     void . forkIO $ insertLoop wr
+
     localIdentity <- exportPub kp
     ctxt <- ("[d]\n" <>) . (<> "\n") <$> TIO.readFile conf' 
     case parseIniFile ctxt $ section "d" do 
@@ -68,6 +70,8 @@ main = do
         of 
         Left err -> print ("config error: " <> conf') >> print err
         Right conf@(RC{rc_port}) -> do 
+	    logo <- P.readFile "assets/images/futr.utf8ans"
+	    mapM_ P.putStrLn $ lines logo
         
             P.putStrLn $ "nostr relay running on: " <> show rc_port 
             

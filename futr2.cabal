@@ -5,10 +5,10 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           futr2
-version:        0.1.0.0
+version:        0.1.0.1
 description:    Types for nostr with relay
-homepage:       https://github.com/autonomousorganization/futr2#readme
-bug-reports:    https://github.com/autonomousorganization/futr2/issues
+homepage:       https://git.credenso.cafe/Credenso/futr2
+bug-reports:    https://git.credenso.cafe/Credenso/futr2/issues
 copyright:      2024
 license:        BS
 license-file:   LICENSE
@@ -19,7 +19,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/autonomousorganization/futr2
+  location: https://git.credenso.cafe/Credenso/futr2
 
 library
   exposed-modules:
